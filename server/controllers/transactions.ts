@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import Transac from "../models/transactions";
-import auth from "../middlewares/auth";
 
 // Get all transactions
 export const get_all_transactions = async (
@@ -29,6 +28,37 @@ export const get_transaction = async (
       return;
     }
     res.status(200).json(transaction);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error" });
+  }
+};
+
+// Get transaction summary per user
+export const get_transaction_summary = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId || req.body?.user_id;
+    if (!userId) {
+      res.status(400).json({ msg: "User not authenticated" });
+      return;
+    }
+    const transactions = await Transac.find({ user_id: userId });
+    let income = 0;
+    let expense = 0;
+    transactions.forEach((tx) => {
+      if (tx.category === "credit") {
+        income += tx.amount;
+      } else if (tx.category === "debit") {
+        expense += tx.amount;
+      }
+    });
+    const balance = income - expense;
+    res
+      .status(200)
+      .json({ user: userId, summary: { income, expense, balance } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Internal server error" });

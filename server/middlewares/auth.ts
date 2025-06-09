@@ -3,19 +3,7 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
-interface TokenPayload {
-  userId: string;
-  email: string;
-}
-
-// Optional: Extend the Express Request interface to type req.user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: TokenPayload;
-    }
-  }
-}
+import { TokenPayload } from "../config/user.type";
 
 const auth = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;

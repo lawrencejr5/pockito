@@ -5,8 +5,6 @@ import jwt from "jsonwebtoken";
 import User from "../models/users";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
-// Explicitly type EXPIRES_IN as a string
-const EXPIRES_IN: string = "7d";
 
 export const register_user = async (
   req: Request,
@@ -53,22 +51,24 @@ export const login_user = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { email, password } = req.body;
-    // Find the user by email
-    const user = await User.findOne({ email });
-    if (!user) {
+    const { user, password } = req.body;
+    // Find the user by matching either the email or username field
+    const user_account = await User.findOne({
+      $or: [{ email: user }, { username: user }],
+    });
+    if (!user_account) {
       res.status(400).json({ msg: "Invalid credentials" });
       return;
     }
     // Compare the provided password with the hashed password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user_account.password);
     if (!isMatch) {
       res.status(400).json({ msg: "Invalid credentials" });
       return;
     }
     // Create a token
     const token = jwt.sign(
-      { userId: user._id.toString(), email: user.email },
+      { userId: user_account._id.toString(), email: user_account.email },
       JWT_SECRET,
       {
         expiresIn: "7d",
@@ -76,7 +76,7 @@ export const login_user = async (
     );
     res.status(200).json({
       msg: "User logged in successfully",
-      userId: user._id,
+      userId: user_account._id,
       token,
     });
   } catch (error) {
