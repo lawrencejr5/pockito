@@ -9,7 +9,14 @@ export default function RootLayout() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [fontsLoaded] = useFonts({
-    "Poppins-Regular": require("../assets/fonts/Poppins-Regular.ttf"),
+    "Raleway-Black": require("../assets/fonts/raleway/Raleway-Black.ttf"),
+    "Raleway-Bold": require("../assets/fonts/raleway/Raleway-Bold.ttf"),
+    "Raleway-ExtraBold": require("../assets/fonts/raleway/Raleway-ExtraBold.ttf"),
+    "Raleway-Light": require("../assets/fonts/raleway/Raleway-Light.ttf"),
+    "Raleway-Medium": require("../assets/fonts/raleway/Raleway-Medium.ttf"),
+    "Raleway-Regular": require("../assets/fonts/raleway/Raleway-Regular.ttf"),
+    "Raleway-SemiBold": require("../assets/fonts/raleway/Raleway-SemiBold.ttf"),
+    "Raleway-Thin": require("../assets/fonts/raleway/Raleway-Thin.ttf"),
   });
 
   if (!fontsLoaded) {

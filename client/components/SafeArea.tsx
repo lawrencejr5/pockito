@@ -8,9 +8,9 @@ export default function SafeArea({ children }: any) {
     <View
       style={{
         paddingTop: 20,
-        paddingBottom: insets.bottom,
+        paddingBottom: 10,
         flex: 1,
-        backgroundColor: "dodgerblue",
+        backgroundColor: "#fff",
       }}
     >
       {children}
