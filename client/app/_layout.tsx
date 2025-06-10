@@ -6,7 +6,7 @@ import { useFonts } from "expo-font";
 import AppLoading from "expo-app-loading";
 
 export default function RootLayout() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated] = useState(true);
 
   const [fontsLoaded] = useFonts({
     "Raleway-Black": require("../assets/fonts/raleway/Raleway-Black.ttf"),

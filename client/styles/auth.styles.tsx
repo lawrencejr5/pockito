@@ -1,9 +1,10 @@
 import { StyleSheet } from "react-native";
+import { COLORS } from "./colors";
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.sec_color,
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 50,
@@ -25,14 +26,14 @@ export const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderStyle: "solid",
-    borderColor: "#c7c9c7",
+    borderColor: COLORS.border_color,
     borderRadius: 5,
     marginBottom: 20,
     paddingHorizontal: 15,
     fontFamily: "Raleway-Regular",
   },
   button: {
-    backgroundColor: "#6c63ff",
+    backgroundColor: COLORS.main_color,
     paddingVertical: 15,
     paddingHorizontal: 10,
     borderRadius: 10,
@@ -54,7 +55,7 @@ export const styles = StyleSheet.create({
     fontFamily: "Raleway-Regular",
   },
   link: {
-    color: "#6c63ff",
+    color: COLORS.main_color,
     fontWeight: 600,
     fontFamily: "Raleway-Bold",
   },

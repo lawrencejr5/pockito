@@ -5,8 +5,9 @@ export default function TabsLayout() {
   return (
     <SafeArea>
       <Tabs screenOptions={{ headerShown: false }}>
-        <Tabs.Screen name="index" />
-        <Tabs.Screen name="about" />
+        <Tabs.Screen name="home" />
+        <Tabs.Screen name="create" />
+        <Tabs.Screen name="profile" />
       </Tabs>
     </SafeArea>
   );

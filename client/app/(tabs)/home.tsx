@@ -2,7 +2,7 @@ import { Link } from "expo-router";
 import { Image } from "expo-image";
 import { Text, View, Button, StyleSheet } from "react-native";
 
-export default function Index() {
+export default function Home() {
   return (
     <View
       style={{
@@ -12,12 +12,6 @@ export default function Index() {
       }}
     >
       <Text>Edit app/index.tsx to edit this screen.</Text>
-      <Link href={"/about"}>About</Link>
-      <Image
-        source={require("@/assets/images/38.-Planning.png")}
-        style={{ height: 300, width: 400 }}
-      />
-      <Button title="Signin" color={"blue"} />
     </View>
   );
 }
