@@ -17,6 +17,9 @@ export default function RootLayout() {
     "Raleway-Regular": require("../assets/fonts/raleway/Raleway-Regular.ttf"),
     "Raleway-SemiBold": require("../assets/fonts/raleway/Raleway-SemiBold.ttf"),
     "Raleway-Thin": require("../assets/fonts/raleway/Raleway-Thin.ttf"),
+    "Poppins-Regular": require("../assets/fonts/poppins/Poppins-Regular.ttf"),
+    "Poppins-Bold": require("../assets/fonts/poppins/Poppins-Bold.ttf"),
+    "Poppins-SemiBold": require("../assets/fonts/poppins/Poppins-SemiBold.ttf"),
   });
 
   if (!fontsLoaded) {
