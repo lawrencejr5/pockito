@@ -122,7 +122,7 @@ const BalanceCard: React.FC = () => {
         <Text style={{ fontFamily: "Raleway-Bold", color: "grey" }}>
           Total balance:
         </Text>
-        <Text style={{ fontFamily: "Poppins-SemiBold", fontSize: 40 }}>
+        <Text style={{ fontFamily: "Poppins-SemiBold", fontSize: 30 }}>
           $15,000
         </Text>
         <View
@@ -138,7 +138,7 @@ const BalanceCard: React.FC = () => {
               style={{
                 fontFamily: "Raleway-Bold",
                 color: "grey",
-                fontSize: 13,
+                fontSize: 12,
               }}
             >
               Income
@@ -147,7 +147,7 @@ const BalanceCard: React.FC = () => {
               style={{
                 fontFamily: "Poppins-Bold",
                 color: "green",
-                fontSize: 16,
+                fontSize: 14,
               }}
             >
               +$2,000
@@ -158,7 +158,7 @@ const BalanceCard: React.FC = () => {
               style={{
                 fontFamily: "Raleway-Bold",
                 color: "grey",
-                fontSize: 13,
+                fontSize: 12,
               }}
             >
               Expenses
@@ -167,7 +167,7 @@ const BalanceCard: React.FC = () => {
               style={{
                 fontFamily: "Poppins-Bold",
                 color: "red",
-                fontSize: 16,
+                fontSize: 14,
               }}
             >
               -$900
