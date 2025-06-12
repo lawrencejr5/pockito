@@ -5,7 +5,7 @@ export const home_styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-    backgroundColor: COLORS.sec_color,
+    backgroundColor: COLORS.lighter_color,
   },
 
   header: {
@@ -47,7 +47,7 @@ export const home_styles = StyleSheet.create({
   balanceContainer: {
     width: "95%",
     borderRadius: 15,
-    backgroundColor: COLORS.sec_color,
+    backgroundColor: COLORS.lighter_color,
     shadowColor: "#00000090",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

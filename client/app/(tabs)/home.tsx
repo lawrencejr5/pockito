@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableHighlight,
+  TouchableWithoutFeedback,
 } from "react-native";
 
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -44,7 +45,7 @@ export default function Home() {
 }
 
 // Logo component
-const Logo: React.FC = () => {
+export const Logo: React.FC = () => {
   return (
     <Text
       style={{
@@ -106,9 +107,9 @@ const Header: React.FC = () => {
             />
           </View>
         </TouchableHighlight>
-        <TouchableHighlight onPress={() => router.push("/(auth)/signin")}>
+        <TouchableWithoutFeedback onPress={() => router.push("/(auth)/signin")}>
           <MaterialIcons name="logout" size={25} color="black" />
-        </TouchableHighlight>
+        </TouchableWithoutFeedback>
       </View>
     </View>
   );
@@ -189,7 +190,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
     <View style={{ marginTop: 10 }}>
       <View
         style={{
-          backgroundColor: COLORS.sec_color,
+          backgroundColor: COLORS.lighter_color,
           elevation: 10,
           shadowColor: COLORS.border_color,
           borderRadius: 10,

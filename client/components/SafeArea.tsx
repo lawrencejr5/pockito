@@ -13,7 +13,7 @@ export default function SafeArea({ children }: any) {
         paddingTop: 20,
         paddingBottom: 10,
         flex: 1,
-        backgroundColor: COLORS.sec_color,
+        backgroundColor: COLORS.lighter_color,
       }}
     >
       {children}

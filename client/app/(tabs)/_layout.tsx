@@ -1,9 +1,6 @@
 import { Tabs } from "expo-router";
 import SafeArea from "@/components/SafeArea";
 
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 
 import { COLORS } from "@/styles/colors";
@@ -18,6 +15,7 @@ export default function TabsLayout() {
           tabBarInactiveTintColor: COLORS.border_color,
           tabBarStyle: {
             elevation: 0,
+            backgroundColor: COLORS.lighter_color,
           },
           tabBarLabelStyle: {
             fontFamily: "Raleway-Bold",
