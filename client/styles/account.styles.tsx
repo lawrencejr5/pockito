@@ -9,6 +9,12 @@ export const account_styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 30,
+    width: "100%",
+  },
   setting_sec: {
     marginTop: 20,
     backgroundColor: COLORS.sec_color,
