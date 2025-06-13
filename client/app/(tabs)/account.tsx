@@ -8,6 +8,7 @@ import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import ToggleSwitch from "@/components/ToggleSwitch";
+import { COLORS } from "@/styles/colors";
 
 const Account = () => {
   return (
@@ -16,7 +17,7 @@ const Account = () => {
         style={{
           flexDirection: "row",
           justifyContent: "center",
-          marginTop: 50,
+          marginTop: 30,
           width: "100%",
         }}
       >
@@ -36,7 +37,7 @@ const Account = () => {
           </Text>
         </View>
       </View>
-      <View style={{ marginTop: 40 }}>
+      <View style={account_styles.setting_sec}>
         <Text
           style={{
             fontFamily: "Raleway-SemiBold",
@@ -64,7 +65,7 @@ const Account = () => {
           </View>
         </View>
       </View>
-      <View style={{ marginTop: 20 }}>
+      <View style={account_styles.setting_sec}>
         <Text
           style={{
             fontFamily: "Raleway-SemiBold",
@@ -92,7 +93,7 @@ const Account = () => {
           </View>
         </View>
       </View>
-      <View style={{ marginTop: 20 }}>
+      <View style={account_styles.setting_sec}>
         <Text
           style={{
             fontFamily: "Raleway-SemiBold",

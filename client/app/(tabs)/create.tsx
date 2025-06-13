@@ -137,6 +137,8 @@ const TitleInput: React.FC = () => {
 };
 
 const Categories: React.FC = () => {
+  const [isActive, setIsActive] = useState<string>("bills");
+
   return (
     <View style={{ marginTop: 30 }}>
       <View style={{ flexDirection: "row", gap: 7, alignItems: "center" }}>
@@ -148,10 +150,31 @@ const Categories: React.FC = () => {
       <View style={create_styles.categ_container}>
         {categories.map((cat, i) => {
           return (
-            <View style={create_styles.categ} key={cat.id}>
-              {cat.icon}
-              <Text>{cat.category}</Text>
-            </View>
+            <TouchableWithoutFeedback
+              key={cat.id}
+              onPress={() => setIsActive(cat.category)}
+            >
+              <View
+                style={[
+                  create_styles.categ,
+                  {
+                    backgroundColor:
+                      isActive === cat.category
+                        ? COLORS.main_color
+                        : COLORS.sec_color,
+                  },
+                ]}
+              >
+                {isActive === cat.category ? cat.icon_active : cat.icon}
+                <Text
+                  style={{
+                    color: isActive === cat.category ? COLORS.sec_color : "",
+                  }}
+                >
+                  {cat.category}
+                </Text>
+              </View>
+            </TouchableWithoutFeedback>
           );
         })}
       </View>

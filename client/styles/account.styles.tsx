@@ -9,6 +9,14 @@ export const account_styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
   },
+  setting_sec: {
+    marginTop: 20,
+    backgroundColor: COLORS.sec_color,
+    elevation: 5,
+    shadowColor: "grey",
+    padding: 10,
+    borderRadius: 10,
+  },
   setting_card: {
     flexDirection: "row",
     justifyContent: "space-between",
