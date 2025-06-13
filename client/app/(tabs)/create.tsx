@@ -109,8 +109,8 @@ const AmountInput: React.FC = () => {
       <Text
         style={{
           color: "grey",
-          fontSize: 50,
-          fontFamily: "Poppins-SemiBold",
+          fontSize: 45,
+          fontFamily: "Poppins-Regular",
         }}
       >
         $
