@@ -46,26 +46,14 @@ export default function Home() {
 
 // Logo component
 export const Logo: React.FC = () => {
-  return (
-    <Text
-      style={{
-        color: COLORS.main_color,
-        fontFamily: "Raleway-ExtraBold",
-        fontSize: 25,
-        marginLeft: 10,
-        marginBottom: 15,
-      }}
-    >
-      POCKITO
-    </Text>
-  );
+  return <Text style={home_styles.logo}>POCKITO</Text>;
 };
 
 // Header component
 const Header: React.FC = () => {
   return (
     <View style={home_styles.header}>
-      <View style={home_styles.headerLeft}>
+      <View style={home_styles.header_left}>
         <Image
           source={require("@/assets/images/avatar2.png")}
           style={{ height: 40, width: 40, borderRadius: 20 }}
@@ -83,7 +71,7 @@ const Header: React.FC = () => {
           <Text style={{ fontFamily: "Raleway-Bold" }}>Lawrencejr</Text>
         </View>
       </View>
-      <View style={home_styles.headerRight}>
+      <View style={home_styles.header_right}>
         <TouchableHighlight>
           <View style={home_styles.add_btn}>
             <Text
@@ -118,59 +106,24 @@ const Header: React.FC = () => {
 // Balance card component
 const BalanceCard: React.FC = () => {
   return (
-    <View style={home_styles.balanceContainerOuter}>
-      <View style={home_styles.balanceContainer}>
+    <View style={home_styles.balance_container_outer}>
+      <View style={home_styles.balance_container}>
         <Text style={{ fontFamily: "Raleway-Bold", color: "grey" }}>
           Total balance:
         </Text>
         <Text style={{ fontFamily: "Poppins-SemiBold", fontSize: 30 }}>
           $15,000
         </Text>
-        <View
-          style={{
-            width: "100%",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            paddingHorizontal: 30,
-          }}
-        >
+        <View style={home_styles.balance_details}>
           <View style={{ alignItems: "center", flexDirection: "column" }}>
-            <Text
-              style={{
-                fontFamily: "Raleway-Bold",
-                color: "grey",
-                fontSize: 12,
-              }}
-            >
-              Income
-            </Text>
-            <Text
-              style={{
-                fontFamily: "Poppins-Bold",
-                color: "green",
-                fontSize: 14,
-              }}
-            >
+            <Text style={home_styles.balance_type}>Income</Text>
+            <Text style={[home_styles.balance_value, { color: "green" }]}>
               +$2,000
             </Text>
           </View>
           <View style={{ alignItems: "center", flexDirection: "column" }}>
-            <Text
-              style={{
-                fontFamily: "Raleway-Bold",
-                color: "grey",
-                fontSize: 12,
-              }}
-            >
-              Expenses
-            </Text>
-            <Text
-              style={{
-                fontFamily: "Poppins-Bold",
-                color: "red",
-                fontSize: 14,
-              }}
-            >
+            <Text style={home_styles.balance_type}>Expenses</Text>
+            <Text style={[home_styles.balance_value, { color: "red" }]}>
               -$900
             </Text>
           </View>
@@ -188,50 +141,24 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
 }) => {
   return (
     <View style={{ marginTop: 10 }}>
-      <View
-        style={{
-          backgroundColor: COLORS.lighter_color,
-          elevation: 10,
-          shadowColor: COLORS.border_color,
-          borderRadius: 10,
-          paddingVertical: 20,
-          paddingHorizontal: 10,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
+      <View style={home_styles.transaction_box}>
+        <View style={home_styles.transaction_box_left}>
           <View
-            style={{
-              width: 35,
-              height: 35,
-              borderRadius: 23,
-              backgroundColor:
-                category === "income" ? COLORS.green_light : COLORS.red_light,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
+            style={[
+              home_styles.icon_container,
+              {
+                backgroundColor:
+                  category === "income" ? COLORS.green_light : COLORS.red_light,
+              },
+            ]}
           >
-            {category === "income" ? (
-              <MaterialCommunityIcons
-                name="credit-card-plus"
-                size={20}
-                color="green"
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="credit-card-minus"
-                size={20}
-                color="red"
-              />
-            )}
+            <MaterialCommunityIcons
+              name={
+                category === "income" ? "credit-card-plus" : "credit-card-minus"
+              }
+              size={20}
+              color={category === "income" ? "green" : "red"}
+            />
           </View>
           <View>
             <Text
@@ -255,16 +182,8 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
             </Text>
           </View>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View
-            style={{
-              alignItems: "flex-end",
-              borderRightColor: COLORS.border_color,
-              borderRightWidth: 1,
-              borderStyle: "solid",
-              paddingRight: 10,
-            }}
-          >
+        <View style={home_styles.transaction_box_right}>
+          <View style={home_styles.transaction_box_right_content}>
             {category === "income" ? (
               <Text style={{ color: "green", fontFamily: "Poppins-SemiBold" }}>
                 +${amount}
