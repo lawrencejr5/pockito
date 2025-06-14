@@ -26,7 +26,6 @@ export const home_styles = StyleSheet.create({
     alignItems: "center",
     gap: 15,
   },
-
   header_right: {
     flexDirection: "row",
     alignItems: "center",

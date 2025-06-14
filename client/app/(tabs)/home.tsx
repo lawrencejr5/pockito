@@ -54,10 +54,14 @@ const Header: React.FC = () => {
   return (
     <View style={home_styles.header}>
       <View style={home_styles.header_left}>
-        <Image
-          source={require("@/assets/images/avatar2.png")}
-          style={{ height: 40, width: 40, borderRadius: 20 }}
-        />
+        <TouchableWithoutFeedback
+          onPress={() => router.push("/(tabs)/account")}
+        >
+          <Image
+            source={require("@/assets/images/avatar2.png")}
+            style={{ height: 40, width: 40, borderRadius: 20 }}
+          />
+        </TouchableWithoutFeedback>
         <View>
           <Text
             style={{
@@ -72,7 +76,7 @@ const Header: React.FC = () => {
         </View>
       </View>
       <View style={home_styles.header_right}>
-        <TouchableHighlight>
+        <TouchableWithoutFeedback onPress={() => router.push("/(tabs)/create")}>
           <View style={home_styles.add_btn}>
             <Text
               style={{
@@ -94,7 +98,7 @@ const Header: React.FC = () => {
               }}
             />
           </View>
-        </TouchableHighlight>
+        </TouchableWithoutFeedback>
         <TouchableWithoutFeedback onPress={() => router.push("/(auth)/signin")}>
           <MaterialIcons name="logout" size={25} color="black" />
         </TouchableWithoutFeedback>

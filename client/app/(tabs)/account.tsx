@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { View, Text, TouchableWithoutFeedback } from "react-native";
 import React from "react";
 
 import { account_styles } from "@/styles/account.styles";
@@ -8,6 +8,7 @@ import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import ToggleSwitch from "@/components/ToggleSwitch";
+import { router } from "expo-router";
 
 const Account = () => {
   return (
@@ -66,20 +67,28 @@ const AccountInfo: React.FC = () => {
         &nbsp;Account Info
       </Text>
       <View style={{ marginTop: 15 }}>
-        <View style={account_styles.setting_card}>
-          <Text style={account_styles.setting_text}>
-            <Feather name="user" color={"grey"} size={16} />
-            &nbsp;User details
-          </Text>
-          <Feather name="chevron-right" color={"grey"} size={16} />
-        </View>
-        <View style={account_styles.setting_card}>
-          <Text style={account_styles.setting_text}>
-            <Feather name="lock" color={"grey"} size={16} />
-            &nbsp;Change password
-          </Text>
-          <Feather name="chevron-right" color={"grey"} size={20} />
-        </View>
+        <TouchableWithoutFeedback
+          onPress={() => router.push("/(accounts)/user_details")}
+        >
+          <View style={account_styles.setting_card}>
+            <Text style={account_styles.setting_text}>
+              <Feather name="user" color={"grey"} size={16} />
+              &nbsp;User details
+            </Text>
+            <Feather name="chevron-right" color={"grey"} size={16} />
+          </View>
+        </TouchableWithoutFeedback>
+        <TouchableWithoutFeedback
+          onPress={() => router.push("/(accounts)/change_password")}
+        >
+          <View style={account_styles.setting_card}>
+            <Text style={account_styles.setting_text}>
+              <Feather name="lock" color={"grey"} size={16} />
+              &nbsp;Change password
+            </Text>
+            <Feather name="chevron-right" color={"grey"} size={20} />
+          </View>
+        </TouchableWithoutFeedback>
       </View>
     </View>
   );
@@ -138,12 +147,15 @@ const ManageAccount: React.FC = () => {
           </Text>
           <Feather name="chevron-right" color={"grey"} size={20} />
         </View>
-        <View style={account_styles.setting_card}>
-          <Text style={account_styles.setting_text}>
-            <MaterialIcons name="logout" size={16} color="grey" /> &nbsp;Logout
-          </Text>
-          <Feather name="chevron-right" color={"grey"} size={20} />
-        </View>
+        <TouchableWithoutFeedback onPress={() => router.push("/(auth)/signin")}>
+          <View style={account_styles.setting_card}>
+            <Text style={account_styles.setting_text}>
+              <MaterialIcons name="logout" size={16} color="grey" />{" "}
+              &nbsp;Logout
+            </Text>
+            <Feather name="chevron-right" color={"grey"} size={20} />
+          </View>
+        </TouchableWithoutFeedback>
       </View>
     </View>
   );
