@@ -1,5 +1,5 @@
 import { View, Text, TouchableWithoutFeedback } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 
 import { account_styles } from "@/styles/account.styles";
 import { Image } from "expo-image";
@@ -10,18 +10,17 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import ToggleSwitch from "@/components/ToggleSwitch";
 import { router } from "expo-router";
 
+import DeleteAccount from "@/components/modals/DeleteAccount";
+
 const Account = () => {
   return (
     <View style={account_styles.container}>
       {/* Header section */}
       <Header />
-
       {/* Account info section */}
       <AccountInfo />
-
       {/* Preferences section*/}
       <Preferences />
-
       {/* Manage account section */}
       <ManageAccount />
     </View>
@@ -127,36 +126,49 @@ const Preferences: React.FC = () => {
   );
 };
 const ManageAccount: React.FC = () => {
+  const [showModal, setShowModal] = useState(false);
+
   return (
-    <View style={account_styles.setting_sec}>
-      <Text
-        style={{
-          fontFamily: "Raleway-SemiBold",
-          fontSize: 16,
-          color: "black",
-        }}
-      >
-        <Feather name="settings" color={"black"} size={16} />
-        &nbsp;Manage account
-      </Text>
-      <View style={{ marginTop: 15 }}>
-        <View style={account_styles.setting_card}>
-          <Text style={account_styles.setting_text}>
-            <Feather name="trash-2" color={"grey"} size={16} />
-            &nbsp;Delete account and data
-          </Text>
-          <Feather name="chevron-right" color={"grey"} size={20} />
+    <>
+      <View style={account_styles.setting_sec}>
+        <Text
+          style={{
+            fontFamily: "Raleway-SemiBold",
+            fontSize: 16,
+            color: "black",
+          }}
+        >
+          <Feather name="settings" color={"black"} size={16} />
+          &nbsp;Manage account
+        </Text>
+        <View style={{ marginTop: 15 }}>
+          <TouchableWithoutFeedback onPress={() => setShowModal(true)}>
+            <View style={account_styles.setting_card}>
+              <Text style={account_styles.setting_text}>
+                <Feather name="trash-2" color={"grey"} size={16} />
+                &nbsp;Delete account and data
+              </Text>
+              <Feather name="chevron-right" color={"grey"} size={20} />
+            </View>
+          </TouchableWithoutFeedback>
+
+          <TouchableWithoutFeedback
+            onPress={() => router.push("/(auth)/signin")}
+          >
+            <View style={account_styles.setting_card}>
+              <Text style={account_styles.setting_text}>
+                <MaterialIcons name="logout" size={16} color="grey" />{" "}
+                &nbsp;Logout
+              </Text>
+              <Feather name="chevron-right" color={"grey"} size={20} />
+            </View>
+          </TouchableWithoutFeedback>
         </View>
-        <TouchableWithoutFeedback onPress={() => router.push("/(auth)/signin")}>
-          <View style={account_styles.setting_card}>
-            <Text style={account_styles.setting_text}>
-              <MaterialIcons name="logout" size={16} color="grey" />{" "}
-              &nbsp;Logout
-            </Text>
-            <Feather name="chevron-right" color={"grey"} size={20} />
-          </View>
-        </TouchableWithoutFeedback>
       </View>
-    </View>
+      <DeleteAccount
+        visibility={showModal}
+        onClose={() => setShowModal(false)}
+      />
+    </>
   );
 };

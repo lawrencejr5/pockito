@@ -16,6 +16,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { home_styles } from "@/styles/home.styles";
 
 import { COLORS } from "@/styles/colors";
+import Notification from "@/components/modals/Notification";
 
 interface TransactionBoxProps {
   category: string;
@@ -26,21 +27,24 @@ interface TransactionBoxProps {
 
 export default function Home() {
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      <View style={home_styles.container}>
-        {/* Logo */}
-        <Logo />
+    <>
+      <Notification />
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={home_styles.container}>
+          {/* Logo */}
+          <Logo />
 
-        {/* Header */}
-        <Header />
+          {/* Header */}
+          <Header />
 
-        {/* Balance card */}
-        <BalanceCard />
+          {/* Balance card */}
+          <BalanceCard />
 
-        {/* Transactions */}
-        <Transactions />
-      </View>
-    </ScrollView>
+          {/* Transactions */}
+          <Transactions />
+        </View>
+      </ScrollView>
+    </>
   );
 }
 

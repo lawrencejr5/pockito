@@ -3,7 +3,6 @@ import {
   Text,
   TextInput,
   TouchableHighlight,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import React from "react";
