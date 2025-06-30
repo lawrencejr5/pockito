@@ -4,7 +4,7 @@ import SafeArea from "@/components/SafeArea";
 import { useState } from "react";
 import { useFonts } from "expo-font";
 
-import { NotificationProvider } from "@/context/NotificiationContext";
+import AppProvider from "@/context/AppProvider";
 
 export default function RootLayout() {
   const [isAuthenticated] = useState(true);
@@ -24,7 +24,7 @@ export default function RootLayout() {
   }
 
   return (
-    <NotificationProvider>
+    <AppProvider>
       <SafeArea>
         <Stack screenOptions={{ headerShown: false }}>
           {!isAuthenticated ? (
@@ -34,6 +34,6 @@ export default function RootLayout() {
           )}
         </Stack>
       </SafeArea>
-    </NotificationProvider>
+    </AppProvider>
   );
 }

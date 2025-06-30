@@ -57,7 +57,7 @@ export const home_styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
-    elevation: 10,
+    elevation: 6,
     paddingVertical: 15,
     paddingHorizontal: 20,
   },

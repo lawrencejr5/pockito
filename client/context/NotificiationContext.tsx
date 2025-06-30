@@ -11,14 +11,17 @@ import React, {
 
 import { Animated } from "react-native";
 
+// Status type
 type StatusType = "error" | "success" | "";
 
+// Notification type
 export interface NotificationType {
   visible: boolean;
   message: string;
   status: StatusType;
 }
 
+// Context type
 export interface NotificationContextType {
   notification: NotificationType;
   setNotification: Dispatch<SetStateAction<NotificationType>>;
@@ -32,44 +35,45 @@ export interface NotificationContextType {
   showNotification: (message: string, status: StatusType) => void;
 }
 
+// Creating context
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
+// Context Provider
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
+  // Notification state
   const [notification, setNotification] = useState<NotificationType>({
     visible: false,
     message: "",
     status: "",
   });
 
+  // Timeout function for closing notification
   useEffect(() => {
-    if (notification.visible) {
-      const notiTimeout = setTimeout(() => {
-        setNotification({ visible: false, message: "", status: "" });
-        closeNotify();
-      }, 2000);
-      return () => clearTimeout(notiTimeout);
-    }
+    const notiTimeout = setTimeout(() => {
+      setNotification({ visible: false, message: "", status: "" });
+      closeNotify();
+    }, 2000);
+    return () => clearTimeout(notiTimeout);
   }, [notification]);
 
+  // Notification animation
   const position = useRef(new Animated.Value(-100)).current;
   const scale = useRef(new Animated.Value(0)).current;
 
   const notify = () => {
-    if (notification.visible) {
-      Animated.parallel([
-        Animated.spring(scale, {
-          friction: 7,
-          tension: 40,
-          toValue: 1,
-          useNativeDriver: true,
-        }),
-        Animated.timing(position, {
-          duration: 300,
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
+    Animated.parallel([
+      Animated.spring(scale, {
+        friction: 7,
+        tension: 40,
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+      Animated.timing(position, {
+        duration: 300,
+        toValue: 0,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const closeNotify = () => {
@@ -88,6 +92,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     ]).start();
   };
 
+  // Showing notification function
   const showNotification = (message: string, status: StatusType): void => {
     setNotification({ visible: true, message, status });
     notify();

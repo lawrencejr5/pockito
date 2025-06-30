@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Animated } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 
 import { COLORS } from "@/styles/colors";
 
@@ -11,11 +11,7 @@ import {
   NotificationContextType,
 } from "@/context/NotificiationContext";
 
-const Notification = ({
-  notification,
-}: {
-  notification: NotificationType | null;
-}) => {
+const Notification = ({ notification }: { notification: NotificationType }) => {
   const { position, scale } =
     useNotificationContext() as NotificationContextType;
 

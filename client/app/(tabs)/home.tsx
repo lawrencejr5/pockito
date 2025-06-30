@@ -16,7 +16,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { home_styles } from "@/styles/home.styles";
 
 import { COLORS } from "@/styles/colors";
-import Notification from "@/components/modals/Notification";
+import Notification from "@/components/Notification";
 
 interface TransactionBoxProps {
   category: string;
