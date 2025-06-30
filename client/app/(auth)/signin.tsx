@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  StyleSheet,
 } from "react-native";
 import React from "react";
 import { Image } from "expo-image";
