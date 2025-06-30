@@ -25,10 +25,18 @@ interface TransactionBoxProps {
   date: string;
 }
 
+import {
+  useNotificationContext,
+  NotificationContextType,
+} from "@/context/NotificiationContext";
+
 export default function Home() {
+  const { notification, setNotification } =
+    useNotificationContext() as NotificationContextType;
+
   return (
     <>
-      <Notification />
+      <Notification notification={notification} />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={home_styles.container}>
           {/* Logo */}
@@ -147,6 +155,9 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
   title,
   date,
 }) => {
+  const { showNotification } =
+    useNotificationContext() as NotificationContextType;
+
   return (
     <View style={{ marginTop: 10 }}>
       <View style={home_styles.transaction_box}>
@@ -212,9 +223,13 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
               {date}
             </Text>
           </View>
-          <View>
+          <TouchableWithoutFeedback
+            onPress={() => {
+              showNotification("Transaction deleted", "error");
+            }}
+          >
             <MaterialIcons name="delete" size={30} color="red" />
-          </View>
+          </TouchableWithoutFeedback>
         </View>
       </View>
     </View>
