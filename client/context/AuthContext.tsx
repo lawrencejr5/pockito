@@ -45,10 +45,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSignedIn(data?.userId);
       setToken(data?.token);
     } catch (err: any) {
-      console.log(err);
-      showNotification(err.response.data.msg, "error");
-
-      throw new Error(err.response.data.msg);
+      const errMsg = err.response.data.msg;
+      showNotification(errMsg, "error");
+      throw new Error(errMsg);
     }
   };
 
@@ -65,8 +64,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSignedIn(data?.userId);
       setToken(data?.token);
     } catch (err: any) {
-      console.log(err);
-      showNotification(err.response.data.msg, "error");
+      const errMsg = err.response.data.msg;
+      showNotification(errMsg, "error");
+      throw new Error(errMsg);
     }
   };
 

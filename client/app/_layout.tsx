@@ -7,7 +7,7 @@ import { useFonts } from "expo-font";
 import AppProvider from "@/context/AppProvider";
 
 export default function RootLayout() {
-  const [isAuthenticated] = useState(true);
+  const [isAuthenticated] = useState(false);
 
   const [fontsLoaded] = useFonts({
     "Raleway-Bold": require("../assets/fonts/raleway/Raleway-Bold.ttf"),
