@@ -13,9 +13,9 @@ export const register_user = async (
   try {
     const { username, email, password } = req.body;
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: email.trim() });
     if (existingUser) {
-      res.status(400).json({ msg: "User already exists" });
+      res.status(400).json({ success: false, msg: "User already exists" });
       return;
     }
     // Hash the password
@@ -23,8 +23,8 @@ export const register_user = async (
     const hashedPassword = await bcrypt.hash(password, salt);
     // Save the new user
     const user = await User.create({
-      username,
-      email,
+      username: username.trim(),
+      email: email.trim(),
       password: hashedPassword,
     });
     // Create a token
@@ -36,6 +36,7 @@ export const register_user = async (
       }
     );
     res.status(201).json({
+      success: true,
       msg: "User registered successfully",
       userId: user._id,
       token,
@@ -54,10 +55,10 @@ export const login_user = async (
     const { user, password } = req.body;
     // Find the user by matching either the email or username field
     const user_account = await User.findOne({
-      $or: [{ email: user }, { username: user }],
+      $or: [{ email: user.trim() }, { username: user.trim() }],
     });
     if (!user_account) {
-      res.status(400).json({ msg: "Invalid credentials" });
+      res.status(400).json({ success: false, msg: "Invalid credentials" });
       return;
     }
     // Compare the provided password with the hashed password
@@ -95,7 +96,7 @@ export const get_all_users = async (
     res.status(200).json(users);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: "Internal server error" });
+    res.status(500).json({ success: true, msg: "Internal server error" });
   }
 };
 

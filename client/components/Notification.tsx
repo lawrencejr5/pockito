@@ -25,7 +25,14 @@ const Notification = ({ notification }: { notification: NotificationType }) => {
       ]}
     >
       <View style={styles.notification}>
-        <Text style={styles.notiText}>{notification?.message}</Text>
+        <Text
+          style={[
+            styles.notiText,
+            { color: notification?.status == "error" ? "red" : "green" },
+          ]}
+        >
+          {notification?.message}
+        </Text>
         <AntDesign
           name="exclamationcircle"
           size={16}

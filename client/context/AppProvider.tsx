@@ -7,11 +7,11 @@ import { AuthProvider } from "@/context/AuthContext";
 
 const AppProvider = ({ children }: { children: ReactNode }) => {
   return (
-    <AuthProvider>
-      <TransactionProvider>
-        <NotificationProvider>{children}</NotificationProvider>
-      </TransactionProvider>
-    </AuthProvider>
+    <NotificationProvider>
+      <AuthProvider>
+        <TransactionProvider>{children}</TransactionProvider>
+      </AuthProvider>
+    </NotificationProvider>
   );
 };
 
