@@ -18,6 +18,8 @@ import { home_styles } from "@/styles/home.styles";
 import { COLORS } from "@/styles/colors";
 import Notification from "@/components/Notification";
 
+import { AuthContextType, useAuthContext } from "@/context/AuthContext";
+
 interface TransactionBoxProps {
   category: string;
   amount: number;
@@ -63,6 +65,8 @@ export const Logo: React.FC = () => {
 
 // Header component
 const Header: React.FC = () => {
+  const { logout, signedIn } = useAuthContext() as AuthContextType;
+
   return (
     <View style={home_styles.header}>
       <View style={home_styles.header_left}>
@@ -84,7 +88,15 @@ const Header: React.FC = () => {
           >
             Welcome,
           </Text>
-          <Text style={{ fontFamily: "Raleway-Bold" }}>Lawrencejr</Text>
+          <Text
+            style={{
+              fontFamily: "Raleway-Bold",
+              textTransform: "capitalize",
+              width: "100%",
+            }}
+          >
+            {signedIn.username}
+          </Text>
         </View>
       </View>
       <View style={home_styles.header_right}>
@@ -111,7 +123,7 @@ const Header: React.FC = () => {
             />
           </View>
         </TouchableWithoutFeedback>
-        <TouchableWithoutFeedback onPress={() => router.push("/(auth)/signin")}>
+        <TouchableWithoutFeedback onPress={logout}>
           <MaterialIcons name="logout" size={25} color="black" />
         </TouchableWithoutFeedback>
       </View>

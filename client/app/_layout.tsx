@@ -6,9 +6,9 @@ import { useFonts } from "expo-font";
 
 import AppProvider from "@/context/AppProvider";
 
-export default function RootLayout() {
-  const [isAuthenticated] = useState(false);
+import { AuthContextType, useAuthContext } from "@/context/AuthContext";
 
+export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     "Raleway-Bold": require("../assets/fonts/raleway/Raleway-Bold.ttf"),
     "Raleway-ExtraBold": require("../assets/fonts/raleway/Raleway-ExtraBold.ttf"),
@@ -26,14 +26,21 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <SafeArea>
-        <Stack screenOptions={{ headerShown: false }}>
-          {!isAuthenticated ? (
-            <Stack.Screen name="(auth)" />
-          ) : (
-            <Stack.Screen name="(tabs)" />
-          )}
-        </Stack>
+        <StackContent />
       </SafeArea>
     </AppProvider>
   );
 }
+
+const StackContent = () => {
+  const { isAuthenticated } = useAuthContext() as AuthContextType;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {!isAuthenticated ? (
+        <Stack.Screen name="(auth)" />
+      ) : (
+        <Stack.Screen name="(tabs)" />
+      )}
+    </Stack>
+  );
+};
