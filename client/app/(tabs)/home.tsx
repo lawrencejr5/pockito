@@ -25,8 +25,21 @@ import {
   NotificationContextType,
 } from "@/context/NotificiationContext";
 
+import {
+  useTransactionContext,
+  TransactionContextType,
+} from "@/context/TransactionContext";
+import { useEffect } from "react";
+
 export default function Home() {
   const { notification } = useNotificationContext() as NotificationContextType;
+  const { getAccountSummary, getUserTransactions, transactions } =
+    useTransactionContext() as TransactionContextType;
+
+  useEffect(() => {
+    getAccountSummary();
+    getUserTransactions();
+  }, []);
 
   return (
     <>
@@ -129,6 +142,8 @@ const Header: React.FC = () => {
 
 // Balance card component
 const BalanceCard: React.FC = () => {
+  const { accountSummary, transactions } =
+    useTransactionContext() as TransactionContextType;
   return (
     <View style={home_styles.balance_container_outer}>
       <View style={home_styles.balance_container}>
@@ -136,19 +151,19 @@ const BalanceCard: React.FC = () => {
           Total balance:
         </Text>
         <Text style={{ fontFamily: "Poppins-SemiBold", fontSize: 30 }}>
-          $15,000
+          ${accountSummary?.balance?.toLocaleString()}
         </Text>
         <View style={home_styles.balance_details}>
           <View style={{ alignItems: "center", flexDirection: "column" }}>
             <Text style={home_styles.balance_type}>Income</Text>
             <Text style={[home_styles.balance_value, { color: "green" }]}>
-              +$2,000
+              +${accountSummary?.income?.toLocaleString()}
             </Text>
           </View>
           <View style={{ alignItems: "center", flexDirection: "column" }}>
             <Text style={home_styles.balance_type}>Expenses</Text>
             <Text style={[home_styles.balance_value, { color: "red" }]}>
-              -$900
+              -${accountSummary?.expense?.toLocaleString()}
             </Text>
           </View>
         </View>

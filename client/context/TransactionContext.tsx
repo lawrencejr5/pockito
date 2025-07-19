@@ -1,5 +1,11 @@
 import { View, Text } from "react-native";
-import React, { useContext, createContext, ReactNode, useState } from "react";
+import React, {
+  useContext,
+  createContext,
+  ReactNode,
+  useState,
+  useEffect,
+} from "react";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -14,7 +20,13 @@ const TransactionContext = createContext<TransactionContextType | null>(null);
 export const TransactionProvider = ({ children }: { children: ReactNode }) => {
   const { showNotification } =
     useNotificationContext() as NotificationContextType;
+
   const [transactions, setTransactions] = useState<TransactionType[]>([]);
+  const [accountSummary, setAccountSummary] = useState<AccountSummaryType>({
+    income: 0,
+    expense: 0,
+    balance: 0,
+  });
 
   // Get all transactions for the current user
   const getUserTransactions = async (): Promise<void> => {
@@ -27,6 +39,21 @@ export const TransactionProvider = ({ children }: { children: ReactNode }) => {
         },
       });
       setTransactions(data);
+    } catch (err: any) {
+      showNotification("Failed to fetch transactions", "error");
+      console.log(err);
+    }
+  };
+
+  // Get account summary
+  const getAccountSummary = async (): Promise<void> => {
+    try {
+      const { data } = await axios.get(`${EndPoint.TRANSACTION}/user/summary`, {
+        headers: {
+          Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+        },
+      });
+      setAccountSummary(data.summary);
     } catch (err: any) {
       showNotification("Failed to fetch transactions", "error");
       console.log(err);
@@ -49,6 +76,7 @@ export const TransactionProvider = ({ children }: { children: ReactNode }) => {
       );
       showNotification(data?.msg || "Transaction created", "success");
       await getUserTransactions();
+      await getAccountSummary();
     } catch (err: any) {
       showNotification(
         err.response?.data?.msg || "Failed to create transaction",
@@ -77,12 +105,18 @@ export const TransactionProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  useEffect(() => {
+    getUserTransactions(), getAccountSummary();
+  }, []);
+
   return (
     <TransactionContext.Provider
       value={{
+        accountSummary,
         transactions,
         createTransaction,
         getUserTransactions,
+        getAccountSummary,
         deleteTransaction,
       }}
     >
@@ -105,9 +139,17 @@ export interface TransactionType {
   date?: string;
 }
 
+interface AccountSummaryType {
+  income: number;
+  expense: number;
+  balance: number;
+}
+
 export interface TransactionContextType {
+  accountSummary: AccountSummaryType;
   transactions: TransactionType[];
   createTransaction: (tx: TransactionType) => Promise<void>;
   getUserTransactions: () => Promise<void>;
+  getAccountSummary: () => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
 }

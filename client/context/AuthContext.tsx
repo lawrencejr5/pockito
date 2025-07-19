@@ -18,6 +18,7 @@ import {
   NotificationContextType,
   useNotificationContext,
 } from "./NotificiationContext";
+import { EndPoint } from "@/data/constants";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -76,9 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userId = await AsyncStorage.getItem("user");
       if (!userId) return;
 
-      const { data } = await axios.get(
-        `http://192.168.0.186:5000/api/v1/users/${userId}`
-      );
+      const { data } = await axios.get(`${EndPoint.USER}/register`);
 
       // Assuming data contains username, email, and _id
       setSignedIn({
@@ -99,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ): Promise<void> => {
     try {
       const { data } = await axios.post(
-        "http://192.168.0.186:5000/api/v1/users/register",
+        `${EndPoint.USER}/register`,
         { username, email, password },
         {
           headers: {
@@ -127,10 +126,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     password: string | undefined
   ): Promise<void> => {
     try {
-      const { data } = await axios.post(
-        "http://192.168.0.186:5000/api/v1/users/login",
-        { user, password }
-      );
+      const { data } = await axios.post(`${EndPoint.USER}/login`, {
+        user,
+        password,
+      });
       showNotification(data?.msg, "success");
 
       // Store data
