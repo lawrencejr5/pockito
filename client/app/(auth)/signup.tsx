@@ -62,7 +62,7 @@ const Signup = () => {
       setLoading(false);
       setTimeout(() => {
         router.push("/(tabs)/home");
-      }, 2000);
+      }, 1000);
     } catch (err: any) {
       console.log(err);
       setLoading(false);

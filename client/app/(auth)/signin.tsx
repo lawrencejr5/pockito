@@ -49,7 +49,7 @@ const Signin = () => {
       setLoading(false);
       setTimeout(() => {
         router.push("/(tabs)/home");
-      }, 2000);
+      }, 1000);
     } catch (err) {
       console.log(err);
       setLoading(false);

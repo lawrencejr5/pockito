@@ -120,6 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Login user function
   const loginUser = async (
     user: string | undefined,
     password: string | undefined
@@ -141,6 +142,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const errMsg = err.response.data.msg;
       showNotification(errMsg, "error");
       throw new Error(errMsg);
+    }
+  };
+
+  // Update password function
+  const updatePassword = async (input: PasswordType): Promise<void> => {
+    try {
+      const { data } = await axios.patch(
+        `${EndPoint.USER}/update/password`,
+        { ...input },
+        {
+          headers: {
+            Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+          },
+        }
+      );
+      showNotification(data.msg, "success");
+    } catch (err: any) {
+      console.log(err);
+      showNotification(err.response.data.msg, "error");
     }
   };
 
@@ -169,6 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signedIn,
         token,
         isAuthenticated: !!token,
+        updatePassword,
         logout,
       }}
     >
@@ -193,7 +214,15 @@ export interface AuthContextType {
   token: string;
   isAuthenticated: boolean;
 
+  updatePassword: (input: PasswordType) => Promise<void>;
+
   logout: () => Promise<void>;
+}
+
+export interface PasswordType {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 }
 
 export const useAuthContext = () => {
