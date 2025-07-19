@@ -89,19 +89,20 @@ export const TransactionProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Delete a transaction
-  const deleteTransaction = async (id: string): Promise<void> => {
+  const deleteTransaction = async (id: string | undefined): Promise<void> => {
     try {
-      const { data } = await axios.delete(`${EndPoint.TRANSACTION}/${id}`);
+      const { data } = await axios.delete(`${EndPoint.TRANSACTION}/${id}`, {
+        headers: {
+          Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+        },
+      });
       showNotification(data?.msg || "Transaction deleted", "success");
       await getUserTransactions();
+      await getAccountSummary();
     } catch (err: any) {
-      showNotification(
-        err.response?.data?.msg || "Failed to delete transaction",
-        "error"
-      );
-      throw new Error(
-        err.response?.data?.msg || "Failed to delete transaction"
-      );
+      const errMsg = err.response?.data?.msg;
+      showNotification(errMsg, "error");
+      throw new Error(errMsg);
     }
   };
 
@@ -151,5 +152,5 @@ export interface TransactionContextType {
   createTransaction: (tx: TransactionType) => Promise<void>;
   getUserTransactions: () => Promise<void>;
   getAccountSummary: () => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
+  deleteTransaction: (id: string | undefined) => Promise<void>;
 }

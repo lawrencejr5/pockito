@@ -14,6 +14,7 @@ import Notification from "@/components/Notification";
 import { AuthContextType, useAuthContext } from "@/context/AuthContext";
 
 interface TransactionBoxProps {
+  id: string | undefined;
   category: string;
   amount: string | null | undefined;
   title: string;
@@ -133,9 +134,9 @@ const Header: React.FC = () => {
             />
           </View>
         </TouchableWithoutFeedback>
-        <TouchableWithoutFeedback onPress={logout}>
+        {/* <TouchableWithoutFeedback onPress={logout}>
           <MaterialIcons name="logout" size={25} color="black" />
-        </TouchableWithoutFeedback>
+        </TouchableWithoutFeedback> */}
       </View>
     </View>
   );
@@ -178,9 +179,21 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
   title,
   date,
   type,
+  id,
 }) => {
   const { showNotification } =
     useNotificationContext() as NotificationContextType;
+
+  const { deleteTransaction } =
+    useTransactionContext() as TransactionContextType;
+
+  const handleDelete = async (id: string | undefined): Promise<void> => {
+    try {
+      await deleteTransaction(id);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <View style={{ marginTop: 10 }}>
@@ -230,7 +243,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
         </View>
         <View style={home_styles.transaction_box_right}>
           <View style={home_styles.transaction_box_right_content}>
-            {category === "income" ? (
+            {type === "credit" ? (
               <Text style={{ color: "green", fontFamily: "Poppins-SemiBold" }}>
                 +${amount}
               </Text>
@@ -258,7 +271,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
           </View>
           <TouchableWithoutFeedback
             onPress={() => {
-              showNotification("Transaction deleted", "error");
+              handleDelete(id);
             }}
           >
             <MaterialIcons name="delete" size={30} color="red" />
@@ -270,8 +283,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
 };
 
 const Transactions: React.FC = () => {
-  const { accountSummary, transactions } =
-    useTransactionContext() as TransactionContextType;
+  const { transactions } = useTransactionContext() as TransactionContextType;
   return (
     <View style={{ paddingHorizontal: 15, marginTop: 30 }}>
       <Text style={{ fontFamily: "Raleway-Bold", fontSize: 18 }}>
@@ -282,6 +294,7 @@ const Transactions: React.FC = () => {
         return (
           <TransactionBox
             key={i}
+            id={tx._id}
             category={tx.category}
             type={tx.type}
             title={tx?.title}

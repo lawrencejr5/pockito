@@ -36,11 +36,12 @@ export const home_styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.main_color,
-    paddingTop: 5,
-    paddingRight: 10,
-    paddingLeft: 12,
+    paddingTop: 7,
+    paddingRight: 15,
+    paddingLeft: 17,
     paddingBottom: 8,
-    borderRadius: 10,
+    borderRadius: 20,
+    marginRight: 10,
   },
 
   balance_container_outer: {
