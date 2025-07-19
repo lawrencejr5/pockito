@@ -8,13 +8,17 @@ import {
   get_user,
   update_user,
   delete_user,
+  update_user_password,
 } from "../controllers/users";
+
+import auth from "../middlewares/auth";
 
 user_router.post("/register", register_user);
 user_router.post("/login", login_user);
 user_router.get("/", get_all_users);
 user_router.get("/:id", get_user);
-user_router.put("/:id", update_user);
-user_router.delete("/:id", delete_user);
+user_router.patch("/", auth, update_user);
+user_router.patch("/update/password/", auth, update_user_password);
+user_router.delete("/", auth, delete_user);
 
 export default user_router;

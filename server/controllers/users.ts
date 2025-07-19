@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import User from "../models/users";
+import Transaction from "../models/transactions"; // Add this import at the top
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
@@ -122,7 +123,7 @@ export const update_user = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.user?.userId || req.body?.user_id;
     const updatedUser = await User.findByIdAndUpdate(id, req.body, {
       new: true,
     });
@@ -146,16 +147,60 @@ export const delete_user = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.user?.userId || req.body?.user_id;
     const deletedUser = await User.findByIdAndDelete(id);
     if (!deletedUser) {
       res.status(404).json({ msg: "User not found" });
       return;
     }
+
+    // Delete all transactions related to the user
+    await Transaction.deleteMany({ user_id: id });
+
     res.status(200).json({
       msg: "User deleted successfully",
-      user: deletedUser,
+      user: id,
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error" });
+  }
+};
+
+export const update_user_password = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const id = req.user?.userId || req.body?.user_id;
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      res.status(400).json({ msg: "Input required fields" });
+      return;
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      res.status(404).json({ msg: "User not found" });
+      return;
+    }
+
+    // Check if old password matches
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      res.status(400).json({ msg: "Old password is incorrect" });
+      return;
+    }
+
+    // Hash new password and update
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ msg: "Password updated successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Internal server error" });
