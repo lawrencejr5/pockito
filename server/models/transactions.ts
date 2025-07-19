@@ -11,9 +11,13 @@ const transac_schema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    category: {
+    type: {
       type: String,
       enum: ["credit", "debit"],
+      required: true,
+    },
+    category: {
+      type: String,
       required: true,
     },
     amount: {

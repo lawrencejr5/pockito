@@ -1,13 +1,6 @@
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
 import { Image } from "expo-image";
-import {
-  Text,
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableHighlight,
-  TouchableWithoutFeedback,
-} from "react-native";
+import { Text, View, ScrollView, TouchableWithoutFeedback } from "react-native";
 
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Entypo from "@expo/vector-icons/Entypo";

@@ -22,7 +22,7 @@ export const categories: CategoriesType[] = [
   },
   {
     id: 2,
-    category: "bills",
+    category: "income",
     icon: <FontAwesome5 name="money-bill-alt" size={16} color="black" />,
     icon_active: <FontAwesome5 name="money-bill-alt" size={16} color="white" />,
   },

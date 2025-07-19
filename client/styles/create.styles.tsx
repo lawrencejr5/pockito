@@ -11,8 +11,10 @@ export const create_styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 15,
-    padding: 15,
+    paddingVertical: 5,
+    paddingHorizontal: 15,
     elevation: 8,
     shadowColor: "grey",
     backgroundColor: COLORS.sec_color,
