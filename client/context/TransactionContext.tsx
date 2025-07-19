@@ -136,7 +136,7 @@ export interface TransactionType {
   type: "credit" | "debit";
   category: string;
   amount: number | null;
-  date?: string;
+  createdAt?: string;
 }
 
 interface AccountSummaryType {

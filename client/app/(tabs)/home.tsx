@@ -15,9 +15,10 @@ import { AuthContextType, useAuthContext } from "@/context/AuthContext";
 
 interface TransactionBoxProps {
   category: string;
-  amount: number;
+  amount: string | null | undefined;
   title: string;
-  date: string;
+  date: string | undefined;
+  type: string;
 }
 
 import {
@@ -142,8 +143,7 @@ const Header: React.FC = () => {
 
 // Balance card component
 const BalanceCard: React.FC = () => {
-  const { accountSummary, transactions } =
-    useTransactionContext() as TransactionContextType;
+  const { accountSummary } = useTransactionContext() as TransactionContextType;
   return (
     <View style={home_styles.balance_container_outer}>
       <View style={home_styles.balance_container}>
@@ -177,6 +177,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
   amount,
   title,
   date,
+  type,
 }) => {
   const { showNotification } =
     useNotificationContext() as NotificationContextType;
@@ -190,16 +191,16 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
               home_styles.icon_container,
               {
                 backgroundColor:
-                  category === "income" ? COLORS.green_light : COLORS.red_light,
+                  type === "credit" ? COLORS.green_light : COLORS.red_light,
               },
             ]}
           >
             <MaterialCommunityIcons
               name={
-                category === "income" ? "credit-card-plus" : "credit-card-minus"
+                type === "credit" ? "credit-card-plus" : "credit-card-minus"
               }
               size={20}
-              color={category === "income" ? "green" : "red"}
+              color={type === "credit" ? "green" : "red"}
             />
           </View>
           <View>
@@ -207,8 +208,11 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
               style={{
                 fontFamily: "Raleway-SemiBold",
                 textTransform: "capitalize",
-                fontSize: 16,
+                fontSize: 14,
+                flexWrap: "wrap",
+                width: 120,
               }}
+              numberOfLines={2}
             >
               {title}
             </Text>
@@ -243,7 +247,13 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
                 color: "grey",
               }}
             >
-              {date}
+              {date
+                ? new Date(date).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })
+                : ""}
             </Text>
           </View>
           <TouchableWithoutFeedback
@@ -260,39 +270,26 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
 };
 
 const Transactions: React.FC = () => {
+  const { accountSummary, transactions } =
+    useTransactionContext() as TransactionContextType;
   return (
     <View style={{ paddingHorizontal: 15, marginTop: 30 }}>
       <Text style={{ fontFamily: "Raleway-Bold", fontSize: 18 }}>
         Recent Transactions
       </Text>
 
-      <TransactionBox
-        category="income"
-        title="salary"
-        amount={1500}
-        date="May 15, 2025"
-      />
-
-      <TransactionBox
-        category="expense"
-        title="rent"
-        amount={200}
-        date="May 17, 2025"
-      />
-
-      <TransactionBox
-        category="expense"
-        title="food & drinks"
-        amount={150}
-        date="May 18, 2025"
-      />
-
-      <TransactionBox
-        category="income"
-        title="freelance app"
-        amount={700}
-        date="May 22, 2025"
-      />
+      {transactions.map((tx, i) => {
+        return (
+          <TransactionBox
+            key={i}
+            category={tx.category}
+            type={tx.type}
+            title={tx?.title}
+            amount={tx?.amount?.toLocaleString()}
+            date={tx?.createdAt}
+          />
+        );
+      })}
     </View>
   );
 };

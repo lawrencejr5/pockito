@@ -47,37 +47,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [tokenLoading, setTokenLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check for user token
-    const checkTokenValidity = async () => {
-      const storedToken = await AsyncStorage.getItem("token");
-      setTokenLoading(false);
-      if (storedToken) {
-        try {
-          const decoded: any = jwtDecode(storedToken);
-          const now = Date.now() / 1000;
-          if (decoded.exp && decoded.exp > now) {
-            setToken(storedToken);
-          } else {
-            await AsyncStorage.removeItem("token"); // Expired
-          }
-        } catch (err) {
-          console.log("Invalid token");
-          await AsyncStorage.removeItem("token");
-        }
-      }
-    };
     checkTokenValidity();
-
     getUserData();
   }, []);
 
+  // Check for user token
+  const checkTokenValidity = async () => {
+    const storedToken = await AsyncStorage.getItem("token");
+    setTokenLoading(false);
+    if (storedToken) {
+      try {
+        const decoded: any = jwtDecode(storedToken);
+        const now = Date.now() / 1000;
+        if (decoded.exp && decoded.exp > now) {
+          setToken(storedToken);
+        } else {
+          await AsyncStorage.removeItem("token"); // Expired
+        }
+      } catch (err) {
+        console.log("Invalid token");
+        await AsyncStorage.removeItem("token");
+      }
+    }
+  };
   // Get signed in user data
   const getUserData = async (): Promise<void> => {
     try {
       const userId = await AsyncStorage.getItem("user");
       if (!userId) return;
 
-      const { data } = await axios.get(`${EndPoint.USER}/register`);
+      const { data } = await axios.get(`${EndPoint.USER}/${userId}`);
 
       // Assuming data contains username, email, and _id
       setSignedIn({
