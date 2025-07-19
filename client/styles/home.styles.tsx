@@ -53,7 +53,7 @@ export const home_styles = StyleSheet.create({
   balance_container: {
     width: "95%",
     borderRadius: 15,
-    backgroundColor: COLORS.lighter_color,
+    backgroundColor: COLORS.main_color,
     shadowColor: "#00000090",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -67,6 +67,10 @@ export const home_styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 30,
+    paddingVertical: 10,
+    marginTop: 30,
+    backgroundColor: "white",
+    borderRadius: 10,
   },
   balance_type: {
     fontFamily: "Raleway-Bold",

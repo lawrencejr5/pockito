@@ -61,7 +61,7 @@ const Signup = () => {
       await registerUser(username, email, password);
       setLoading(false);
       setTimeout(() => {
-        router.push("/(auth)/signin");
+        router.push("/(tabs)/home");
       }, 2000);
     } catch (err: any) {
       console.log(err);

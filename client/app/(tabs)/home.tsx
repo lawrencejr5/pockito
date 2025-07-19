@@ -72,7 +72,7 @@ export const Logo: React.FC = () => {
 
 // Header component
 const Header: React.FC = () => {
-  const { logout, signedIn } = useAuthContext() as AuthContextType;
+  const { signedIn } = useAuthContext() as AuthContextType;
 
   return (
     <View style={home_styles.header}>
@@ -148,10 +148,16 @@ const BalanceCard: React.FC = () => {
   return (
     <View style={home_styles.balance_container_outer}>
       <View style={home_styles.balance_container}>
-        <Text style={{ fontFamily: "Raleway-Bold", color: "grey" }}>
+        <Text style={{ fontFamily: "Raleway-Bold", color: "white" }}>
           Total balance:
         </Text>
-        <Text style={{ fontFamily: "Poppins-SemiBold", fontSize: 30 }}>
+        <Text
+          style={{
+            fontFamily: "Poppins-SemiBold",
+            fontSize: 30,
+            color: "white",
+          }}
+        >
           ${accountSummary?.balance?.toLocaleString()}
         </Text>
         <View style={home_styles.balance_details}>
@@ -290,19 +296,70 @@ const Transactions: React.FC = () => {
         Recent Transactions
       </Text>
 
-      {transactions.map((tx, i) => {
-        return (
-          <TransactionBox
-            key={i}
-            id={tx._id}
-            category={tx.category}
-            type={tx.type}
-            title={tx?.title}
-            amount={tx?.amount?.toLocaleString()}
-            date={tx?.createdAt}
-          />
-        );
-      })}
+      {transactions.length === 0 ? (
+        <Empty />
+      ) : (
+        transactions.map((tx, i) => {
+          return (
+            <TransactionBox
+              key={i}
+              id={tx._id}
+              category={tx.category}
+              type={tx.type}
+              title={tx?.title}
+              amount={tx?.amount?.toLocaleString()}
+              date={tx?.createdAt}
+            />
+          );
+        })
+      )}
+    </View>
+  );
+};
+
+const Empty: React.FC = () => {
+  return (
+    <View
+      style={{
+        flex: 1,
+        height: 250,
+        width: "100%",
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 10,
+      }}
+    >
+      {/* <Text style={{ fontFamily: "Raleway-Bold", fontSize: 14 }}>
+        No Transactions yet...
+      </Text> */}
+      <Image
+        source={require("@/assets/images/undraw_savings_uwjn.png")}
+        style={{
+          height: 150,
+          width: "50%",
+          marginVertical: 10,
+        }}
+      />
+      <TouchableWithoutFeedback onPress={() => router.push("/(tabs)/create")}>
+        <View
+          style={{
+            backgroundColor: COLORS.main_color,
+            paddingVertical: 10,
+            paddingHorizontal: 20,
+            borderRadius: 7,
+          }}
+        >
+          <Text
+            style={{
+              color: COLORS.sec_color,
+              fontFamily: "Raleway-Bold",
+              fontSize: 14,
+            }}
+          >
+            New transaction &rarr;
+          </Text>
+        </View>
+      </TouchableWithoutFeedback>
     </View>
   );
 };
