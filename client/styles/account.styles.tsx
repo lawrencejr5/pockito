@@ -7,7 +7,7 @@ export const account_styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.sec_color,
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingVertical: 10,
   },
   header: {
     flexDirection: "row",

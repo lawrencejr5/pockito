@@ -33,8 +33,7 @@ import {
 } from "@/context/NotificiationContext";
 
 export default function Home() {
-  const { notification, setNotification } =
-    useNotificationContext() as NotificationContextType;
+  const { notification } = useNotificationContext() as NotificationContextType;
 
   return (
     <>
@@ -74,8 +73,12 @@ const Header: React.FC = () => {
           onPress={() => router.push("/(tabs)/account")}
         >
           <Image
-            source={require("@/assets/images/avatar2.png")}
-            style={{ height: 40, width: 40, borderRadius: 20 }}
+            source={require("@/assets/images/undraw_pic-profile_nr49.png")}
+            style={{
+              height: 60,
+              width: 60,
+              borderRadius: 30,
+            }}
           />
         </TouchableWithoutFeedback>
         <View>

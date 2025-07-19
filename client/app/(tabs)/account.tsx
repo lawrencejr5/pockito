@@ -1,4 +1,4 @@
-import { View, Text, TouchableWithoutFeedback } from "react-native";
+import { View, Text, TouchableWithoutFeedback, ScrollView } from "react-native";
 import React, { useState } from "react";
 
 import { account_styles } from "@/styles/account.styles";
@@ -12,18 +12,31 @@ import { router } from "expo-router";
 
 import DeleteAccount from "@/components/modals/DeleteAccount";
 
+import { AuthContextType, useAuthContext } from "@/context/AuthContext";
+
+import Notification from "@/components/Notification";
+import {
+  useNotificationContext,
+  NotificationContextType,
+} from "@/context/NotificiationContext";
 const Account = () => {
+  const { notification } = useNotificationContext() as NotificationContextType;
   return (
-    <View style={account_styles.container}>
-      {/* Header section */}
-      <Header />
-      {/* Account info section */}
-      <AccountInfo />
-      {/* Preferences section*/}
-      <Preferences />
-      {/* Manage account section */}
-      <ManageAccount />
-    </View>
+    <>
+      <Notification notification={notification} />
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={account_styles.container}>
+          {/* Header section */}
+          <Header />
+          {/* Account info section */}
+          <AccountInfo />
+          {/* Preferences section*/}
+          <Preferences />
+          {/* Manage account section */}
+          <ManageAccount />
+        </View>
+      </ScrollView>
+    </>
   );
 };
 
@@ -31,21 +44,25 @@ export default Account;
 
 // Page components
 const Header: React.FC = () => {
+  const { signedIn } = useAuthContext() as AuthContextType;
+
   return (
     <View style={account_styles.header}>
       <View style={{ alignItems: "center" }}>
         <Image
-          source={require("@/assets/images/avatar2.png")}
-          style={{ width: 100, height: 100, borderRadius: 50 }}
+          source={require("@/assets/images/undraw_pic-profile_nr49.png")}
+          style={{ width: 120, height: 120, borderRadius: 60 }}
         />
         <Text
           style={{
             fontFamily: "Raleway-SemiBold",
             fontSize: 25,
             marginTop: 10,
+            textTransform: "capitalize",
+            width: "100%",
           }}
         >
-          Oputa Lawrence
+          {`${signedIn.username}'s account`}
         </Text>
       </View>
     </View>
@@ -126,6 +143,8 @@ const Preferences: React.FC = () => {
   );
 };
 const ManageAccount: React.FC = () => {
+  const { logout } = useAuthContext() as AuthContextType;
+
   const [showModal, setShowModal] = useState(false);
 
   return (
@@ -152,9 +171,7 @@ const ManageAccount: React.FC = () => {
             </View>
           </TouchableWithoutFeedback>
 
-          <TouchableWithoutFeedback
-            onPress={() => router.push("/(auth)/signin")}
-          >
+          <TouchableWithoutFeedback onPress={logout}>
             <View style={account_styles.setting_card}>
               <Text style={account_styles.setting_text}>
                 <MaterialIcons name="logout" size={16} color="grey" />{" "}
