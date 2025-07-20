@@ -158,7 +158,10 @@ const BalanceCard: React.FC = () => {
             color: "white",
           }}
         >
-          ${accountSummary?.balance?.toLocaleString()}
+          $
+          {accountSummary?.balance
+            ? accountSummary?.balance?.toLocaleString()
+            : "0.00"}
         </Text>
         <View style={home_styles.balance_details}>
           <View style={{ alignItems: "center", flexDirection: "column" }}>

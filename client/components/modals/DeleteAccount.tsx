@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,32 @@ import {
   StyleSheet,
 } from "react-native";
 
+import { useAuthContext, AuthContextType } from "@/context/AuthContext";
+
 const { height } = Dimensions.get("window");
 
 const DeleteAccount: React.FC<{
   visibility: boolean;
   onClose?: () => void;
 }> = ({ visibility, onClose }) => {
+  const { deleteUserAccount, logout } = useAuthContext() as AuthContextType;
+
+  const [loading, setLoading] = useState<boolean>(false);
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      await deleteUserAccount();
+
+      setLoading(false);
+
+      setTimeout(() => {
+        logout();
+      }, 1000);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const slideAnim = useRef(new Animated.Value(height)).current;
 
   useEffect(() => {
@@ -65,8 +85,10 @@ const DeleteAccount: React.FC<{
                   marginRight: 10,
                 }}
               >
-                <TouchableOpacity style={styles.delBtn} onPress={handleClose}>
-                  <Text style={styles.delBtnText}>Yes, delete</Text>
+                <TouchableOpacity style={styles.delBtn} onPress={handleSubmit}>
+                  <Text style={styles.delBtnText}>
+                    {loading ? "Deleting..." : "Yes, delete"}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
                   <Text style={styles.closeBtnText}>Close</Text>

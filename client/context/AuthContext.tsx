@@ -176,7 +176,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           },
         }
       );
-      showNotification(data.msg || "Updated successfully", "success");
+      showNotification(data.msg, "success");
+    } catch (err: any) {
+      console.log(err);
+      showNotification(err.response.data.msg, "error");
+    }
+  };
+
+  // Update user details
+  const deleteUserAccount = async (): Promise<void> => {
+    try {
+      const { data } = await axios.delete(`${EndPoint.USER}/`, {
+        headers: {
+          Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+        },
+      });
+      showNotification(data.msg, "success");
     } catch (err: any) {
       console.log(err);
       showNotification(err.response.data.msg, "error");
@@ -210,6 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated: !!token,
         updateUserDetails,
         updatePassword,
+        deleteUserAccount,
         logout,
       }}
     >
@@ -236,6 +252,7 @@ export interface AuthContextType {
 
   updateUserDetails: (input: UserType) => Promise<void>;
   updatePassword: (input: PasswordType) => Promise<void>;
+  deleteUserAccount: () => Promise<void>;
 
   logout: () => Promise<void>;
 }
