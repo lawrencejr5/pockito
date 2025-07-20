@@ -366,7 +366,7 @@ const Empty: React.FC = () => {
         No Transactions yet...
       </Text> */}
       <Image
-        source={require("@/assets/images/undraw_savings_uwjn.png")}
+        source={require("@/assets/images/undraw_savings_uwjn-2.png")}
         style={{
           height: 150,
           width: "50%",
@@ -384,7 +384,7 @@ const Empty: React.FC = () => {
         >
           <Text
             style={{
-              color: COLORS.sec_color,
+              color: COLORS.white,
               fontFamily: "Raleway-Bold",
               fontSize: 14,
             }}
