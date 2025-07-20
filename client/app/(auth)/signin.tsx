@@ -11,7 +11,7 @@ import {
 import React, { useState } from "react";
 import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
-import { styles } from "@/styles/auth.styles";
+import { auth_styles } from "@/styles/auth.styles";
 
 import { AuthContextType, useAuthContext } from "@/context/AuthContext";
 import {
@@ -19,10 +19,18 @@ import {
   useNotificationContext,
 } from "@/context/NotificiationContext";
 
+import {
+  SettingsContextType,
+  useSettingsContext,
+} from "@/context/SettingsContext";
+
 import Notification from "@/components/Notification";
 
 const Signin = () => {
   const router = useRouter();
+
+  const { COLORS } = useSettingsContext() as SettingsContextType;
+  const styles = auth_styles(COLORS);
 
   // Context
   const { loginUser } = useAuthContext() as AuthContextType;

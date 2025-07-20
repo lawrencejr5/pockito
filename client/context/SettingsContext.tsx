@@ -1,4 +1,3 @@
-import { View, Text } from "react-native";
 import React, {
   useState,
   useEffect,
@@ -6,13 +5,17 @@ import React, {
   createContext,
   ReactNode,
 } from "react";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { LIGHT_THEME, DARK_THEME } from "@/styles/colors";
 
 export interface SettingsContextType {
   incognito: boolean;
   toggleIncognito: () => Promise<void>;
   theme: boolean;
   toggleTheme: () => Promise<void>;
+  COLORS: any;
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
@@ -20,6 +23,8 @@ const SettingsContext = createContext<SettingsContextType | null>(null);
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [incognito, setIncognito] = useState<boolean>(true);
   const [theme, setTheme] = useState<boolean>(true);
+
+  const COLORS = theme ? DARK_THEME : LIGHT_THEME;
 
   useEffect(() => {
     const loadIncognito = async () => {
@@ -63,7 +68,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <SettingsContext.Provider
-      value={{ incognito, toggleIncognito, theme, toggleTheme }}
+      value={{ incognito, toggleIncognito, theme, toggleTheme, COLORS }}
     >
       {children}
     </SettingsContext.Provider>

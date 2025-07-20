@@ -9,10 +9,13 @@ import Feather from "@expo/vector-icons/Feather";
 
 import { home_styles } from "@/styles/home.styles";
 
-import { COLORS } from "@/styles/colors";
 import Notification from "@/components/Notification";
 
 import { AuthContextType, useAuthContext } from "@/context/AuthContext";
+import {
+  SettingsContextType,
+  useSettingsContext,
+} from "@/context/SettingsContext";
 
 interface TransactionBoxProps {
   id: string | undefined;
@@ -34,122 +37,18 @@ import {
 } from "@/context/TransactionContext";
 import { useEffect, useState } from "react";
 
-import {
-  useSettingsContext,
-  SettingsContextType,
-} from "@/context/SettingsContext";
-
 export default function Home() {
   const { notification } = useNotificationContext() as NotificationContextType;
-  const { getAccountSummary, getUserTransactions, transactions } =
+  const { getAccountSummary, getUserTransactions } =
     useTransactionContext() as TransactionContextType;
 
-  useEffect(() => {
-    getAccountSummary();
-    getUserTransactions();
-  }, []);
-
-  return (
-    <>
-      <Notification notification={notification} />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={home_styles.container}>
-          {/* Logo */}
-          <Logo />
-
-          {/* Header */}
-          <Header />
-
-          {/* Balance card */}
-          <BalanceCard />
-
-          {/* Transactions */}
-          <Transactions />
-        </View>
-      </ScrollView>
-    </>
-  );
-}
-
-// Logo component
-export const Logo: React.FC = () => {
-  return <Text style={home_styles.logo}>POCKITO</Text>;
-};
-
-// Header component
-const Header: React.FC = () => {
   const { signedIn } = useAuthContext() as AuthContextType;
 
-  return (
-    <View style={home_styles.header}>
-      <View style={home_styles.header_left}>
-        <TouchableWithoutFeedback
-          onPress={() => router.push("/(tabs)/account")}
-        >
-          <Image
-            source={require("@/assets/images/undraw_pic-profile_nr49.png")}
-            style={{
-              height: 60,
-              width: 60,
-              borderRadius: 30,
-            }}
-          />
-        </TouchableWithoutFeedback>
-        <View>
-          <Text
-            style={{
-              color: "grey",
-              fontFamily: "Raleway-SemiBold",
-              fontSize: 12,
-            }}
-          >
-            Welcome,
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Raleway-Bold",
-              textTransform: "capitalize",
-              width: "100%",
-            }}
-          >
-            {signedIn.username}
-          </Text>
-        </View>
-      </View>
-      <View style={home_styles.header_right}>
-        <TouchableWithoutFeedback onPress={() => router.push("/(tabs)/create")}>
-          <View style={home_styles.add_btn}>
-            <Text
-              style={{
-                color: COLORS.sec_color,
-                fontFamily: "Raleway-SemiBold",
-                fontSize: 14,
-              }}
-            >
-              Add
-            </Text>
-            <Entypo
-              name="plus"
-              size={16}
-              color={COLORS.sec_color}
-              style={{
-                color: COLORS.sec_color,
-                fontFamily: "Raleway-Bold",
-                fontSize: 14,
-              }}
-            />
-          </View>
-        </TouchableWithoutFeedback>
-      </View>
-    </View>
-  );
-};
-
-// Balance card component
-const BalanceCard: React.FC = () => {
-  const { accountSummary } = useTransactionContext() as TransactionContextType;
-  const { incognito, toggleIncognito } =
+  const { COLORS, incognito, toggleIncognito } =
     useSettingsContext() as SettingsContextType;
+
+  const { accountSummary, transactions } =
+    useTransactionContext() as TransactionContextType;
 
   const handleIncognito = async (): Promise<void> => {
     try {
@@ -159,67 +58,172 @@ const BalanceCard: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    getAccountSummary();
+    getUserTransactions();
+  }, []);
+
+  const styles = home_styles(COLORS);
+
   return (
-    <View style={home_styles.balance_container_outer}>
-      <View style={home_styles.balance_container}>
-        <Text style={{ fontFamily: "Raleway-Bold", color: "white" }}>
-          Total balance:
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            width: "100%",
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "Poppins-SemiBold",
-              fontSize: 30,
-              color: "white",
-            }}
-          >
-            {incognito
-              ? "-----"
-              : `$${
-                  accountSummary?.balance
-                    ? accountSummary?.balance?.toLocaleString()
-                    : "0.00"
-                }`}
-          </Text>
-          <TouchableWithoutFeedback onPress={handleIncognito}>
-            <View style={{ padding: 10 }}>
-              {incognito ? (
-                <Feather name="eye-off" size={30} color="white" />
-              ) : (
-                <Feather name="eye" size={30} color="white" />
-              )}
+    <>
+      <Notification notification={notification} />
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.container}>
+          {/* Logo */}
+          <Text style={styles.logo}>POCKITO</Text>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.header_left}>
+              <TouchableWithoutFeedback
+                onPress={() => router.push("/(tabs)/account")}
+              >
+                <Image
+                  source={require("@/assets/images/undraw_pic-profile_nr49.png")}
+                  style={{
+                    height: 60,
+                    width: 60,
+                    borderRadius: 30,
+                  }}
+                />
+              </TouchableWithoutFeedback>
+              <View>
+                <Text
+                  style={{
+                    color: "grey",
+                    fontFamily: "Raleway-SemiBold",
+                    fontSize: 12,
+                  }}
+                >
+                  Welcome,
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "Raleway-Bold",
+                    textTransform: "capitalize",
+                    width: "100%",
+                  }}
+                >
+                  {signedIn.username}
+                </Text>
+              </View>
             </View>
-          </TouchableWithoutFeedback>
-        </View>
-        <View style={home_styles.balance_details}>
-          <View style={{ alignItems: "center", flexDirection: "column" }}>
-            <Text style={home_styles.balance_type}>Income</Text>
-            <Text style={[home_styles.balance_value, { color: "green" }]}>
-              {incognito
-                ? "-----"
-                : ` +$${accountSummary?.income?.toLocaleString()}`}
-            </Text>
+            <View style={styles.header_right}>
+              <TouchableWithoutFeedback
+                onPress={() => router.push("/(tabs)/create")}
+              >
+                <View style={styles.add_btn}>
+                  <Text
+                    style={{
+                      color: COLORS.sec_color,
+                      fontFamily: "Raleway-SemiBold",
+                      fontSize: 14,
+                    }}
+                  >
+                    Add
+                  </Text>
+                  <Entypo
+                    name="plus"
+                    size={16}
+                    color={COLORS.sec_color}
+                    style={{
+                      color: COLORS.sec_color,
+                      fontFamily: "Raleway-Bold",
+                      fontSize: 14,
+                    }}
+                  />
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
           </View>
-          <View style={{ alignItems: "center", flexDirection: "column" }}>
-            <Text style={home_styles.balance_type}>Expenses</Text>
-            <Text style={[home_styles.balance_value, { color: "red" }]}>
-              {incognito
-                ? "-----"
-                : ` -$${accountSummary?.expense?.toLocaleString()}`}
+          {/* Balance card */}
+          <View style={styles.balance_container_outer}>
+            <View style={styles.balance_container}>
+              <Text style={{ fontFamily: "Raleway-Bold", color: "white" }}>
+                Total balance:
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  width: "100%",
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Poppins-SemiBold",
+                    fontSize: 30,
+                    color: "white",
+                  }}
+                >
+                  {incognito
+                    ? "-----"
+                    : `$${
+                        accountSummary?.balance
+                          ? accountSummary?.balance?.toLocaleString()
+                          : "0.00"
+                      }`}
+                </Text>
+                <TouchableWithoutFeedback onPress={handleIncognito}>
+                  <View style={{ padding: 10 }}>
+                    {incognito ? (
+                      <Feather name="eye-off" size={30} color="white" />
+                    ) : (
+                      <Feather name="eye" size={30} color="white" />
+                    )}
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+              <View style={styles.balance_details}>
+                <View style={{ alignItems: "center", flexDirection: "column" }}>
+                  <Text style={styles.balance_type}>Income</Text>
+                  <Text style={[styles.balance_value, { color: "green" }]}>
+                    {incognito
+                      ? "-----"
+                      : ` +$${accountSummary?.income?.toLocaleString()}`}
+                  </Text>
+                </View>
+                <View style={{ alignItems: "center", flexDirection: "column" }}>
+                  <Text style={styles.balance_type}>Expenses</Text>
+                  <Text style={[styles.balance_value, { color: "red" }]}>
+                    {incognito
+                      ? "-----"
+                      : ` -$${accountSummary?.expense?.toLocaleString()}`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          {/* Transactions */}
+          <View style={{ paddingHorizontal: 15, marginTop: 30 }}>
+            <Text style={{ fontFamily: "Raleway-Bold", fontSize: 18 }}>
+              Recent Transactions
             </Text>
+
+            {transactions.length === 0 ? (
+              <Empty />
+            ) : (
+              transactions.map((tx, i) => {
+                return (
+                  <TransactionBox
+                    key={i}
+                    id={tx._id}
+                    category={tx.category}
+                    type={tx.type}
+                    title={tx?.title}
+                    amount={tx?.amount?.toLocaleString()}
+                    date={tx?.createdAt}
+                  />
+                );
+              })
+            )}
           </View>
         </View>
-      </View>
-    </View>
+      </ScrollView>
+    </>
   );
-};
+}
 
 const TransactionBox: React.FC<TransactionBoxProps> = ({
   category,
@@ -229,7 +233,9 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
   type,
   id,
 }) => {
-  const { incognito } = useSettingsContext() as SettingsContextType;
+  const { incognito, COLORS } = useSettingsContext() as SettingsContextType;
+
+  const styles = home_styles(COLORS);
 
   const { deleteTransaction } =
     useTransactionContext() as TransactionContextType;
@@ -244,11 +250,11 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
 
   return (
     <View style={{ marginTop: 10 }}>
-      <View style={home_styles.transaction_box}>
-        <View style={home_styles.transaction_box_left}>
+      <View style={styles.transaction_box}>
+        <View style={styles.transaction_box_left}>
           <View
             style={[
-              home_styles.icon_container,
+              styles.icon_container,
               {
                 backgroundColor:
                   type === "credit" ? COLORS.green_light : COLORS.red_light,
@@ -288,8 +294,8 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
             </Text>
           </View>
         </View>
-        <View style={home_styles.transaction_box_right}>
-          <View style={home_styles.transaction_box_right_content}>
+        <View style={styles.transaction_box_right}>
+          <View style={styles.transaction_box_right_content}>
             {type === "credit" ? (
               <Text style={{ color: "green", fontFamily: "Poppins-SemiBold" }}>
                 {incognito ? "-----" : ` +$${amount}`}
@@ -329,36 +335,9 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
   );
 };
 
-const Transactions: React.FC = () => {
-  const { transactions } = useTransactionContext() as TransactionContextType;
-  return (
-    <View style={{ paddingHorizontal: 15, marginTop: 30 }}>
-      <Text style={{ fontFamily: "Raleway-Bold", fontSize: 18 }}>
-        Recent Transactions
-      </Text>
-
-      {transactions.length === 0 ? (
-        <Empty />
-      ) : (
-        transactions.map((tx, i) => {
-          return (
-            <TransactionBox
-              key={i}
-              id={tx._id}
-              category={tx.category}
-              type={tx.type}
-              title={tx?.title}
-              amount={tx?.amount?.toLocaleString()}
-              date={tx?.createdAt}
-            />
-          );
-        })
-      )}
-    </View>
-  );
-};
-
 const Empty: React.FC = () => {
+  const { COLORS } = useSettingsContext() as SettingsContextType;
+
   return (
     <View
       style={{

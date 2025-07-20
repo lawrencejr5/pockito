@@ -8,8 +8,6 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 
-import { COLORS } from "@/styles/colors";
-
 import { create_styles } from "@/styles/create.styles";
 
 import Feather from "@expo/vector-icons/Feather";
@@ -25,6 +23,11 @@ import {
   TransactionType,
 } from "@/context/TransactionContext";
 
+import {
+  useSettingsContext,
+  SettingsContextType,
+} from "@/context/SettingsContext";
+
 import Notification from "@/components/Notification";
 import {
   useNotificationContext,
@@ -32,6 +35,10 @@ import {
 } from "@/context/NotificiationContext";
 
 const Create = () => {
+  const { COLORS } = useSettingsContext() as SettingsContextType;
+
+  const styles = create_styles(COLORS);
+
   const { createTransaction } =
     useTransactionContext() as TransactionContextType;
 
@@ -110,13 +117,13 @@ const Create = () => {
     <>
       <Notification notification={notification} />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={create_styles.container}>
+        <View style={styles.container}>
           <Text style={{ fontFamily: "Raleway-Bold", fontSize: 25 }}>
             Create
           </Text>
 
           {/* Header */}
-          <View style={create_styles.header}>
+          <View style={styles.header}>
             <Text style={{ fontFamily: "Raleway-SemiBold", fontSize: 16 }}>
               New Transaction
             </Text>
@@ -144,9 +151,9 @@ const Create = () => {
             </TouchableWithoutFeedback>
           </View>
 
-          <View style={create_styles.form}>
+          <View style={styles.form}>
             {/* Types bar */}
-            <View style={create_styles.type_container}>
+            <View style={styles.type_container}>
               {types.map(({ type, color, icon }) => {
                 return (
                   <TouchableWithoutFeedback
@@ -155,7 +162,7 @@ const Create = () => {
                   >
                     <View
                       style={[
-                        create_styles.type_btn,
+                        styles.type_btn,
                         {
                           borderColor:
                             typeActive === type
@@ -193,7 +200,7 @@ const Create = () => {
             </View>
 
             {/* Amount input */}
-            <View style={create_styles.amount_inp_container}>
+            <View style={styles.amount_inp_container}>
               <Text
                 style={{
                   color: "grey",
@@ -217,7 +224,7 @@ const Create = () => {
             </View>
 
             {/* Title input */}
-            <View style={create_styles.title_container}>
+            <View style={styles.title_container}>
               <SimpleLineIcons name="notebook" size={18} color="grey" />
               <TextInput
                 placeholder="Transaction title"
@@ -242,7 +249,7 @@ const Create = () => {
                   Categories
                 </Text>
               </View>
-              <View style={create_styles.categ_container}>
+              <View style={styles.categ_container}>
                 {categories.map((cat, i) => {
                   return (
                     <TouchableWithoutFeedback
@@ -251,7 +258,7 @@ const Create = () => {
                     >
                       <View
                         style={[
-                          create_styles.categ,
+                          styles.categ,
                           {
                             backgroundColor:
                               catActive === cat.category

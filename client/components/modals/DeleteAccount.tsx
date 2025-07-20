@@ -10,6 +10,11 @@ import {
   StyleSheet,
 } from "react-native";
 
+import {
+  SettingsContextType,
+  useSettingsContext,
+} from "@/context/SettingsContext";
+
 import { useAuthContext, AuthContextType } from "@/context/AuthContext";
 
 const { height } = Dimensions.get("window");
@@ -64,6 +69,9 @@ const DeleteAccount: React.FC<{
     });
   };
 
+  const { COLORS } = useSettingsContext() as SettingsContextType;
+  const styles = create_styles(COLORS);
+
   return (
     <Modal transparent visible={visibility} animationType="none">
       <TouchableWithoutFeedback onPress={handleClose}>
@@ -102,51 +110,52 @@ const DeleteAccount: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "#00000020",
-    justifyContent: "flex-end",
-  },
-  modal: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    minHeight: 200,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 12,
-    fontFamily: "Raleway-Bold",
-  },
-  message: {
-    fontSize: 15,
-    color: "#444",
-    marginBottom: 24,
-    fontFamily: "Raleway-SemiBold",
-  },
-  closeBtn: {
-    alignSelf: "flex-end",
-    padding: 10,
-    backgroundColor: "#eee",
-    borderRadius: 8,
-  },
-  closeBtnText: {
-    color: "red",
-    fontFamily: "Raleway-Bold",
-  },
-  delBtn: {
-    alignSelf: "flex-end",
-    padding: 10,
-    backgroundColor: "red",
-    borderRadius: 8,
-  },
-  delBtnText: {
-    color: "#fff",
-    fontFamily: "Raleway-Bold",
-  },
-});
+const create_styles = (COLORS: any) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: "#00000020",
+      justifyContent: "flex-end",
+    },
+    modal: {
+      backgroundColor: "#fff",
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 24,
+      minHeight: 200,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "bold",
+      marginBottom: 12,
+      fontFamily: "Raleway-Bold",
+    },
+    message: {
+      fontSize: 15,
+      color: "#444",
+      marginBottom: 24,
+      fontFamily: "Raleway-SemiBold",
+    },
+    closeBtn: {
+      alignSelf: "flex-end",
+      padding: 10,
+      backgroundColor: "#eee",
+      borderRadius: 8,
+    },
+    closeBtnText: {
+      color: "red",
+      fontFamily: "Raleway-Bold",
+    },
+    delBtn: {
+      alignSelf: "flex-end",
+      padding: 10,
+      backgroundColor: "red",
+      borderRadius: 8,
+    },
+    delBtnText: {
+      color: "#fff",
+      fontFamily: "Raleway-Bold",
+    },
+  });
 
 export default DeleteAccount;

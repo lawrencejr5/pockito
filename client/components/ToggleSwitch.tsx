@@ -1,8 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { View, TouchableWithoutFeedback, Animated } from "react-native";
 
-import { COLORS } from "@/styles/colors";
-
 import {
   SettingsContextType,
   useSettingsContext,
@@ -27,6 +25,8 @@ const ToggleSwitch: React.FC<{ setting: SettingType }> = ({ setting }) => {
       useNativeDriver: true,
     }).start();
   }, [value]);
+
+  const { COLORS } = useSettingsContext() as SettingsContextType;
 
   return (
     <TouchableWithoutFeedback onPress={toggle}>

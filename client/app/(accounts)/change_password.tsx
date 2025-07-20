@@ -9,7 +9,10 @@ import React, { useState } from "react";
 
 import SafeArea from "@/components/SafeArea";
 
-import { COLORS } from "@/styles/colors";
+import {
+  SettingsContextType,
+  useSettingsContext,
+} from "@/context/SettingsContext";
 
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
@@ -54,6 +57,9 @@ export default function ChangePassword() {
       console.log(err);
     }
   };
+
+  const { COLORS } = useSettingsContext() as SettingsContextType;
+  const styles = create_styles(COLORS);
 
   return (
     <>
@@ -110,30 +116,31 @@ export default function ChangePassword() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    gap: 15,
-    marginTop: 10,
-  },
-  text_input: {
-    borderColor: COLORS.border_color,
-    fontFamily: "Raleway-SemiBold",
-    borderStyle: "solid",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    borderRadius: 7,
-    marginBottom: 25,
-  },
-  submit: {
-    backgroundColor: COLORS.main_color,
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});
+const create_styles = (COLORS: any) =>
+  StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      justifyContent: "flex-start",
+      alignItems: "center",
+      gap: 15,
+      marginTop: 10,
+    },
+    text_input: {
+      borderColor: COLORS.border_color,
+      fontFamily: "Raleway-SemiBold",
+      borderStyle: "solid",
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      borderRadius: 7,
+      marginBottom: 25,
+    },
+    submit: {
+      backgroundColor: COLORS.main_color,
+      paddingVertical: 15,
+      paddingHorizontal: 10,
+      borderRadius: 10,
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+  });

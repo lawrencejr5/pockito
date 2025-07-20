@@ -18,7 +18,11 @@ import { Link } from "expo-router";
 
 import Notification from "@/components/Notification";
 
-import { styles } from "@/styles/auth.styles";
+import { auth_styles } from "@/styles/auth.styles";
+import {
+  SettingsContextType,
+  useSettingsContext,
+} from "@/context/SettingsContext";
 
 import {
   AuthContextType,
@@ -32,6 +36,9 @@ import {
 
 const Signup = () => {
   const router = useRouter();
+
+  const { COLORS } = useSettingsContext() as SettingsContextType;
+  const styles = auth_styles(COLORS);
 
   // Context
   const { registerUser } = useAuthContext() as AuthContextType;

@@ -3,9 +3,14 @@ import SafeArea from "@/components/SafeArea";
 
 import Feather from "@expo/vector-icons/Feather";
 
-import { COLORS } from "@/styles/colors";
+import {
+  SettingsContextType,
+  useSettingsContext,
+} from "@/context/SettingsContext";
 
 export default function TabsLayout() {
+  const { COLORS } = useSettingsContext() as SettingsContextType;
+
   return (
     <SafeArea>
       <Tabs
@@ -15,7 +20,7 @@ export default function TabsLayout() {
           tabBarInactiveTintColor: COLORS.border_color,
           tabBarStyle: {
             elevation: 0,
-            backgroundColor: COLORS.lighter_color,
+            backgroundColor: COLORS.sec_color,
           },
           tabBarLabelStyle: {
             fontFamily: "Raleway-Bold",
