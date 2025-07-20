@@ -46,7 +46,7 @@ const Account = () => {
           <View style={styles.header}>
             <View style={{ alignItems: "center" }}>
               <Image
-                source={require("@/assets/images/undraw_pic-profile_nr49.png")}
+                source={require("@/assets/images/undraw_pic-profile_nr49-2.png")}
                 style={{ width: 120, height: 120, borderRadius: 60 }}
               />
               <Text

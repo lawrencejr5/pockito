@@ -7,7 +7,7 @@ export const get_all_transactions = async (
   res: Response
 ): Promise<void> => {
   try {
-    const transactions = await Transac.find({});
+    const transactions = await Transac.find({}).sort({ createdAt: -1 });
     res.status(200).json(transactions);
   } catch (error) {
     console.error(error);
@@ -26,7 +26,9 @@ export const get_user_transactions = async (
       res.status(400).json({ msg: "User not authenticated" });
       return;
     }
-    const transactions = await Transac.find({ user_id: userId });
+    const transactions = await Transac.find({ user_id: userId }).sort({
+      createdAt: -1,
+    });
     res.status(200).json(transactions);
   } catch (error) {
     console.error(error);

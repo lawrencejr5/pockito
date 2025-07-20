@@ -79,10 +79,10 @@ export default function Home() {
                 onPress={() => router.push("/(tabs)/account")}
               >
                 <Image
-                  source={require("@/assets/images/undraw_pic-profile_nr49.png")}
+                  source={require("@/assets/images/undraw_pic-profile_nr49-2.png")}
                   style={{
-                    height: 50,
-                    width: 50,
+                    height: 60,
+                    width: 60,
                     borderRadius: 30,
                   }}
                 />
