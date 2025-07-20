@@ -3,17 +3,33 @@ import { View, TouchableWithoutFeedback, Animated } from "react-native";
 
 import { COLORS } from "@/styles/colors";
 
-const ToggleSwitch = () => {
-  const [isOn, setIsOn] = useState(false);
-  const translateX = useState(new Animated.Value(0))[0];
+import {
+  SettingsContextType,
+  useSettingsContext,
+} from "@/context/SettingsContext";
+
+type SettingType = "incognito" | "theme";
+
+const ToggleSwitch: React.FC<{ setting: SettingType }> = ({ setting }) => {
+  const { incognito, toggleIncognito } =
+    useSettingsContext() as SettingsContextType;
+
+  const translateX = useState(new Animated.Value(incognito ? 20 : 0))[0];
+
+  React.useEffect(() => {
+    if (setting === "incognito") {
+      Animated.timing(translateX, {
+        toValue: incognito ? 20 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [incognito]);
 
   const toggleSwitch = () => {
-    Animated.timing(translateX, {
-      toValue: isOn ? 0 : 20,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-    setIsOn(!isOn);
+    if (setting === "incognito") {
+      toggleIncognito();
+    }
   };
 
   return (
@@ -23,7 +39,8 @@ const ToggleSwitch = () => {
           width: 40,
           height: 25,
           borderRadius: 15,
-          backgroundColor: isOn ? COLORS.main_color : "grey",
+          backgroundColor:
+            setting === "incognito" && incognito ? COLORS.main_color : "grey",
           justifyContent: "center",
           padding: 4,
         }}

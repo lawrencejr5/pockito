@@ -1,17 +1,19 @@
-import { View, Text } from "react-native";
 import React, { ReactNode } from "react";
 
 import { NotificationProvider } from "@/context/NotificiationContext";
 import { TransactionProvider } from "@/context/TransactionContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { SettingsProvider } from "./SettingsContext";
 
 const AppProvider = ({ children }: { children: ReactNode }) => {
   return (
-    <NotificationProvider>
-      <AuthProvider>
-        <TransactionProvider>{children}</TransactionProvider>
-      </AuthProvider>
-    </NotificationProvider>
+    <SettingsProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <TransactionProvider>{children}</TransactionProvider>
+        </AuthProvider>
+      </NotificationProvider>
+    </SettingsProvider>
   );
 };
 

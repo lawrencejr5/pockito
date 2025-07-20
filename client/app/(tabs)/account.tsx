@@ -129,14 +129,14 @@ const Preferences: React.FC = () => {
             <Feather name="moon" color={"grey"} size={16} />
             &nbsp;Dark mode
           </Text>
-          <ToggleSwitch />
+          <ToggleSwitch setting="theme" />
         </View>
         <View style={account_styles.setting_card}>
           <Text style={account_styles.setting_text}>
             <Feather name="eye-off" color={"grey"} size={16} />
             &nbsp;Incognito mode
           </Text>
-          <ToggleSwitch />
+          <ToggleSwitch setting="incognito" />
         </View>
       </View>
     </View>

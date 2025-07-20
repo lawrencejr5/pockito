@@ -5,6 +5,7 @@ import { Text, View, ScrollView, TouchableWithoutFeedback } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Entypo from "@expo/vector-icons/Entypo";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Feather from "@expo/vector-icons/Feather";
 
 import { home_styles } from "@/styles/home.styles";
 
@@ -31,7 +32,12 @@ import {
   useTransactionContext,
   TransactionContextType,
 } from "@/context/TransactionContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import {
+  useSettingsContext,
+  SettingsContextType,
+} from "@/context/SettingsContext";
 
 export default function Home() {
   const { notification } = useNotificationContext() as NotificationContextType;
@@ -134,9 +140,6 @@ const Header: React.FC = () => {
             />
           </View>
         </TouchableWithoutFeedback>
-        {/* <TouchableWithoutFeedback onPress={logout}>
-          <MaterialIcons name="logout" size={25} color="black" />
-        </TouchableWithoutFeedback> */}
       </View>
     </View>
   );
@@ -145,35 +148,71 @@ const Header: React.FC = () => {
 // Balance card component
 const BalanceCard: React.FC = () => {
   const { accountSummary } = useTransactionContext() as TransactionContextType;
+  const { incognito, toggleIncognito } =
+    useSettingsContext() as SettingsContextType;
+
+  const handleIncognito = async (): Promise<void> => {
+    try {
+      await toggleIncognito();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <View style={home_styles.balance_container_outer}>
       <View style={home_styles.balance_container}>
         <Text style={{ fontFamily: "Raleway-Bold", color: "white" }}>
           Total balance:
         </Text>
-        <Text
+        <View
           style={{
-            fontFamily: "Poppins-SemiBold",
-            fontSize: 30,
-            color: "white",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            width: "100%",
           }}
         >
-          $
-          {accountSummary?.balance
-            ? accountSummary?.balance?.toLocaleString()
-            : "0.00"}
-        </Text>
+          <Text
+            style={{
+              fontFamily: "Poppins-SemiBold",
+              fontSize: 30,
+              color: "white",
+            }}
+          >
+            {incognito
+              ? "-----"
+              : `$${
+                  accountSummary?.balance
+                    ? accountSummary?.balance?.toLocaleString()
+                    : "0.00"
+                }`}
+          </Text>
+          <TouchableWithoutFeedback onPress={handleIncognito}>
+            <View style={{ padding: 10 }}>
+              {incognito ? (
+                <Feather name="eye-off" size={30} color="white" />
+              ) : (
+                <Feather name="eye" size={30} color="white" />
+              )}
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
         <View style={home_styles.balance_details}>
           <View style={{ alignItems: "center", flexDirection: "column" }}>
             <Text style={home_styles.balance_type}>Income</Text>
             <Text style={[home_styles.balance_value, { color: "green" }]}>
-              +${accountSummary?.income?.toLocaleString()}
+              {incognito
+                ? "-----"
+                : ` +$${accountSummary?.income?.toLocaleString()}`}
             </Text>
           </View>
           <View style={{ alignItems: "center", flexDirection: "column" }}>
             <Text style={home_styles.balance_type}>Expenses</Text>
             <Text style={[home_styles.balance_value, { color: "red" }]}>
-              -${accountSummary?.expense?.toLocaleString()}
+              {incognito
+                ? "-----"
+                : ` -$${accountSummary?.expense?.toLocaleString()}`}
             </Text>
           </View>
         </View>
@@ -190,8 +229,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
   type,
   id,
 }) => {
-  const { showNotification } =
-    useNotificationContext() as NotificationContextType;
+  const { incognito } = useSettingsContext() as SettingsContextType;
 
   const { deleteTransaction } =
     useTransactionContext() as TransactionContextType;
@@ -254,11 +292,11 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
           <View style={home_styles.transaction_box_right_content}>
             {type === "credit" ? (
               <Text style={{ color: "green", fontFamily: "Poppins-SemiBold" }}>
-                +${amount}
+                {incognito ? "-----" : ` +$${amount}`}
               </Text>
             ) : (
               <Text style={{ color: "red", fontFamily: "Poppins-SemiBold" }}>
-                -${amount}
+                {incognito ? "-----" : ` -$${amount}`}
               </Text>
             )}
 
