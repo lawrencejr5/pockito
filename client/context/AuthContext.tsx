@@ -164,6 +164,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Update user details
+  const updateUserDetails = async (input: UserType): Promise<void> => {
+    try {
+      const { data } = await axios.patch(
+        `${EndPoint.USER}/`,
+        { ...input },
+        {
+          headers: {
+            Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+          },
+        }
+      );
+      showNotification(data.msg || "Updated successfully", "success");
+    } catch (err: any) {
+      console.log(err);
+      showNotification(err.response.data.msg, "error");
+    }
+  };
+
   const logout = async (): Promise<void> => {
     await AsyncStorage.removeItem("token");
     await AsyncStorage.removeItem("user");
@@ -189,6 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signedIn,
         token,
         isAuthenticated: !!token,
+        updateUserDetails,
         updatePassword,
         logout,
       }}
@@ -214,6 +234,7 @@ export interface AuthContextType {
   token: string;
   isAuthenticated: boolean;
 
+  updateUserDetails: (input: UserType) => Promise<void>;
   updatePassword: (input: PasswordType) => Promise<void>;
 
   logout: () => Promise<void>;

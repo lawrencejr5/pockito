@@ -5,7 +5,7 @@ import {
   TouchableHighlight,
   View,
 } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 
 import SafeArea from "@/components/SafeArea";
 
@@ -14,29 +14,78 @@ import { COLORS } from "@/styles/colors";
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 
+import { useAuthContext, AuthContextType } from "@/context/AuthContext";
+
+import {
+  useNotificationContext,
+  NotificationContextType,
+} from "@/context/NotificiationContext";
+
+import Notification from "@/components/Notification";
+
 export default function UserDetails() {
+  const { notification } = useNotificationContext() as NotificationContextType;
+
+  const { signedIn, updateUserDetails, logout } =
+    useAuthContext() as AuthContextType;
+
+  const [username, setUsername] = useState<string | undefined>(
+    signedIn.username
+  );
+
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      await updateUserDetails({ username });
+      setLoading(false);
+
+      setTimeout(() => {
+        logout();
+      }, 1000);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
-    <SafeArea>
-      <View style={{ flex: 1, padding: 10, backgroundColor: COLORS.sec_color }}>
-        <View style={styles.header}>
-          <Feather name="chevron-left" size={30} onPress={router.back} />
-          <Text style={{ fontFamily: "Raleway-Bold", fontSize: 20 }}>
-            Update user details
-          </Text>
-        </View>
-        <View style={{ marginTop: 30, paddingHorizontal: 10 }}>
-          <TextInput placeholder="username" style={styles.text_input} />
-          <TextInput placeholder="email" style={styles.text_input} />
-          <TouchableHighlight style={styles.submit}>
-            <Text
-              style={{ color: COLORS.sec_color, fontFamily: "Raleway-Bold" }}
-            >
-              Update
+    <>
+      <Notification notification={notification} />
+      <SafeArea>
+        <View
+          style={{ flex: 1, padding: 10, backgroundColor: COLORS.sec_color }}
+        >
+          <View style={styles.header}>
+            <Feather name="chevron-left" size={30} onPress={router.back} />
+            <Text style={{ fontFamily: "Raleway-Bold", fontSize: 20 }}>
+              Update user details
             </Text>
-          </TouchableHighlight>
+          </View>
+          <View style={{ marginTop: 30, paddingHorizontal: 10 }}>
+            <TextInput
+              placeholder="username"
+              style={styles.text_input}
+              value={username}
+              onChangeText={setUsername}
+            />
+            <TextInput
+              placeholder="email"
+              style={[styles.text_input, { backgroundColor: "#f5f5f5" }]}
+              value={signedIn?.email}
+              editable={false}
+            />
+            <TouchableHighlight style={styles.submit} onPress={handleSubmit}>
+              <Text
+                style={{ color: COLORS.sec_color, fontFamily: "Raleway-Bold" }}
+              >
+                {loading ? "Updating..." : "Update"}
+              </Text>
+            </TouchableHighlight>
+          </View>
         </View>
-      </View>
-    </SafeArea>
+      </SafeArea>
+    </>
   );
 }
 
@@ -55,6 +104,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 7,
     marginBottom: 25,
+    fontFamily: "Raleway-SemiBold",
   },
   submit: {
     backgroundColor: COLORS.main_color,
