@@ -17,7 +17,7 @@ const transactions_1 = __importDefault(require("../models/transactions"));
 // Get all transactions
 const get_all_transactions = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const transactions = yield transactions_1.default.find({});
+        const transactions = yield transactions_1.default.find({}).sort({ createdAt: -1 });
         res.status(200).json(transactions);
     }
     catch (error) {
@@ -35,7 +35,9 @@ const get_user_transactions = (req, res) => __awaiter(void 0, void 0, void 0, fu
             res.status(400).json({ msg: "User not authenticated" });
             return;
         }
-        const transactions = yield transactions_1.default.find({ user_id: userId });
+        const transactions = yield transactions_1.default.find({ user_id: userId }).sort({
+            createdAt: -1,
+        });
         res.status(200).json(transactions);
     }
     catch (error) {
