@@ -118,7 +118,7 @@ const create_styles = (COLORS: any) =>
       justifyContent: "flex-end",
     },
     modal: {
-      backgroundColor: "#fff",
+      backgroundColor: COLORS.sec_color,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       padding: 24,
@@ -129,31 +129,32 @@ const create_styles = (COLORS: any) =>
       fontWeight: "bold",
       marginBottom: 12,
       fontFamily: "Raleway-Bold",
+      color: COLORS.sec_color2,
     },
     message: {
       fontSize: 15,
-      color: "#444",
+      color: COLORS.grey,
       marginBottom: 24,
       fontFamily: "Raleway-SemiBold",
     },
     closeBtn: {
       alignSelf: "flex-end",
       padding: 10,
-      backgroundColor: "#eee",
+      backgroundColor: COLORS.sec_color2,
       borderRadius: 8,
     },
     closeBtnText: {
-      color: "red",
+      color: COLORS.red,
       fontFamily: "Raleway-Bold",
     },
     delBtn: {
       alignSelf: "flex-end",
       padding: 10,
-      backgroundColor: "red",
+      backgroundColor: COLORS.red,
       borderRadius: 8,
     },
     delBtnText: {
-      color: "#fff",
+      color: COLORS.white,
       fontFamily: "Raleway-Bold",
     },
   });

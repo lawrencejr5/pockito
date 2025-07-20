@@ -135,7 +135,12 @@ const Signup = () => {
             </View>
 
             <View style={styles.footer}>
-              <Text style={{ fontFamily: "Raleway-Regular" }}>
+              <Text
+                style={{
+                  fontFamily: "Raleway-Regular",
+                  color: COLORS.sec_color2,
+                }}
+              >
                 Already have an account?
               </Text>
               <Link href={"/(auth)/signin"} style={styles.link}>

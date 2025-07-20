@@ -11,7 +11,7 @@ export const LIGHT_THEME = {
   red: "#F44336",
   red_light: "#ffdbdb",
   green_light: "#dbffeb",
-  grey: "#AAAAAA",
+  grey: "#7a7979ff",
 };
 export const DARK_THEME = {
   main_color: "#6c63ff",

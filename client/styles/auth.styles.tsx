@@ -18,6 +18,7 @@ export const auth_styles = (COLORS: any) =>
       fontSize: 30,
       marginTop: 20,
       fontFamily: "Raleway-SemiBold",
+      color: COLORS.sec_color2,
     },
     form: {
       width: "100%",
@@ -27,10 +28,12 @@ export const auth_styles = (COLORS: any) =>
       borderWidth: 1,
       borderStyle: "solid",
       borderColor: COLORS.border_color,
+      backgroundColor: COLORS.sec_color2,
+      color: COLORS.sec_color,
       borderRadius: 5,
       marginBottom: 20,
       paddingHorizontal: 15,
-      fontFamily: "Raleway-Regular",
+      fontFamily: "Raleway-SemiBold",
     },
     button: {
       backgroundColor: COLORS.main_color,
@@ -42,7 +45,7 @@ export const auth_styles = (COLORS: any) =>
       alignItems: "center",
     },
     buttonText: {
-      color: "#fff",
+      color: COLORS.white,
       fontFamily: "Raleway-Bold",
       fontSize: 15,
     },

@@ -69,8 +69,19 @@ export default function ChangePassword() {
           style={{ flex: 1, padding: 10, backgroundColor: COLORS.sec_color }}
         >
           <View style={styles.header}>
-            <Feather name="chevron-left" size={30} onPress={router.back} />
-            <Text style={{ fontFamily: "Raleway-Bold", fontSize: 20 }}>
+            <Feather
+              name="chevron-left"
+              size={30}
+              color={COLORS.sec_color2}
+              onPress={router.back}
+            />
+            <Text
+              style={{
+                fontFamily: "Raleway-Bold",
+                fontSize: 20,
+                color: COLORS.sec_color2,
+              }}
+            >
               Change password
             </Text>
           </View>
@@ -83,6 +94,7 @@ export default function ChangePassword() {
                 setInput((prev) => ({ ...prev, oldPassword: text }))
               }
               secureTextEntry
+              autoCapitalize="none"
             />
             <TextInput
               placeholder="new password"
@@ -92,6 +104,7 @@ export default function ChangePassword() {
                 setInput((prev) => ({ ...prev, newPassword: text }))
               }
               secureTextEntry
+              autoCapitalize="none"
             />
             <TextInput
               placeholder="confirm password"
@@ -101,11 +114,10 @@ export default function ChangePassword() {
                 setInput((prev) => ({ ...prev, confirmPassword: text }))
               }
               secureTextEntry
+              autoCapitalize="none"
             />
             <TouchableHighlight style={styles.submit} onPress={handleSubmit}>
-              <Text
-                style={{ color: COLORS.sec_color, fontFamily: "Raleway-Bold" }}
-              >
+              <Text style={{ color: COLORS.white, fontFamily: "Raleway-Bold" }}>
                 {loading ? "Updating..." : "Update"}
               </Text>
             </TouchableHighlight>
@@ -127,6 +139,7 @@ const create_styles = (COLORS: any) =>
     },
     text_input: {
       borderColor: COLORS.border_color,
+      backgroundColor: COLORS.white,
       fontFamily: "Raleway-SemiBold",
       borderStyle: "solid",
       borderWidth: 1,

@@ -34,7 +34,10 @@ const Notification = ({ notification }: { notification: NotificationType }) => {
         <Text
           style={[
             styles.notiText,
-            { color: notification?.status == "error" ? "red" : "green" },
+            {
+              color:
+                notification?.status == "error" ? COLORS.red : COLORS.green,
+            },
           ]}
         >
           {notification?.message}
@@ -42,7 +45,7 @@ const Notification = ({ notification }: { notification: NotificationType }) => {
         <AntDesign
           name="exclamationcircle"
           size={16}
-          color={notification?.status == "error" ? "red" : "green"}
+          color={notification?.status == "error" ? COLORS.red : COLORS.green}
         />
       </View>
     </Animated.View>
@@ -64,7 +67,7 @@ const create_styles = (COLORS: any) =>
     },
     notification: {
       width: 300,
-      backgroundColor: COLORS.sec_color,
+      backgroundColor: COLORS.white,
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
@@ -73,7 +76,6 @@ const create_styles = (COLORS: any) =>
       borderRadius: 10,
     },
     notiText: {
-      color: "red",
       fontFamily: "Raleway-Bold",
     },
   });

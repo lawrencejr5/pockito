@@ -63,8 +63,19 @@ export default function UserDetails() {
           style={{ flex: 1, padding: 10, backgroundColor: COLORS.sec_color }}
         >
           <View style={styles.header}>
-            <Feather name="chevron-left" size={30} onPress={router.back} />
-            <Text style={{ fontFamily: "Raleway-Bold", fontSize: 20 }}>
+            <Feather
+              name="chevron-left"
+              color={COLORS.sec_color2}
+              size={30}
+              onPress={router.back}
+            />
+            <Text
+              style={{
+                fontFamily: "Raleway-Bold",
+                fontSize: 20,
+                color: COLORS.sec_color2,
+              }}
+            >
               Update user details
             </Text>
           </View>
@@ -77,14 +88,12 @@ export default function UserDetails() {
             />
             <TextInput
               placeholder="email"
-              style={[styles.text_input, { backgroundColor: "#f5f5f5" }]}
+              style={[styles.text_input, { backgroundColor: COLORS.grey }]}
               value={signedIn?.email}
               editable={false}
             />
             <TouchableHighlight style={styles.submit} onPress={handleSubmit}>
-              <Text
-                style={{ color: COLORS.sec_color, fontFamily: "Raleway-Bold" }}
-              >
+              <Text style={{ color: COLORS.white, fontFamily: "Raleway-Bold" }}>
                 {loading ? "Updating..." : "Update"}
               </Text>
             </TouchableHighlight>
@@ -112,6 +121,7 @@ const create_styles = (COLORS: any) =>
       borderRadius: 7,
       marginBottom: 25,
       fontFamily: "Raleway-SemiBold",
+      backgroundColor: COLORS.white,
     },
     submit: {
       backgroundColor: COLORS.main_color,
