@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { View, TouchableWithoutFeedback, Animated } from "react-native";
 
 import { COLORS } from "@/styles/colors";
@@ -11,36 +11,31 @@ import {
 type SettingType = "incognito" | "theme";
 
 const ToggleSwitch: React.FC<{ setting: SettingType }> = ({ setting }) => {
-  const { incognito, toggleIncognito } =
+  const { incognito, toggleIncognito, theme, toggleTheme } =
     useSettingsContext() as SettingsContextType;
 
-  const translateX = useState(new Animated.Value(incognito ? 20 : 0))[0];
+  // Dynamically select value and toggle function
+  const value = setting === "incognito" ? incognito : theme;
+  const toggle = setting === "incognito" ? toggleIncognito : toggleTheme;
 
-  React.useEffect(() => {
-    if (setting === "incognito") {
-      Animated.timing(translateX, {
-        toValue: incognito ? 20 : 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [incognito]);
+  const translateX = useRef(new Animated.Value(value ? 20 : 0)).current;
 
-  const toggleSwitch = () => {
-    if (setting === "incognito") {
-      toggleIncognito();
-    }
-  };
+  useEffect(() => {
+    Animated.timing(translateX, {
+      toValue: value ? 20 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [value]);
 
   return (
-    <TouchableWithoutFeedback onPress={toggleSwitch}>
+    <TouchableWithoutFeedback onPress={toggle}>
       <View
         style={{
           width: 40,
           height: 25,
           borderRadius: 15,
-          backgroundColor:
-            setting === "incognito" && incognito ? COLORS.main_color : "grey",
+          backgroundColor: value ? COLORS.main_color : "grey",
           justifyContent: "center",
           padding: 4,
         }}

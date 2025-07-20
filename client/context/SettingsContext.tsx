@@ -11,12 +11,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export interface SettingsContextType {
   incognito: boolean;
   toggleIncognito: () => Promise<void>;
+  theme: boolean;
+  toggleTheme: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [incognito, setIncognito] = useState<boolean>(true);
+  const [theme, setTheme] = useState<boolean>(true);
 
   useEffect(() => {
     const loadIncognito = async () => {
@@ -31,6 +34,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     };
 
     loadIncognito();
+
+    const loadTheme = async () => {
+      try {
+        const storedValue = await AsyncStorage.getItem("theme");
+        if (storedValue !== null) {
+          setTheme(JSON.parse(storedValue));
+        }
+      } catch (error) {
+        console.error("Failed to load theme state:", error);
+      }
+    };
+
+    loadTheme();
   }, []);
 
   const toggleIncognito = async (): Promise<void> => {
@@ -39,8 +55,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.setItem("incognito", JSON.stringify(newValue));
   };
 
+  const toggleTheme = async (): Promise<void> => {
+    const newValue = !theme;
+    setTheme(newValue);
+    await AsyncStorage.setItem("theme", JSON.stringify(newValue));
+  };
+
   return (
-    <SettingsContext.Provider value={{ incognito, toggleIncognito }}>
+    <SettingsContext.Provider
+      value={{ incognito, toggleIncognito, theme, toggleTheme }}
+    >
       {children}
     </SettingsContext.Provider>
   );
