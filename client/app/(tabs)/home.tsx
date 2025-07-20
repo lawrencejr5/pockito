@@ -35,7 +35,7 @@ import {
   useTransactionContext,
   TransactionContextType,
 } from "@/context/TransactionContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export default function Home() {
   const { notification } = useNotificationContext() as NotificationContextType;
@@ -81,8 +81,8 @@ export default function Home() {
                 <Image
                   source={require("@/assets/images/undraw_pic-profile_nr49.png")}
                   style={{
-                    height: 60,
-                    width: 60,
+                    height: 50,
+                    width: 50,
                     borderRadius: 30,
                   }}
                 />
@@ -90,7 +90,7 @@ export default function Home() {
               <View>
                 <Text
                   style={{
-                    color: "grey",
+                    color: COLORS.sec_color2,
                     fontFamily: "Raleway-SemiBold",
                     fontSize: 12,
                   }}
@@ -102,6 +102,7 @@ export default function Home() {
                     fontFamily: "Raleway-Bold",
                     textTransform: "capitalize",
                     width: "100%",
+                    color: COLORS.sec_color2,
                   }}
                 >
                   {signedIn.username}
@@ -115,7 +116,7 @@ export default function Home() {
                 <View style={styles.add_btn}>
                   <Text
                     style={{
-                      color: COLORS.sec_color,
+                      color: COLORS.white,
                       fontFamily: "Raleway-SemiBold",
                       fontSize: 14,
                     }}
@@ -125,9 +126,8 @@ export default function Home() {
                   <Entypo
                     name="plus"
                     size={16}
-                    color={COLORS.sec_color}
+                    color={COLORS.white}
                     style={{
-                      color: COLORS.sec_color,
                       fontFamily: "Raleway-Bold",
                       fontSize: 14,
                     }}
@@ -139,7 +139,7 @@ export default function Home() {
           {/* Balance card */}
           <View style={styles.balance_container_outer}>
             <View style={styles.balance_container}>
-              <Text style={{ fontFamily: "Raleway-Bold", color: "white" }}>
+              <Text style={{ fontFamily: "Raleway-Bold", color: COLORS.white }}>
                 Total balance:
               </Text>
               <View
@@ -154,7 +154,7 @@ export default function Home() {
                   style={{
                     fontFamily: "Poppins-SemiBold",
                     fontSize: 30,
-                    color: "white",
+                    color: COLORS.white,
                   }}
                 >
                   {incognito
@@ -168,9 +168,9 @@ export default function Home() {
                 <TouchableWithoutFeedback onPress={handleIncognito}>
                   <View style={{ padding: 10 }}>
                     {incognito ? (
-                      <Feather name="eye-off" size={30} color="white" />
+                      <Feather name="eye-off" size={30} color={COLORS.white} />
                     ) : (
-                      <Feather name="eye" size={30} color="white" />
+                      <Feather name="eye" size={30} color={COLORS.white} />
                     )}
                   </View>
                 </TouchableWithoutFeedback>
@@ -178,7 +178,7 @@ export default function Home() {
               <View style={styles.balance_details}>
                 <View style={{ alignItems: "center", flexDirection: "column" }}>
                   <Text style={styles.balance_type}>Income</Text>
-                  <Text style={[styles.balance_value, { color: "green" }]}>
+                  <Text style={[styles.balance_value, { color: COLORS.green }]}>
                     {incognito
                       ? "-----"
                       : ` +$${accountSummary?.income?.toLocaleString()}`}
@@ -186,7 +186,7 @@ export default function Home() {
                 </View>
                 <View style={{ alignItems: "center", flexDirection: "column" }}>
                   <Text style={styles.balance_type}>Expenses</Text>
-                  <Text style={[styles.balance_value, { color: "red" }]}>
+                  <Text style={[styles.balance_value, { color: COLORS.red }]}>
                     {incognito
                       ? "-----"
                       : ` -$${accountSummary?.expense?.toLocaleString()}`}
@@ -197,7 +197,13 @@ export default function Home() {
           </View>
           {/* Transactions */}
           <View style={{ paddingHorizontal: 15, marginTop: 30 }}>
-            <Text style={{ fontFamily: "Raleway-Bold", fontSize: 18 }}>
+            <Text
+              style={{
+                fontFamily: "Raleway-Bold",
+                fontSize: 18,
+                color: COLORS.sec_color2,
+              }}
+            >
               Recent Transactions
             </Text>
 
@@ -225,6 +231,7 @@ export default function Home() {
   );
 }
 
+// Transaction Box component
 const TransactionBox: React.FC<TransactionBoxProps> = ({
   category,
   amount,
@@ -266,7 +273,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
                 type === "credit" ? "credit-card-plus" : "credit-card-minus"
               }
               size={20}
-              color={type === "credit" ? "green" : "red"}
+              color={type === "credit" ? COLORS.green : COLORS.red}
             />
           </View>
           <View>
@@ -277,6 +284,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
                 fontSize: 14,
                 flexWrap: "wrap",
                 width: 120,
+                color: COLORS.sec_color2,
               }}
               numberOfLines={2}
             >
@@ -286,7 +294,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
               style={{
                 fontFamily: "Raleway-Regular",
                 fontSize: 12,
-                color: "grey",
+                color: COLORS.grey,
                 textTransform: "capitalize",
               }}
             >
@@ -297,11 +305,15 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
         <View style={styles.transaction_box_right}>
           <View style={styles.transaction_box_right_content}>
             {type === "credit" ? (
-              <Text style={{ color: "green", fontFamily: "Poppins-SemiBold" }}>
+              <Text
+                style={{ color: COLORS.green, fontFamily: "Poppins-SemiBold" }}
+              >
                 {incognito ? "-----" : ` +$${amount}`}
               </Text>
             ) : (
-              <Text style={{ color: "red", fontFamily: "Poppins-SemiBold" }}>
+              <Text
+                style={{ color: COLORS.red, fontFamily: "Poppins-SemiBold" }}
+              >
                 {incognito ? "-----" : ` -$${amount}`}
               </Text>
             )}
@@ -310,7 +322,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
               style={{
                 fontFamily: "Raleway-Regular",
                 fontSize: 12,
-                color: "grey",
+                color: COLORS.grey,
               }}
             >
               {date
@@ -327,7 +339,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
               handleDelete(id);
             }}
           >
-            <MaterialIcons name="delete" size={30} color="red" />
+            <MaterialIcons name="delete" size={30} color={COLORS.red} />
           </TouchableWithoutFeedback>
         </View>
       </View>
@@ -335,6 +347,7 @@ const TransactionBox: React.FC<TransactionBoxProps> = ({
   );
 };
 
+// Empty transactions component
 const Empty: React.FC = () => {
   const { COLORS } = useSettingsContext() as SettingsContextType;
 

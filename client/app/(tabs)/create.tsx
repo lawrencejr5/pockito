@@ -118,13 +118,25 @@ const Create = () => {
       <Notification notification={notification} />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.container}>
-          <Text style={{ fontFamily: "Raleway-Bold", fontSize: 25 }}>
+          <Text
+            style={{
+              fontFamily: "Raleway-Bold",
+              fontSize: 25,
+              color: COLORS.sec_color2,
+            }}
+          >
             Create
           </Text>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={{ fontFamily: "Raleway-SemiBold", fontSize: 16 }}>
+            <Text
+              style={{
+                fontFamily: "Raleway-SemiBold",
+                fontSize: 16,
+                color: COLORS.sec_color2,
+              }}
+            >
               New Transaction
             </Text>
             <TouchableWithoutFeedback onPress={handleSubmit}>
@@ -138,14 +150,17 @@ const Create = () => {
                 }}
               >
                 <Text
-                  style={{ fontFamily: "Raleway-SemiBold", color: "green" }}
+                  style={{
+                    fontFamily: "Raleway-SemiBold",
+                    color: COLORS.green,
+                  }}
                 >
                   Save
                 </Text>
                 {loading ? (
                   <Text>...</Text>
                 ) : (
-                  <Feather name="check-circle" size={14} color="green" />
+                  <Feather name="check-circle" size={14} color={COLORS.green} />
                 )}
               </View>
             </TouchableWithoutFeedback>
@@ -167,7 +182,7 @@ const Create = () => {
                           borderColor:
                             typeActive === type
                               ? COLORS.main_color
-                              : COLORS.border_color,
+                              : COLORS.grey,
                           backgroundColor:
                             typeActive === type
                               ? COLORS.main_color
@@ -180,7 +195,7 @@ const Create = () => {
                         size={14}
                         style={{
                           bottom: -2,
-                          color: typeActive === type ? COLORS.sec_color : color,
+                          color: typeActive === type ? COLORS.white : color,
                         }}
                       />
                       <Text
@@ -188,7 +203,9 @@ const Create = () => {
                           fontFamily: "Raleway-Bold",
                           textTransform: "capitalize",
                           color:
-                            typeActive === type ? COLORS.sec_color : "black",
+                            typeActive === type
+                              ? COLORS.white
+                              : COLORS.sec_color2,
                         }}
                       >
                         {type}
@@ -203,7 +220,7 @@ const Create = () => {
             <View style={styles.amount_inp_container}>
               <Text
                 style={{
-                  color: "grey",
+                  color: COLORS.grey,
                   fontSize: 45,
                   fontFamily: "Poppins-Regular",
                 }}
@@ -212,10 +229,12 @@ const Create = () => {
               </Text>
               <TextInput
                 placeholder="0.00"
+                placeholderTextColor={COLORS.grey}
                 style={{
                   width: "90%",
                   fontSize: 40,
                   fontFamily: "Poppins-Regular",
+                  color: COLORS.sec_color2,
                 }}
                 keyboardType="numeric"
                 value={amount}
@@ -225,9 +244,10 @@ const Create = () => {
 
             {/* Title input */}
             <View style={styles.title_container}>
-              <SimpleLineIcons name="notebook" size={18} color="grey" />
+              <SimpleLineIcons name="notebook" size={18} color={COLORS.grey} />
               <TextInput
                 placeholder="Transaction title"
+                placeholderTextColor={COLORS.grey}
                 style={{ width: "90%", fontFamily: "Raleway-SemiBold" }}
                 value={title}
                 onChangeText={setTitle}
@@ -242,10 +262,16 @@ const Create = () => {
                 <Feather
                   name="grid"
                   size={18}
-                  color="black"
+                  color={COLORS.sec_color2}
                   style={{ bottom: -2 }}
                 />
-                <Text style={{ fontFamily: "Raleway-SemiBold", fontSize: 18 }}>
+                <Text
+                  style={{
+                    fontFamily: "Raleway-SemiBold",
+                    fontSize: 18,
+                    color: COLORS.sec_color2,
+                  }}
+                >
                   Categories
                 </Text>
               </View>
@@ -263,7 +289,7 @@ const Create = () => {
                             backgroundColor:
                               catActive === cat.category
                                 ? COLORS.main_color
-                                : COLORS.sec_color,
+                                : COLORS.sec_color3,
                           },
                         ]}
                       >
@@ -274,8 +300,8 @@ const Create = () => {
                           style={{
                             color:
                               catActive === cat.category
-                                ? COLORS.sec_color
-                                : "",
+                                ? COLORS.white
+                                : COLORS.sec_color2,
                           }}
                         >
                           {cat.category}

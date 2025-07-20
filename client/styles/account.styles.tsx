@@ -16,10 +16,10 @@ export const account_styles = (COLORS: any) =>
     },
     setting_sec: {
       marginTop: 20,
-      backgroundColor: COLORS.sec_color,
-      elevation: 5,
-      shadowColor: "grey",
-      padding: 10,
+      backgroundColor: COLORS.sec_color3,
+      elevation: 10,
+      shadowColor: COLORS.border_color,
+      padding: 20,
       borderRadius: 10,
     },
     setting_card: {
@@ -31,6 +31,6 @@ export const account_styles = (COLORS: any) =>
     setting_text: {
       fontFamily: "Raleway-SemiBold",
       fontSize: 16,
-      color: "grey",
+      color: COLORS.grey,
     },
   });

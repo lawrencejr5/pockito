@@ -17,13 +17,13 @@ export const categories: CategoriesType[] = [
   {
     id: 1,
     category: "food & drinks",
-    icon: <Ionicons name="fast-food-outline" size={16} color="black" />,
+    icon: <Ionicons name="fast-food-outline" size={16} color="grey" />,
     icon_active: <Ionicons name="fast-food-outline" size={16} color="white" />,
   },
   {
     id: 2,
     category: "income",
-    icon: <FontAwesome5 name="money-bill-alt" size={16} color="black" />,
+    icon: <FontAwesome5 name="money-bill-alt" size={16} color="grey" />,
     icon_active: <FontAwesome5 name="money-bill-alt" size={16} color="white" />,
   },
   {
@@ -33,7 +33,7 @@ export const categories: CategoriesType[] = [
       <MaterialCommunityIcons
         name="hand-extended-outline"
         size={16}
-        color="black"
+        color="grey"
       />
     ),
     icon_active: (
@@ -51,7 +51,7 @@ export const categories: CategoriesType[] = [
       <MaterialCommunityIcons
         name="calendar-refresh-outline"
         size={16}
-        color="black"
+        color="grey"
       />
     ),
     icon_active: (
@@ -65,25 +65,25 @@ export const categories: CategoriesType[] = [
   {
     id: 5,
     category: "groceries",
-    icon: <AntDesign name="shoppingcart" size={16} color="black" />,
+    icon: <AntDesign name="shoppingcart" size={16} color="grey" />,
     icon_active: <AntDesign name="shoppingcart" size={16} color="white" />,
   },
   {
     id: 6,
     category: "transport",
-    icon: <Ionicons name="car-outline" size={16} color="black" />,
+    icon: <Ionicons name="car-outline" size={16} color="grey" />,
     icon_active: <Ionicons name="car-outline" size={16} color="white" />,
   },
   {
     id: 7,
     category: "clothing",
-    icon: <Ionicons name="shirt-outline" size={16} color="black" />,
+    icon: <Ionicons name="shirt-outline" size={16} color="grey" />,
     icon_active: <Ionicons name="shirt-outline" size={16} color="white" />,
   },
   {
     id: 8,
     category: "others",
-    icon: <Entypo name="dots-three-horizontal" size={16} color="black" />,
+    icon: <Entypo name="dots-three-horizontal" size={16} color="grey" />,
     icon_active: (
       <Entypo name="dots-three-horizontal" size={16} color="white" />
     ),

@@ -56,6 +56,7 @@ const Account = () => {
                   marginTop: 10,
                   textTransform: "capitalize",
                   width: "100%",
+                  color: COLORS.sec_color2,
                 }}
               >
                 {`${signedIn.username}'s account`}
@@ -68,10 +69,10 @@ const Account = () => {
               style={{
                 fontFamily: "Raleway-SemiBold",
                 fontSize: 16,
-                color: "black",
+                color: COLORS.sec_color2,
               }}
             >
-              <Feather name="settings" color={"black"} size={16} />
+              <Feather name="settings" color={COLORS.sec_color2} size={16} />
               &nbsp;Account Info
             </Text>
             <View style={{ marginTop: 15 }}>
@@ -105,10 +106,10 @@ const Account = () => {
               style={{
                 fontFamily: "Raleway-SemiBold",
                 fontSize: 16,
-                color: "black",
+                color: COLORS.sec_color2,
               }}
             >
-              <Feather name="settings" color={"black"} size={16} />
+              <Feather name="settings" color={COLORS.sec_color2} size={16} />
               &nbsp;Preferences
             </Text>
             <View style={{ marginTop: 15 }}>
@@ -135,30 +136,42 @@ const Account = () => {
                 style={{
                   fontFamily: "Raleway-SemiBold",
                   fontSize: 16,
-                  color: "black",
+                  color: COLORS.sec_color2,
                 }}
               >
-                <Feather name="settings" color={"black"} size={16} />
+                <Feather name="settings" color={COLORS.sec_color2} size={16} />
                 &nbsp;Manage account
               </Text>
               <View style={{ marginTop: 15 }}>
                 <TouchableWithoutFeedback onPress={() => setShowModal(true)}>
                   <View style={styles.setting_card}>
                     <Text style={styles.setting_text}>
-                      <Feather name="trash-2" color={"grey"} size={16} />
+                      <Feather name="trash-2" color={COLORS.grey} size={16} />
                       &nbsp;Delete account and data
                     </Text>
-                    <Feather name="chevron-right" color={"grey"} size={20} />
+                    <Feather
+                      name="chevron-right"
+                      color={COLORS.grey}
+                      size={20}
+                    />
                   </View>
                 </TouchableWithoutFeedback>
 
                 <TouchableWithoutFeedback onPress={logout}>
                   <View style={styles.setting_card}>
                     <Text style={styles.setting_text}>
-                      <MaterialIcons name="logout" size={16} color="grey" />{" "}
+                      <MaterialIcons
+                        name="logout"
+                        size={16}
+                        color={COLORS.grey}
+                      />{" "}
                       &nbsp;Logout
                     </Text>
-                    <Feather name="chevron-right" color={"grey"} size={20} />
+                    <Feather
+                      name="chevron-right"
+                      color={COLORS.grey}
+                      size={20}
+                    />
                   </View>
                 </TouchableWithoutFeedback>
               </View>

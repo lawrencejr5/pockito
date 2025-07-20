@@ -17,10 +17,13 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: COLORS.main_color,
-          tabBarInactiveTintColor: COLORS.border_color,
+          tabBarInactiveTintColor: COLORS.sec_color2,
           tabBarStyle: {
             elevation: 0,
             backgroundColor: COLORS.sec_color,
+            borderTopWidth: 0, // removes the line/border on top
+            paddingTop: 10, // adds top padding
+            height: 70,
           },
           tabBarLabelStyle: {
             fontFamily: "Raleway-Bold",
