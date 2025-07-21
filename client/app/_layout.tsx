@@ -1,7 +1,6 @@
 import React from "react";
 import { Stack } from "expo-router";
 import SafeArea from "@/components/SafeArea";
-import { useState } from "react";
 import { useFonts } from "expo-font";
 
 import AppProvider from "@/context/AppProvider";
@@ -35,7 +34,10 @@ export default function RootLayout() {
 const StackContent = () => {
   const { isAuthenticated } = useAuthContext() as AuthContextType;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{ headerShown: false }}
+      initialRouteName={isAuthenticated ? "(tabs)" : "(auth)"}
+    >
       {!isAuthenticated ? (
         <Stack.Screen name="(auth)" />
       ) : (
