@@ -1,11 +1,9 @@
 import React from "react";
-import { Stack } from "expo-router";
+import { Slot } from "expo-router";
 import SafeArea from "@/components/SafeArea";
 import { useFonts } from "expo-font";
 
 import AppProvider from "@/context/AppProvider";
-
-import { AuthContextType, useAuthContext } from "@/context/AuthContext";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -25,24 +23,8 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <SafeArea>
-        <StackContent />
+        <Slot />
       </SafeArea>
     </AppProvider>
   );
 }
-
-const StackContent = () => {
-  const { isAuthenticated } = useAuthContext() as AuthContextType;
-  return (
-    <Stack
-      screenOptions={{ headerShown: false }}
-      initialRouteName={isAuthenticated ? "(tabs)" : "(auth)"}
-    >
-      {!isAuthenticated ? (
-        <Stack.Screen name="(auth)" />
-      ) : (
-        <Stack.Screen name="(tabs)" />
-      )}
-    </Stack>
-  );
-};
