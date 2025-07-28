@@ -1,5 +1,5 @@
 import React from "react";
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import SafeArea from "@/components/SafeArea";
 import { useFonts } from "expo-font";
 
@@ -23,7 +23,7 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <SafeArea>
-        <Slot />
+        <Stack screenOptions={{ headerShown: false }} />
       </SafeArea>
     </AppProvider>
   );
