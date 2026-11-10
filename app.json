@@ -6,9 +6,20 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pockito",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/01a1bf68-5f36-7ce9-a255-72f08b164abd"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "userInterfaceStyle": "dark",
+      "bundleIdentifier": "com.lawrencejr.pockito",
+       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +28,10 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -31,15 +45,34 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#a5a79b"
+        }
+      ],
+       [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
         }
       ],
       "@react-native-community/datetimepicker",
       "expo-build-properties",
       "expo-localization",
+      "expo-updates",
       "expo-secure-store",
       "expo-tracking-transparency",
-      "react-native-google-mobile-ads"
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-7078901325871517~9925359301",
+          "iosAppId": "ca-app-pub-7078901325871517~7148646014"
+        }
+
+      ]
     ],
     "experiments": {
       "typedRoutes": true
