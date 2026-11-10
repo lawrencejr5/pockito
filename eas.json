@@ -7,21 +7,30 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "development"
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://exciting-warthog-322.convex.cloud"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://exciting-warthog-322.convex.cloud"
+      }
     },
     "production": {
       "autoIncrement": true,
-       "android": {
+      "android": {
         "buildType": "app-bundle"
       },
-       "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://veracious-dinosaur-647.convex.cloud"
+      }
     }
   },
   "submit": {

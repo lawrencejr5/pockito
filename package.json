@@ -63,7 +63,10 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy -y",
+    "convex:codegen": "convex codegen"
   },
   "private": true
 }
