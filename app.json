@@ -60,6 +60,13 @@
         }
       ],
       "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pockito needs access to your photos so you can attach receipts to transactions.",
+          "cameraPermission": "Pockito needs camera access so you can photograph receipts."
+        }
+      ],
       "expo-build-properties",
       "expo-localization",
       "expo-updates",

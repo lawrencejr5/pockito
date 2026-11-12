@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { router } from "expo-router";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Extrapolation,
@@ -13,50 +14,46 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CashflowChart } from "@/components/CashflowChart";
 import { CurrencyPicker } from "@/components/CurrencyPicker";
 import { useCurrency } from "@/components/CurrencyProvider";
+import { useTransactions } from "@/components/TransactionsProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
+import { getCategory } from "@/constants/categories";
 
 // Amounts are stored in USD and converted by the CurrencyProvider.
 const BALANCE_USD = 87457.86;
-const INCOME_USD = 4876.89;
-const EXPENSE_USD = 8145.45;
-const TODAY_USD = 3456.55;
-
-const TRANSACTIONS = [
-  {
-    id: "1",
-    title: "Cash",
-    sub: "Prime Bank",
-    amount: -543.55,
-    balance: 4673.85,
-    icon: "wallet-outline",
-  },
-  {
-    id: "2",
-    title: "Salary Deposit",
-    sub: "Acme Inc.",
-    amount: 2400,
-    balance: 5217.4,
-    icon: "cash-outline",
-  },
-  {
-    id: "3",
-    title: "Groceries",
-    sub: "Visa •• 4242",
-    amount: -86.2,
-    balance: 2817.4,
-    icon: "cart-outline",
-  },
-] as const;
-
+const SEED_INCOME_USD = 4876.89;
+const SEED_EXPENSE_USD = 8145.45;
 const TOP_GAP = 8; // space between the status bar inset and the header row
 
 export default function HomeScreen() {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
   const { currency, format, parts } = useCurrency();
+  const { transactions, isSeed } = useTransactions();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [heroHeight, setHeroHeight] = useState(280);
+
+  const { incomeUsd, expenseUsd, todayNetUsd, recent } = useMemo(() => {
+    const now = new Date();
+    let inc = 0;
+    let exp = 0;
+    let todayNet = 0;
+    for (const t of transactions) {
+      const d = new Date(t.date);
+      const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
+      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+        if (t.type === "income") inc += t.amountUsd;
+        else exp += t.amountUsd;
+      }
+      if (d.toDateString() === now.toDateString()) todayNet += signed;
+    }
+    return {
+      incomeUsd: isSeed ? SEED_INCOME_USD : inc,
+      expenseUsd: isSeed ? SEED_EXPENSE_USD : exp,
+      todayNetUsd: todayNet,
+      recent: transactions.slice(0, 10),
+    };
+  }, [transactions, isSeed]);
 
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
@@ -125,19 +122,16 @@ export default function HomeScreen() {
               <Ionicons name="chevron-down" size={14} color={colors.heroText} />
             </View>
 
-            <View style={[styles.circle, { backgroundColor: colors.pill }]}>
-              <Ionicons
-                name="notifications-outline"
-                size={18}
-                color={colors.heroText}
-              />
-            </View>
+            <Pressable
+              onPress={() => router.push("/add-transaction")}
+              hitSlop={8}
+              style={[styles.circle, { backgroundColor: colors.pill }]}
+            >
+              <Ionicons name="add" size={22} color={colors.heroText} />
+            </Pressable>
           </View>
 
           <View style={styles.balanceBlock}>
-            <Text style={[styles.balanceLabel, { color: colors.heroMuted }]}>
-              Current Balance
-            </Text>
             <View style={styles.balanceRow}>
               <Text style={[styles.balance, { color: colors.heroText }]}>
                 {balance.whole}
@@ -202,13 +196,13 @@ export default function HomeScreen() {
             {[
               {
                 label: "Income",
-                value: INCOME_USD,
+                value: incomeUsd,
                 icon: "arrow-down",
                 color: colors.income,
               },
               {
                 label: "Expense",
-                value: EXPENSE_USD,
+                value: expenseUsd,
                 icon: "arrow-up",
                 color: colors.expense,
               },
@@ -280,12 +274,17 @@ export default function HomeScreen() {
               {today}
             </Text>
             <Text style={[styles.todayTotal, { color: colors.text }]}>
-              Today: {format(TODAY_USD)}
+              Today: {format(todayNetUsd, { sign: true })}
             </Text>
           </View>
 
           <View style={styles.list}>
-            {TRANSACTIONS.map((t) => (
+            {recent.map((t) => {
+              const cat = getCategory(t.categoryId);
+              const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
+              const when = new Date(t.date);
+              const sub = `${cat.label} · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+              return (
               <View
                 key={t.id}
                 style={[
@@ -299,34 +298,38 @@ export default function HomeScreen() {
                 <View
                   style={[
                     styles.txBadge,
-                    { backgroundColor: colors.accentSoft },
+                    { backgroundColor: cat.color + "26" },
                   ]}
                 >
-                  <Ionicons name={t.icon} size={18} color={colors.tint} />
+                  <Ionicons name={cat.icon} size={18} color={cat.color} />
                 </View>
                 <View style={styles.txBody}>
                   <Text style={[styles.txTitle, { color: colors.text }]}>
                     {t.title}
                   </Text>
                   <Text style={[styles.txSub, { color: colors.textMuted }]}>
-                    {t.sub}
+                    {sub}
                   </Text>
                 </View>
                 <View style={styles.txRight}>
                   <Text
                     style={[
                       styles.txAmount,
-                      { color: t.amount < 0 ? colors.expense : colors.income },
+                      { color: signed < 0 ? colors.expense : colors.income },
                     ]}
                   >
-                    {format(t.amount, { sign: true })}
+                    {format(signed, { sign: true })}
                   </Text>
                   <Text style={[styles.txSub, { color: colors.textMuted }]}>
-                    {format(t.balance)}
+                    {when.toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
                   </Text>
                 </View>
               </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       </Animated.ScrollView>

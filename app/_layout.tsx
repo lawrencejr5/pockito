@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 
 import { ConvexClientProvider } from '@/components/ConvexClientProvider';
 import { CurrencyProvider } from '@/components/CurrencyProvider';
+import { TransactionsProvider } from '@/components/TransactionsProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 
 export {
@@ -51,7 +52,9 @@ export default function RootLayout() {
   return (
     <ConvexClientProvider>
       <CurrencyProvider>
-        <RootLayoutNav />
+        <TransactionsProvider>
+          <RootLayoutNav />
+        </TransactionsProvider>
       </CurrencyProvider>
     </ConvexClientProvider>
   );
@@ -64,7 +67,10 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen
+          name="add-transaction"
+          options={{ presentation: 'modal', headerShown: false }}
+        />
       </Stack>
     </ThemeProvider>
   );

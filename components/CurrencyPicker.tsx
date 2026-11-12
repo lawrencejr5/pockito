@@ -6,14 +6,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCurrency } from '@/components/CurrencyProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
-import { CURRENCY_LIST } from '@/constants/currencies';
+import { CURRENCY_LIST, type CurrencyCode } from '@/constants/currencies';
 
-type Props = { visible: boolean; onClose: () => void };
+type Props = {
+  visible: boolean;
+  onClose: () => void;
+  /** Optional: pick a currency locally instead of changing the app currency. */
+  selected?: CurrencyCode;
+  onSelect?: (code: CurrencyCode) => void;
+};
 
-export function CurrencyPicker({ visible, onClose }: Props) {
+export function CurrencyPicker({ visible, onClose, selected, onSelect }: Props) {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
   const { currency, setCurrency } = useCurrency();
+  const activeCode = selected ?? currency.code;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -22,13 +29,13 @@ export function CurrencyPicker({ visible, onClose }: Props) {
         <View style={[styles.grabber, { backgroundColor: colors.cardBorder }]} />
         <Text style={[styles.title, { color: colors.text }]}>Currency</Text>
         {CURRENCY_LIST.map((c) => {
-          const active = c.code === currency.code;
+          const active = c.code === activeCode;
           return (
             <Pressable
               key={c.code}
               onPress={() => {
                 Haptics.selectionAsync().catch(() => {});
-                setCurrency(c.code);
+                (onSelect ?? setCurrency)(c.code);
                 onClose();
               }}
               style={[
@@ -69,4 +76,3 @@ const styles = StyleSheet.create({
   code: { fontFamily: fonts.semiBold, fontSize: 15 },
   name: { fontFamily: fonts.regular, fontSize: 12 },
 });
-
