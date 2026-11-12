@@ -6,7 +6,7 @@ import {
   type BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
-import { useCallback, useEffect, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,76 +16,72 @@ import Colors, { fonts } from '@/constants/Colors';
 import { CURRENCY_LIST, type CurrencyCode } from '@/constants/currencies';
 
 type Props = {
-  visible: boolean;
-  onClose: () => void;
   /** Optional: pick a currency locally instead of changing the app currency. */
   selected?: CurrencyCode;
   onSelect?: (code: CurrencyCode) => void;
 };
 
-export function CurrencyPicker({ visible, onClose, selected, onSelect }: Props) {
-  const colors = Colors[useColorScheme()];
-  const insets = useSafeAreaInsets();
-  const { currency, setCurrency } = useCurrency();
-  const activeCode = selected ?? currency.code;
-  const sheetRef = useRef<BottomSheetModal>(null);
+export const CurrencyPicker = forwardRef<BottomSheetModal, Props>(
+  function CurrencyPicker({ selected, onSelect }, ref) {
+    const colors = Colors[useColorScheme()];
+    const insets = useSafeAreaInsets();
+    const { currency, setCurrency } = useCurrency();
+    const activeCode = selected ?? currency.code;
+    const innerRef = useRef<BottomSheetModal>(null);
 
-  useEffect(() => {
-    if (visible) sheetRef.current?.present();
-    else sheetRef.current?.dismiss();
-  }, [visible]);
+    useImperativeHandle(ref, () => innerRef.current as BottomSheetModal);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
+    const renderBackdrop = useCallback(
+      (props: BottomSheetBackdropProps) => (
+        <BottomSheetBackdrop
+          {...props}
+          appearsOnIndex={0}
+          disappearsOnIndex={-1}
+          pressBehavior="close"
+        />
+      ),
+      [],
+    );
 
-  return (
-    <BottomSheetModal
-      ref={sheetRef}
-      enableDynamicSizing
-      onDismiss={onClose}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={[styles.sheetBg, { backgroundColor: colors.sheet }]}
-      handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}>
-      <BottomSheetView style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
-        <Text style={[styles.title, { color: colors.text }]}>Currency</Text>
-        {CURRENCY_LIST.map((c) => {
-          const active = c.code === activeCode;
-          return (
-            <Pressable
-              key={c.code}
-              onPress={() => {
-                Haptics.selectionAsync().catch(() => {});
-                (onSelect ?? setCurrency)(c.code);
-                onClose();
-              }}
-              style={[
-                styles.row,
-                { backgroundColor: colors.card, borderColor: active ? colors.tint : colors.cardBorder },
-              ]}>
-              <View style={[styles.symbol, { backgroundColor: colors.accentSoft }]}>
-                <Text style={[styles.symbolText, { color: colors.tint }]}>{c.symbol}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.code, { color: colors.text }]}>{c.code}</Text>
-                <Text style={[styles.name, { color: colors.textMuted }]}>{c.name}</Text>
-              </View>
-              {active && <Ionicons name="checkmark-circle" size={22} color={colors.tint} />}
-            </Pressable>
-          );
-        })}
-      </BottomSheetView>
-    </BottomSheetModal>
-  );
-}
+    return (
+      <BottomSheetModal
+        ref={innerRef}
+        enableDynamicSizing
+        backdropComponent={renderBackdrop}
+        backgroundStyle={[styles.sheetBg, { backgroundColor: colors.sheet }]}
+        handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}>
+        <BottomSheetView style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
+          <Text style={[styles.title, { color: colors.text }]}>Currency</Text>
+          {CURRENCY_LIST.map((c) => {
+            const active = c.code === activeCode;
+            return (
+              <Pressable
+                key={c.code}
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  (onSelect ?? setCurrency)(c.code);
+                  innerRef.current?.dismiss();
+                }}
+                style={[
+                  styles.row,
+                  { backgroundColor: colors.card, borderColor: active ? colors.tint : colors.cardBorder },
+                ]}>
+                <View style={[styles.symbol, { backgroundColor: colors.accentSoft }]}>
+                  <Text style={[styles.symbolText, { color: colors.tint }]}>{c.symbol}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.code, { color: colors.text }]}>{c.code}</Text>
+                  <Text style={[styles.name, { color: colors.textMuted }]}>{c.name}</Text>
+                </View>
+                {active && <Ionicons name="checkmark-circle" size={22} color={colors.tint} />}
+              </Pressable>
+            );
+          })}
+        </BottomSheetView>
+      </BottomSheetModal>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   sheetBg: { borderTopLeftRadius: 28, borderTopRightRadius: 28 },

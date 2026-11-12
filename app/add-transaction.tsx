@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import DateTimePicker, {
   DateTimePickerAndroid,
   type DateTimePickerEvent,
@@ -7,7 +7,7 @@ import DateTimePicker, {
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -56,7 +56,7 @@ export default function AddTransactionScreen() {
   const [receiptUri, setReceiptUri] = useState<string | null>(null);
   const [date, setDate] = useState(new Date());
   const [currencyCode, setCurrencyCode] = useState<CurrencyCode>(appCurrency.code);
-  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const currencySheetRef = useRef<BottomSheetModal>(null);
   const [dateOpen, setDateOpen] = useState(false);
 
   const currency = CURRENCIES[currencyCode];
@@ -210,7 +210,7 @@ export default function AddTransactionScreen() {
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => setCurrencyOpen(true)}
+            onPress={() => currencySheetRef.current?.present()}
             style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={[styles.chipText, { color: colors.text }]}>{currency.code}</Text>
             <Ionicons name="chevron-down" size={13} color={colors.textMuted} />
@@ -282,8 +282,7 @@ export default function AddTransactionScreen() {
       </View>
 
       <CurrencyPicker
-        visible={currencyOpen}
-        onClose={() => setCurrencyOpen(false)}
+        ref={currencySheetRef}
         selected={currencyCode}
         onSelect={setCurrencyCode}
       />

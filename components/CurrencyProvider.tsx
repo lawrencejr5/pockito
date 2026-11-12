@@ -53,7 +53,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       parts: (amountUsd) => {
         const converted = amountUsd * currency.rate;
         const { int, frac } = group(converted, currency.decimals);
-        return { whole: `${currency.symbol}${int}`, fraction: frac ? `.${frac}` : '' };
+        const sign = converted < 0 ? '-' : '';
+        return { whole: `${sign}${currency.symbol}${int}`, fraction: frac ? `.${frac}` : '' };
       },
     };
   }, [code, setCurrency]);

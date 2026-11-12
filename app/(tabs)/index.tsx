@@ -28,8 +28,6 @@ import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
 import { getCategory } from "@/constants/categories";
 
-// Amounts are stored in USD and converted by the CurrencyProvider.
-const BALANCE_USD = 87457.86;
 const TOP_GAP = 8; // space between the status bar inset and the header row
 
 type MoneyPeriod = "today" | "week" | "month";
@@ -39,12 +37,6 @@ const MONEY_PERIODS: { key: MoneyPeriod; label: string }[] = [
   { key: "week", label: "This week" },
   { key: "month", label: "This month" },
 ];
-
-const SEED_TOTALS: Record<MoneyPeriod, { income: number; expense: number }> = {
-  today: { income: 0, expense: 543.55 },
-  week: { income: 2400, expense: 629.75 },
-  month: { income: 4876.89, expense: 8145.45 },
-};
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -67,14 +59,14 @@ export default function HomeScreen() {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
   const { currency, format, parts } = useCurrency();
-  const { transactions, isSeed } = useTransactions();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const { transactions } = useTransactions();
   const [moneyPeriod, setMoneyPeriod] = useState<MoneyPeriod>("month");
   const [selectedMonth, setSelectedMonth] = useState(() => new Date());
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
   const [heroHeight, setHeroHeight] = useState(280);
   const periodSheetRef = useRef<BottomSheetModal>(null);
   const monthSheetRef = useRef<BottomSheetModal>(null);
+  const currencySheetRef = useRef<BottomSheetModal>(null);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -88,15 +80,17 @@ export default function HomeScreen() {
     [],
   );
 
-  const { incomeUsd, expenseUsd, todayNetUsd, recent } = useMemo(() => {
+  const { incomeUsd, expenseUsd, todayNetUsd, currentBalanceUsd, recent } = useMemo(() => {
     const now = new Date();
     let inc = 0;
     let exp = 0;
     let todayNet = 0;
+    let totalNet = 0;
     const filtered = [];
     for (const t of transactions) {
       const d = new Date(t.date);
       const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
+      totalNet += signed;
       if (isInPeriod(d, now, selectedMonth, moneyPeriod)) {
         filtered.push(t);
         if (t.type === "income") inc += t.amountUsd;
@@ -104,15 +98,14 @@ export default function HomeScreen() {
       }
       if (d.toDateString() === now.toDateString()) todayNet += signed;
     }
-    const isCurrentMonth = sameMonth(selectedMonth, now);
-    const useSeedTotals = isSeed && (moneyPeriod !== "month" || isCurrentMonth);
     return {
-      incomeUsd: useSeedTotals ? SEED_TOTALS[moneyPeriod].income : inc,
-      expenseUsd: useSeedTotals ? SEED_TOTALS[moneyPeriod].expense : exp,
+      incomeUsd: inc,
+      expenseUsd: exp,
       todayNetUsd: todayNet,
+      currentBalanceUsd: totalNet,
       recent: filtered.slice(0, 10),
     };
-  }, [transactions, isSeed, moneyPeriod, selectedMonth]);
+  }, [transactions, moneyPeriod, selectedMonth]);
 
   const stickyTop = insets.top + TOP_GAP;
   const scrollY = useSharedValue(0);
@@ -164,7 +157,7 @@ export default function HomeScreen() {
     month: "long",
     year: "numeric",
   });
-  const balance = parts(BALANCE_USD);
+  const balance = parts(currentBalanceUsd);
 
   return (
     <GestureHandlerRootView style={styles.screen}>
@@ -219,12 +212,12 @@ export default function HomeScreen() {
                 <Text style={styles.balanceFraction}>{balance.fraction}</Text>
               </Text>
               <Pressable
-                onPress={() => setPickerOpen(true)}
-                hitSlop={8}
-                style={[
+                onPress={() => currencySheetRef.current?.present()}
+                hitSlop={10}
+                style={({ pressed }) => [
                   styles.pill,
                   styles.currencyPill,
-                  { backgroundColor: colors.pill },
+                  { backgroundColor: colors.pill, opacity: pressed ? 0.7 : 1 },
                 ]}
               >
                 <Text style={[styles.currencyText, { color: colors.heroText }]}>
@@ -239,7 +232,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <CashflowChart variant="hero" />
+          <CashflowChart variant="hero" currentBalanceUsd={currentBalanceUsd} />
         </Animated.View>
 
         <View style={{ height: heroHeight }} pointerEvents="none" />
@@ -437,10 +430,7 @@ export default function HomeScreen() {
         </View>
       </Animated.ScrollView>
 
-      <CurrencyPicker
-        visible={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-      />
+      <CurrencyPicker ref={currencySheetRef} />
 
       <BottomSheetModal
         ref={periodSheetRef}

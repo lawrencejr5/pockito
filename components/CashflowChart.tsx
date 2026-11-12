@@ -3,75 +3,88 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useCurrency } from '@/components/CurrencyProvider';
+import { useTransactions, type Transaction } from '@/components/TransactionsProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 
 type Range = '7D' | '30D' | '90D' | '180D';
 const RANGES: Range[] = ['7D', '30D', '90D', '180D'];
+const DAYS: Record<Range, number> = { '7D': 7, '30D': 30, '90D': 90, '180D': 180 };
+const MS_PER_DAY = 86_400_000;
 
 const WIDTH = 340;
 const PAD_X = 6;
 
-/** Deterministic pseudo-random sequence so charts don't change between renders. */
-function seeded(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
 /**
- * Dummy balance series in USD. 7D is hand-shaped so it always shows ups and downs;
- * longer ranges use stepped deposits/spends with a gentle upward trend.
+ * Reconstructs daily ending balances over `range` by walking backwards from
+ * `currentBalanceUsd` using the signed transaction amounts.
  */
-function buildSeries(range: Range): number[] {
-  if (range === '7D') {
-    return [84200, 84200, 86900, 85600, 85600, 88300, 87457];
-  }
-  const n = range === '30D' ? 30 : range === '90D' ? 90 : 180;
-  const rand = seeded(n * 31 + 7);
-  const out: number[] = [];
-  let balance = 78000;
-  let hold = 0;
-  for (let i = 0; i < n; i++) {
-    if (hold === 0) {
-      const up = rand() > 0.42;
-      balance += (up ? 1 : -1) * (800 + rand() * 3600);
-      hold = 1 + Math.floor(rand() * 3);
-    } else {
-      hold -= 1;
+function buildSeries(
+  range: Range,
+  transactions: Transaction[],
+  currentBalanceUsd: number,
+): number[] {
+  const n = DAYS[range];
+  const dailyDelta = new Array<number>(n).fill(0);
+  const todayMs = startOfDay(new Date());
+
+  for (const t of transactions) {
+    const txMs = startOfDay(new Date(t.date));
+    const daysAgo = Math.round((todayMs - txMs) / MS_PER_DAY);
+    if (daysAgo >= 0 && daysAgo < n) {
+      const signed = t.type === 'income' ? t.amountUsd : -t.amountUsd;
+      dailyDelta[n - 1 - daysAgo] += signed;
     }
-    out.push(Math.round(balance));
   }
-  // End on today's balance.
-  out[n - 1] = 87457;
-  return out;
+
+  const series = new Array<number>(n);
+  series[n - 1] = currentBalanceUsd;
+  for (let i = n - 2; i >= 0; i--) {
+    series[i] = series[i + 1] - dailyDelta[i + 1];
+  }
+  return series;
 }
 
 type CashflowChartProps = {
   variant?: 'hero' | 'card';
+  currentBalanceUsd?: number;
 };
 
-export function CashflowChart({ variant = 'hero' }: CashflowChartProps) {
+export function CashflowChart({
+  variant = 'hero',
+  currentBalanceUsd,
+}: CashflowChartProps) {
   const scheme = useColorScheme();
   const colors = Colors[scheme];
   const { format } = useCurrency();
+  const { transactions } = useTransactions();
   const [range, setRange] = useState<Range>('7D');
   const isHero = variant === 'hero';
   const height = isHero ? 96 : 140;
   const padTop = isHero ? 20 : 24;
   const padBottom = isHero ? 18 : 20;
 
-  const { line, area, hi, lo, change } = useMemo(() => {
-    const data = buildSeries(range);
+  const { line, area, hi, lo, change, isFlat } = useMemo(() => {
+    const endBalance =
+      currentBalanceUsd ??
+      transactions.reduce(
+        (sum, t) => sum + (t.type === 'income' ? t.amountUsd : -t.amountUsd),
+        0,
+      );
+    const data = buildSeries(range, transactions, endBalance);
     const max = Math.max(...data);
     const min = Math.min(...data);
+    const flat = max === min;
     const span = max - min || 1;
     const innerW = WIDTH - PAD_X * 2;
     const innerH = height - padTop - padBottom;
     const x = (i: number) => PAD_X + (i / (data.length - 1)) * innerW;
-    const y = (v: number) => padTop + (1 - (v - min) / span) * innerH;
+    const y = (v: number) =>
+      flat ? padTop + innerH / 2 : padTop + (1 - (v - min) / span) * innerH;
 
     // Stepped path: hold previous value, then jump vertically.
     let d = `M ${x(0)} ${y(data[0])}`;
@@ -86,8 +99,9 @@ export function CashflowChart({ variant = 'hero' }: CashflowChartProps) {
       hi: { v: max, x: x(data.indexOf(max)), y: y(max) },
       lo: { v: min, x: x(data.indexOf(min)), y: y(min) },
       change: data[data.length - 1] - data[0],
+      isFlat: flat,
     };
-  }, [range, height, padTop, padBottom]);
+  }, [range, transactions, currentBalanceUsd, height, padTop, padBottom]);
 
   const clampX = (v: number) => Math.min(Math.max(v, 44), WIDTH - 44);
   const strokeColor = isHero ? colors.heroChartLine : colors.chartLine;
@@ -129,15 +143,17 @@ export function CashflowChart({ variant = 'hero' }: CashflowChartProps) {
           textAnchor="middle">
           {format(hi.v)}
         </SvgText>
-        <SvgText
-          x={clampX(lo.x)}
-          y={Math.min(lo.y + 14, height - 3)}
-          fill={labelColor}
-          fontSize={10}
-          fontFamily={fonts.medium}
-          textAnchor="middle">
-          {format(lo.v)}
-        </SvgText>
+        {!isFlat && (
+          <SvgText
+            x={clampX(lo.x)}
+            y={Math.min(lo.y + 14, height - 3)}
+            fill={labelColor}
+            fontSize={10}
+            fontFamily={fonts.medium}
+            textAnchor="middle">
+            {format(lo.v)}
+          </SvgText>
+        )}
       </Svg>
 
       <View style={styles.ranges}>
