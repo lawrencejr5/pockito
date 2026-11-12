@@ -43,13 +43,19 @@ const SEED: Transaction[] = [
   { id: 'seed-3', type: 'expense', title: 'Groceries', amountUsd: 86.2, currency: 'USD', originalAmount: 86.2, categoryId: 'groceries', date: daysAgo(2, 18) },
 ];
 
+type TransactionInput = Omit<Transaction, 'id'>;
+
 type TransactionsContextValue = {
   transactions: Transaction[];
   isSeed: boolean;
-  addTransaction: (t: Omit<Transaction, 'id'>) => void;
+  addTransaction: (t: TransactionInput) => void;
+  updateTransaction: (id: string, patch: TransactionInput) => void;
+  deleteTransaction: (id: string) => void;
 };
 
 const TransactionsContext = createContext<TransactionsContextValue | null>(null);
+
+const byNewest = (a: Transaction, b: Transaction) => +new Date(b.date) - +new Date(a.date);
 
 export function TransactionsProvider({ children }: { children: ReactNode }) {
   const [real, setReal] = useState<Transaction[]>([]);
@@ -62,13 +68,26 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  const addTransaction = useCallback((t: Omit<Transaction, 'id'>) => {
+  const persist = (next: Transaction[]) => {
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+    return next;
+  };
+
+  const addTransaction = useCallback((t: TransactionInput) => {
+    setReal((prev) => persist([{ ...t, id: `${Date.now()}` }, ...prev].sort(byNewest)));
+  }, []);
+
+  const updateTransaction = useCallback((id: string, patch: TransactionInput) => {
     setReal((prev) => {
-      const next = [{ ...t, id: `${Date.now()}` }, ...prev].sort(
-        (a, b) => +new Date(b.date) - +new Date(a.date),
-      );
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
-      return next;
+      const base = prev.length ? prev : SEED;
+      return persist(base.map((item) => (item.id === id ? { ...patch, id } : item)).sort(byNewest));
+    });
+  }, []);
+
+  const deleteTransaction = useCallback((id: string) => {
+    setReal((prev) => {
+      const base = prev.length ? prev : SEED;
+      return persist(base.filter((item) => item.id !== id));
     });
   }, []);
 
@@ -77,8 +96,10 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
       transactions: real.length ? real : SEED,
       isSeed: real.length === 0,
       addTransaction,
+      updateTransaction,
+      deleteTransaction,
     }),
-    [real, addTransaction],
+    [real, addTransaction, updateTransaction, deleteTransaction],
   );
 
   return <TransactionsContext.Provider value={value}>{children}</TransactionsContext.Provider>;
@@ -89,4 +110,3 @@ export function useTransactions() {
   if (!ctx) throw new Error('useTransactions must be used inside TransactionsProvider');
   return ctx;
 }
-

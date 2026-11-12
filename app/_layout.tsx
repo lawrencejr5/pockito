@@ -74,6 +74,10 @@ function RootLayoutNav() {
           name="add-transaction"
           options={{ presentation: 'modal', headerShown: false }}
         />
+        <Stack.Screen
+          name="transaction/[id]"
+          options={{ presentation: 'modal', headerShown: false }}
+        />
       </Stack>
     </ThemeProvider>
   );

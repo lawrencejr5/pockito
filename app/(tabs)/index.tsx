@@ -377,13 +377,20 @@ export default function HomeScreen() {
                 const when = new Date(t.date);
                 const sub = `${cat.label} · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
                 return (
-                  <View
+                  <Pressable
                     key={t.id}
-                    style={[
+                    onPress={() =>
+                      router.push({
+                        pathname: "/transaction/[id]",
+                        params: { id: t.id },
+                      })
+                    }
+                    style={({ pressed }) => [
                       styles.tx,
                       {
                         backgroundColor: colors.card,
                         borderColor: colors.cardBorder,
+                        opacity: pressed ? 0.75 : 1,
                       },
                     ]}
                   >
@@ -421,7 +428,7 @@ export default function HomeScreen() {
                         })}
                       </Text>
                     </View>
-                  </View>
+                  </Pressable>
                 );
               })
               )}
