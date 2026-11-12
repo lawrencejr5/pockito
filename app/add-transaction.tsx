@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import DateTimePicker, {
   DateTimePickerAndroid,
   type DateTimePickerEvent,
@@ -19,6 +20,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryPicker } from '@/components/CategoryPicker';
@@ -148,7 +150,9 @@ export default function AddTransactionScreen() {
   const display = amountText === '' ? '0' : amountText.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.sheet, paddingTop: 16 }]}>
+    <GestureHandlerRootView style={styles.screen}>
+      <BottomSheetModalProvider>
+        <View style={[styles.screen, { backgroundColor: colors.sheet, paddingTop: 16 }]}>
       {/* Header */}
       <View style={styles.header}>
         <Pressable
@@ -304,7 +308,9 @@ export default function AddTransactionScreen() {
           </View>
         </Modal>
       )}
-    </View>
+        </View>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 

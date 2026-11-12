@@ -1,7 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetView,
+  type BottomSheetBackdropProps,
+} from "@gorhom/bottom-sheet";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -21,9 +30,38 @@ import { getCategory } from "@/constants/categories";
 
 // Amounts are stored in USD and converted by the CurrencyProvider.
 const BALANCE_USD = 87457.86;
-const SEED_INCOME_USD = 4876.89;
-const SEED_EXPENSE_USD = 8145.45;
 const TOP_GAP = 8; // space between the status bar inset and the header row
+
+type MoneyPeriod = "today" | "week" | "month";
+
+const MONEY_PERIODS: { key: MoneyPeriod; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "week", label: "This week" },
+  { key: "month", label: "This month" },
+];
+
+const SEED_TOTALS: Record<MoneyPeriod, { income: number; expense: number }> = {
+  today: { income: 0, expense: 543.55 },
+  week: { income: 2400, expense: 629.75 },
+  month: { income: 4876.89, expense: 8145.45 },
+};
+
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function sameMonth(a: Date, b: Date) {
+  return a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+}
+
+function isInPeriod(date: Date, now: Date, selectedMonth: Date, period: MoneyPeriod) {
+  if (period === "today") return date.toDateString() === now.toDateString();
+  if (period === "week") {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    return date >= startOfWeek;
+  }
+  return sameMonth(date, selectedMonth);
+}
 
 export default function HomeScreen() {
   const colors = Colors[useColorScheme()];
@@ -31,30 +69,52 @@ export default function HomeScreen() {
   const { currency, format, parts } = useCurrency();
   const { transactions, isSeed } = useTransactions();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [moneyPeriod, setMoneyPeriod] = useState<MoneyPeriod>("month");
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date());
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
   const [heroHeight, setHeroHeight] = useState(280);
+  const periodSheetRef = useRef<BottomSheetModal>(null);
+  const monthSheetRef = useRef<BottomSheetModal>(null);
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
+    ),
+    [],
+  );
 
   const { incomeUsd, expenseUsd, todayNetUsd, recent } = useMemo(() => {
     const now = new Date();
     let inc = 0;
     let exp = 0;
     let todayNet = 0;
+    const filtered = [];
     for (const t of transactions) {
       const d = new Date(t.date);
       const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
-      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+      if (isInPeriod(d, now, selectedMonth, moneyPeriod)) {
+        filtered.push(t);
         if (t.type === "income") inc += t.amountUsd;
         else exp += t.amountUsd;
       }
       if (d.toDateString() === now.toDateString()) todayNet += signed;
     }
+    const isCurrentMonth = sameMonth(selectedMonth, now);
+    const useSeedTotals = isSeed && (moneyPeriod !== "month" || isCurrentMonth);
     return {
-      incomeUsd: isSeed ? SEED_INCOME_USD : inc,
-      expenseUsd: isSeed ? SEED_EXPENSE_USD : exp,
+      incomeUsd: useSeedTotals ? SEED_TOTALS[moneyPeriod].income : inc,
+      expenseUsd: useSeedTotals ? SEED_TOTALS[moneyPeriod].expense : exp,
       todayNetUsd: todayNet,
-      recent: transactions.slice(0, 10),
+      recent: filtered.slice(0, 10),
     };
-  }, [transactions, isSeed]);
+  }, [transactions, isSeed, moneyPeriod, selectedMonth]);
 
+  const stickyTop = insets.top + TOP_GAP;
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -82,7 +142,19 @@ export default function HomeScreen() {
     ],
   }));
 
-  const month = new Date().toLocaleDateString("en-US", {
+  // Once the sheet reaches stickyTop (overlaying the hero), pin the "Your Money" header + cards.
+  const stickyHeaderStyle = useAnimatedStyle(() => {
+    const threshold = Math.max(0, heroHeight - stickyTop);
+    const offset = Math.max(0, scrollY.value - threshold);
+    return {
+      transform: [{ translateY: offset }],
+    };
+  }, [heroHeight, stickyTop]);
+
+  const selectedPeriodLabel =
+    MONEY_PERIODS.find((p) => p.key === moneyPeriod)?.label ?? "This month";
+
+  const month = selectedMonth.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
@@ -95,7 +167,9 @@ export default function HomeScreen() {
   const balance = parts(BALANCE_USD);
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.hero }]}>
+    <GestureHandlerRootView style={styles.screen}>
+      <BottomSheetModalProvider>
+        <View style={[styles.screen, { backgroundColor: colors.hero }]}>
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -115,12 +189,19 @@ export default function HomeScreen() {
               <Ionicons name="person" size={17} color="#fff" />
             </View>
 
-            <View style={[styles.pill, { backgroundColor: colors.pill }]}>
+            <Pressable
+              onPress={() => {
+                setPickerYear(selectedMonth.getFullYear());
+                monthSheetRef.current?.present();
+              }}
+              hitSlop={8}
+              style={[styles.pill, { backgroundColor: colors.pill }]}
+            >
               <Text style={[styles.pillText, { color: colors.heroText }]}>
                 {month}
               </Text>
               <Ionicons name="chevron-down" size={14} color={colors.heroText} />
-            </View>
+            </Pressable>
 
             <Pressable
               onPress={() => router.push("/add-transaction")}
@@ -172,164 +253,186 @@ export default function HomeScreen() {
             },
           ]}
         >
-          <View
-            style={[styles.grabber, { backgroundColor: colors.cardBorder }]}
-          />
-
-          <View style={styles.rowBetween}>
-            <Text style={[styles.h2, { color: colors.text }]}>Your Money</Text>
+          <Animated.View
+            style={[
+              styles.sheetHeader,
+              { backgroundColor: colors.sheet },
+              stickyHeaderStyle,
+            ]}
+          >
             <View
-              style={[styles.smallPill, { borderColor: colors.cardBorder }]}
-            >
-              <Text style={[styles.smallPillText, { color: colors.textMuted }]}>
-                Details
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={12}
-                color={colors.textMuted}
-              />
-            </View>
-          </View>
+              style={[styles.grabber, { backgroundColor: colors.cardBorder }]}
+            />
 
-          <View style={styles.row}>
-            {[
-              {
-                label: "Income",
-                value: incomeUsd,
-                icon: "arrow-down",
-                color: colors.income,
-              },
-              {
-                label: "Expense",
-                value: expenseUsd,
-                icon: "arrow-up",
-                color: colors.expense,
-              },
-            ].map((c) => (
-              <View
-                key={c.label}
+            <View style={styles.rowBetween}>
+              <Text style={[styles.h2, { color: colors.text }]}>
+                Your Money
+              </Text>
+              <Pressable
+                onPress={() => periodSheetRef.current?.present()}
+                hitSlop={8}
                 style={[
-                  styles.statCard,
+                  styles.smallPill,
                   {
-                    backgroundColor: colors.card,
                     borderColor: colors.cardBorder,
+                    backgroundColor: colors.card,
                   },
                 ]}
               >
-                <View style={styles.statTop}>
-                  <View
-                    style={[
-                      styles.statBadge,
-                      { backgroundColor: colors.accentSoft },
-                    ]}
-                  >
-                    <Ionicons
-                      name={c.icon as "arrow-up"}
-                      size={14}
-                      color={c.color}
-                    />
-                  </View>
-                  <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-                    {c.label}
-                  </Text>
-                </View>
-                <Text
-                  style={[styles.stat, { color: colors.text }]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {format(c.value)}
+                <Text style={[styles.smallPillText, { color: colors.text }]}>
+                  {selectedPeriodLabel}
                 </Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.rowBetween}>
-            <Text style={[styles.h2, { color: colors.text }]}>
-              Transactions
-            </Text>
-            <View
-              style={[
-                styles.smallPill,
-                {
-                  borderColor: colors.accent,
-                  backgroundColor: colors.accentSoft,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.smallPillText,
-                  { color: colors.text, fontFamily: fonts.semiBold },
-                ]}
-              >
-                Show all
-              </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={12}
+                  color={colors.textMuted}
+                />
+              </Pressable>
             </View>
-          </View>
 
-          <View style={styles.rowBetween}>
-            <Text style={[styles.dateText, { color: colors.textMuted }]}>
-              {today}
-            </Text>
-            <Text style={[styles.todayTotal, { color: colors.text }]}>
-              Today: {format(todayNetUsd, { sign: true })}
-            </Text>
-          </View>
-
-          <View style={styles.list}>
-            {recent.map((t) => {
-              const cat = getCategory(t.categoryId);
-              const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
-              const when = new Date(t.date);
-              const sub = `${cat.label} · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-              return (
-              <View
-                key={t.id}
-                style={[
-                  styles.tx,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.cardBorder,
-                  },
-                ]}
-              >
+            <View style={styles.row}>
+              {[
+                {
+                  label: "Income",
+                  value: incomeUsd,
+                  icon: "arrow-down",
+                  color: colors.income,
+                },
+                {
+                  label: "Expense",
+                  value: expenseUsd,
+                  icon: "arrow-up",
+                  color: colors.expense,
+                },
+              ].map((c) => (
                 <View
+                  key={c.label}
                   style={[
-                    styles.txBadge,
-                    { backgroundColor: cat.color + "26" },
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.cardBorder,
+                    },
                   ]}
                 >
-                  <Ionicons name={cat.icon} size={18} color={cat.color} />
-                </View>
-                <View style={styles.txBody}>
-                  <Text style={[styles.txTitle, { color: colors.text }]}>
-                    {t.title}
-                  </Text>
-                  <Text style={[styles.txSub, { color: colors.textMuted }]}>
-                    {sub}
-                  </Text>
-                </View>
-                <View style={styles.txRight}>
+                  <View style={styles.statTop}>
+                    <View
+                      style={[
+                        styles.statBadge,
+                        { backgroundColor: colors.accentSoft },
+                      ]}
+                    >
+                      <Ionicons
+                        name={c.icon as "arrow-up"}
+                        size={14}
+                        color={c.color}
+                      />
+                    </View>
+                    <Text
+                      style={[styles.statLabel, { color: colors.textMuted }]}
+                    >
+                      {c.label}
+                    </Text>
+                  </View>
                   <Text
+                    style={[styles.stat, { color: colors.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {format(c.value)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </Animated.View>
+
+          <View style={styles.txSection}>
+            <View style={styles.rowBetween}>
+              <Text style={[styles.h2, { color: colors.text }]}>
+                Transactions
+              </Text>
+            </View>
+
+            <View style={styles.rowBetween}>
+              <Text style={[styles.dateText, { color: colors.textMuted }]}>
+                {today}
+              </Text>
+              <Text style={[styles.todayTotal, { color: colors.text }]}>
+                Today: {format(todayNetUsd, { sign: true })}
+              </Text>
+            </View>
+
+            <View style={styles.list}>
+              {recent.length === 0 ? (
+                <View
+                  style={[
+                    styles.emptyBox,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.cardBorder,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.txSub, { color: colors.textMuted }]}>
+                    No transactions for {selectedPeriodLabel.toLowerCase()}
+                  </Text>
+                </View>
+              ) : (
+                recent.map((t) => {
+                const cat = getCategory(t.categoryId);
+                const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
+                const when = new Date(t.date);
+                const sub = `${cat.label} · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+                return (
+                  <View
+                    key={t.id}
                     style={[
-                      styles.txAmount,
-                      { color: signed < 0 ? colors.expense : colors.income },
+                      styles.tx,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.cardBorder,
+                      },
                     ]}
                   >
-                    {format(signed, { sign: true })}
-                  </Text>
-                  <Text style={[styles.txSub, { color: colors.textMuted }]}>
-                    {when.toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                </View>
-              </View>
-              );
-            })}
+                    <View
+                      style={[
+                        styles.txBadge,
+                        { backgroundColor: cat.color + "26" },
+                      ]}
+                    >
+                      <Ionicons name={cat.icon} size={18} color={cat.color} />
+                    </View>
+                    <View style={styles.txBody}>
+                      <Text style={[styles.txTitle, { color: colors.text }]}>
+                        {t.title}
+                      </Text>
+                      <Text style={[styles.txSub, { color: colors.textMuted }]}>
+                        {sub}
+                      </Text>
+                    </View>
+                    <View style={styles.txRight}>
+                      <Text
+                        style={[
+                          styles.txAmount,
+                          {
+                            color: signed < 0 ? colors.expense : colors.income,
+                          },
+                        ]}
+                      >
+                        {format(signed, { sign: true })}
+                      </Text>
+                      <Text style={[styles.txSub, { color: colors.textMuted }]}>
+                        {when.toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+              )}
+            </View>
           </View>
         </View>
       </Animated.ScrollView>
@@ -338,7 +441,141 @@ export default function HomeScreen() {
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}
       />
-    </View>
+
+      <BottomSheetModal
+        ref={periodSheetRef}
+        enableDynamicSizing
+        backdropComponent={renderBackdrop}
+        backgroundStyle={[styles.modalSheetBg, { backgroundColor: colors.sheet }]}
+        handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}
+      >
+        <BottomSheetView
+          style={[
+            styles.modalSheet,
+            { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+          ]}
+        >
+          <Text style={[styles.modalTitle, { color: colors.text }]}>
+            Show totals for
+          </Text>
+          {MONEY_PERIODS.map((p) => {
+            const active = p.key === moneyPeriod;
+            return (
+              <Pressable
+                key={p.key}
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  setMoneyPeriod(p.key);
+                  periodSheetRef.current?.dismiss();
+                }}
+                style={[
+                  styles.periodRow,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: active ? colors.tint : colors.cardBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.periodLabel, { color: colors.text }]}>
+                  {p.label}
+                </Text>
+                {active && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={colors.tint}
+                  />
+                )}
+              </Pressable>
+            );
+          })}
+        </BottomSheetView>
+      </BottomSheetModal>
+
+      <BottomSheetModal
+        ref={monthSheetRef}
+        enableDynamicSizing
+        backdropComponent={renderBackdrop}
+        backgroundStyle={[styles.modalSheetBg, { backgroundColor: colors.sheet }]}
+        handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}
+      >
+        <BottomSheetView
+          style={[
+            styles.modalSheet,
+            { paddingBottom: Math.max(insets.bottom, 16) + 12 },
+          ]}
+        >
+          <View style={styles.yearRow}>
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setPickerYear((y) => y - 1);
+              }}
+              hitSlop={10}
+              style={[
+                styles.yearBtn,
+                { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              ]}
+            >
+              <Ionicons name="chevron-back" size={18} color={colors.text} />
+            </Pressable>
+            <Text style={[styles.yearText, { color: colors.text }]}>
+              {pickerYear}
+            </Text>
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setPickerYear((y) => y + 1);
+              }}
+              hitSlop={10}
+              style={[
+                styles.yearBtn,
+                { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              ]}
+            >
+              <Ionicons name="chevron-forward" size={18} color={colors.text} />
+            </Pressable>
+          </View>
+
+          <View style={styles.monthGrid}>
+            {MONTH_NAMES.map((name, idx) => {
+              const active =
+                selectedMonth.getFullYear() === pickerYear &&
+                selectedMonth.getMonth() === idx;
+              return (
+                <Pressable
+                  key={name}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setSelectedMonth(new Date(pickerYear, idx, 1));
+                    setMoneyPeriod("month");
+                    monthSheetRef.current?.dismiss();
+                  }}
+                  style={[
+                    styles.monthCell,
+                    {
+                      backgroundColor: active ? colors.accent : colors.card,
+                      borderColor: active ? colors.tint : colors.cardBorder,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.monthCellText,
+                      { color: active ? "#1c1a17" : colors.text },
+                    ]}
+                  >
+                    {name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </BottomSheetView>
+      </BottomSheetModal>
+        </View>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -388,10 +625,21 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    zIndex: 1,
+  },
+  sheetHeader: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 10,
-    gap: 16,
-    zIndex: 1,
+    paddingBottom: 14,
+    gap: 14,
+    zIndex: 10,
+  },
+  txSection: {
+    paddingHorizontal: 20,
+    paddingTop: 2,
+    gap: 14,
   },
   grabber: {
     alignSelf: "center",
@@ -412,7 +660,7 @@ const styles = StyleSheet.create({
   smallPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 6,
     height: 28,
     paddingHorizontal: 12,
     borderRadius: 999,
@@ -469,4 +717,58 @@ const styles = StyleSheet.create({
   txTitle: { fontFamily: fonts.semiBold, fontSize: 14 },
   txSub: { fontFamily: fonts.regular, fontSize: 12, marginTop: 1 },
   txAmount: { fontFamily: fonts.bold, fontSize: 14 },
+
+  modalSheetBg: { borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  modalSheet: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    gap: 10,
+  },
+  emptyBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  modalTitle: { fontFamily: fonts.bold, fontSize: 18, marginBottom: 4 },
+  periodRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  periodLabel: { fontFamily: fonts.semiBold, fontSize: 15 },
+  yearRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  yearBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  yearText: { fontFamily: fonts.bold, fontSize: 18 },
+  monthGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  monthCell: {
+    width: "31.5%",
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  monthCellText: { fontFamily: fonts.semiBold, fontSize: 14 },
 });

@@ -1,7 +1,9 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { ConvexClientProvider } from '@/components/ConvexClientProvider';
@@ -50,13 +52,17 @@ export default function RootLayout() {
   }
 
   return (
-    <ConvexClientProvider>
-      <CurrencyProvider>
-        <TransactionsProvider>
-          <RootLayoutNav />
-        </TransactionsProvider>
-      </CurrencyProvider>
-    </ConvexClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ConvexClientProvider>
+        <CurrencyProvider>
+          <TransactionsProvider>
+            <BottomSheetModalProvider>
+              <RootLayoutNav />
+            </BottomSheetModalProvider>
+          </TransactionsProvider>
+        </CurrencyProvider>
+      </ConvexClientProvider>
+    </GestureHandlerRootView>
   );
 }
 

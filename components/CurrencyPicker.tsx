@@ -1,6 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetView,
+  type BottomSheetBackdropProps,
+} from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCurrency } from '@/components/CurrencyProvider';
@@ -21,12 +28,34 @@ export function CurrencyPicker({ visible, onClose, selected, onSelect }: Props) 
   const insets = useSafeAreaInsets();
   const { currency, setCurrency } = useCurrency();
   const activeCode = selected ?? currency.code;
+  const sheetRef = useRef<BottomSheetModal>(null);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.present();
+    else sheetRef.current?.dismiss();
+  }, [visible]);
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
+    ),
+    [],
+  );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { backgroundColor: colors.sheet, paddingBottom: insets.bottom + 16 }]}>
-        <View style={[styles.grabber, { backgroundColor: colors.cardBorder }]} />
+    <BottomSheetModal
+      ref={sheetRef}
+      enableDynamicSizing
+      onDismiss={onClose}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={[styles.sheetBg, { backgroundColor: colors.sheet }]}
+      handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}>
+      <BottomSheetView style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
         <Text style={[styles.title, { color: colors.text }]}>Currency</Text>
         {CURRENCY_LIST.map((c) => {
           const active = c.code === activeCode;
@@ -53,16 +82,15 @@ export function CurrencyPicker({ visible, onClose, selected, onSelect }: Props) 
             </Pressable>
           );
         })}
-      </View>
-    </Modal>
+      </BottomSheetView>
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, gap: 10 },
-  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, marginBottom: 8 },
-  title: { fontFamily: fonts.bold, fontSize: 18, marginBottom: 6 },
+  sheetBg: { borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  sheet: { paddingHorizontal: 20, paddingTop: 4, gap: 10 },
+  title: { fontFamily: fonts.bold, fontSize: 18, marginBottom: 4 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
