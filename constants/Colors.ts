@@ -40,23 +40,52 @@ export const palette = {
   black: '#000000',
 } as const;
 
+export const fonts = {
+  regular: 'GoogleSans-Regular',
+  medium: 'GoogleSans-Medium',
+  semiBold: 'GoogleSans-SemiBold',
+  bold: 'GoogleSans-Bold',
+  italic: 'GoogleSans-Italic',
+} as const;
+
 export type ThemeColors = {
-  text: string; background: string; tint: string; tabIconDefault: string; tabIconSelected: string;
-  textMuted: string; hero: string; heroText: string; sheet: string; card: string; cardBorder: string;
-  pill: string; accent: string; accentSoft: string; secondary: string; secondarySoft: string;
-  darkCard: string; darkCardText: string; income: string; expense: string; chartLine: string;
+  text: string;
+  background: string;
+  tint: string;
+  tabIconDefault: string;
+  tabIconSelected: string;
+  textMuted: string;
+  hero: string;
+  heroText: string;
+  heroMuted: string;
+  heroChartLine: string;
+  sheet: string;
+  card: string;
+  cardBorder: string;
+  pill: string;
+  accent: string;
+  accentSoft: string;
+  secondary: string;
+  secondarySoft: string;
+  darkCard: string;
+  darkCardText: string;
+  income: string;
+  expense: string;
+  chartLine: string;
 };
 
 const light: ThemeColors = {
   text: '#1c1a17',
   background: palette.sand[300],
   tint: palette.sand[800],
-  tabIconDefault: palette.sage[400],
+  tabIconDefault: palette.sage[500],
   tabIconSelected: palette.sand[800],
 
   textMuted: palette.sage[600],
   hero: palette.sand[300],
   heroText: '#1c1a17',
+  heroMuted: palette.sand[800],
+  heroChartLine: '#1c1a17',
   sheet: '#faf8f5',
   card: palette.white,
   cardBorder: palette.sage[100],
@@ -80,9 +109,11 @@ const dark: ThemeColors = {
   tabIconSelected: palette.sand[300],
 
   textMuted: palette.sage[400],
-  hero: '#1c1a17',
+  hero: '#161714',
   heroText: palette.sand[100],
-  sheet: '#121311',
+  heroMuted: palette.sage[400],
+  heroChartLine: palette.sand[300],
+  sheet: '#10110f',
   card: palette.ink[700],
   cardBorder: palette.ink[600],
   pill: 'rgba(232,210,181,0.12)',

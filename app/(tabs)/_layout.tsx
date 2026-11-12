@@ -1,7 +1,7 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 
-import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
+import Colors, { fonts } from '@/constants/Colors';
 
 export default function TabLayout() {
   const colors = Colors[useColorScheme()];
@@ -11,8 +11,8 @@ export default function TabLayout() {
       tintColor={colors.tabIconSelected}
       iconColor={{ default: colors.tabIconDefault, selected: colors.tabIconSelected }}
       labelStyle={{
-        default: { color: colors.tabIconDefault },
-        selected: { color: colors.tabIconSelected },
+        default: { color: colors.tabIconDefault, fontFamily: fonts.medium },
+        selected: { color: colors.tabIconSelected, fontFamily: fonts.semiBold },
       }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
