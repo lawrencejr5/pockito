@@ -22,6 +22,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCurrency } from "@/components/CurrencyProvider";
+import { WealthGroupStack } from "@/components/WealthGroupStack";
 import { useTransactions } from "@/components/TransactionsProvider";
 import {
   WealthItemSheet,
@@ -566,119 +567,21 @@ export default function WealthScreen() {
                     </Pressable>
                   </View>
 
-                  {includeCashBalance && (
-                    <View
-                      style={[
-                        styles.itemCard,
-                        {
-                          backgroundColor: colors.card,
-                          borderColor: colors.cardBorder,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.itemIcon,
-                          { backgroundColor: "#e0f2e9" },
-                        ]}
-                      >
-                        <Ionicons
-                          name="wallet-outline"
-                          size={18}
-                          color="#1b6f47"
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.rowTitleWrap}>
-                          <Text
-                            style={[styles.itemTitle, { color: colors.text }]}
-                          >
-                            Pockito Cash Balance
-                          </Text>
-                          <View
-                            style={[
-                              styles.syncedPill,
-                              { backgroundColor: colors.accentSoft },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.syncedText,
-                                { color: colors.tint },
-                              ]}
-                            >
-                              Synced
-                            </Text>
-                          </View>
-                        </View>
-                        <Text
-                          style={[styles.itemMeta, { color: colors.textMuted }]}
-                        >
-                          Cash & Bank · From transactions
-                        </Text>
-                      </View>
-                      <Text
-                        style={[styles.itemAmount, { color: colors.income }]}
-                      >
-                        {format(pockitoCashUsd)}
-                      </Text>
-                    </View>
-                  )}
+                  {assetGroups.map((g, gi) => (
+                    <WealthGroupStack
+                      key={g.category.id}
+                      category={g.category}
+                      items={g.items}
+                      subtotalUsd={g.subtotalUsd}
+                      share={totalAssetsUsd > 0 ? g.subtotalUsd / totalAssetsUsd : 0}
+                      kind="asset"
+                      format={format}
+                      index={gi}
+                      onItemPress={(item) => sheetRef.current?.open({ item })}
+                    />
+                  ))}
 
-                  {assetItems.map((item) => {
-                    const cat = getWealthCategory(item.categoryId, "asset");
-                    return (
-                      <Pressable
-                        key={item.id}
-                        onPress={() => {
-                          Haptics.selectionAsync().catch(() => {});
-                          sheetRef.current?.open({ item });
-                        }}
-                        style={[
-                          styles.itemCard,
-                          {
-                            backgroundColor: colors.card,
-                            borderColor: colors.cardBorder,
-                          },
-                        ]}
-                      >
-                        <View
-                          style={[styles.itemIcon, { backgroundColor: cat.bg }]}
-                        >
-                          <Ionicons
-                            name={cat.icon}
-                            size={18}
-                            color={cat.color}
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={[styles.itemTitle, { color: colors.text }]}
-                            numberOfLines={1}
-                          >
-                            {item.name}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.itemMeta,
-                              { color: colors.textMuted },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {cat.label}
-                            {item.note ? ` · ${item.note}` : ""}
-                          </Text>
-                        </View>
-                        <Text
-                          style={[styles.itemAmount, { color: colors.text }]}
-                        >
-                          {format(item.amountUsd)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-
-                  {assetItems.length === 0 && (
+                  {assetGroups.length === 0 && (
                     <Pressable
                       onPress={() => sheetRef.current?.open({ kind: "asset" })}
                       style={[
@@ -740,60 +643,21 @@ export default function WealthScreen() {
                     </Pressable>
                   </View>
 
-                  {liabilityItems.map((item) => {
-                    const cat = getWealthCategory(item.categoryId, "liability");
-                    return (
-                      <Pressable
-                        key={item.id}
-                        onPress={() => {
-                          Haptics.selectionAsync().catch(() => {});
-                          sheetRef.current?.open({ item });
-                        }}
-                        style={[
-                          styles.itemCard,
-                          {
-                            backgroundColor: colors.card,
-                            borderColor: colors.cardBorder,
-                          },
-                        ]}
-                      >
-                        <View
-                          style={[styles.itemIcon, { backgroundColor: cat.bg }]}
-                        >
-                          <Ionicons
-                            name={cat.icon}
-                            size={18}
-                            color={cat.color}
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={[styles.itemTitle, { color: colors.text }]}
-                            numberOfLines={1}
-                          >
-                            {item.name}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.itemMeta,
-                              { color: colors.textMuted },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {cat.label}
-                            {item.note ? ` · ${item.note}` : ""}
-                          </Text>
-                        </View>
-                        <Text
-                          style={[styles.itemAmount, { color: colors.expense }]}
-                        >
-                          -{format(item.amountUsd)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                  {liabilityGroups.map((g, gi) => (
+                    <WealthGroupStack
+                      key={g.category.id}
+                      category={g.category}
+                      items={g.items}
+                      subtotalUsd={g.subtotalUsd}
+                      share={totalLiabilitiesUsd > 0 ? g.subtotalUsd / totalLiabilitiesUsd : 0}
+                      kind="liability"
+                      format={format}
+                      index={gi}
+                      onItemPress={(item) => sheetRef.current?.open({ item })}
+                    />
+                  ))}
 
-                  {liabilityItems.length === 0 && (
+                  {liabilityGroups.length === 0 && (
                     <View
                       style={[
                         styles.emptyCard,
