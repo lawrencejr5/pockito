@@ -1,36 +1,53 @@
-import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import * as Haptics from 'expo-haptics';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Ionicons } from "@expo/vector-icons";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import * as Haptics from "expo-haptics";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   FadeInDown,
   LinearTransition,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useCurrency } from '@/components/CurrencyProvider';
-import { useTransactions } from '@/components/TransactionsProvider';
-import { WealthItemSheet, type WealthItemSheetHandle } from '@/components/WealthItemSheet';
-import { useWealth, type WealthItem } from '@/components/WealthProvider';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors, { fonts } from '@/constants/Colors';
+import { useCurrency } from "@/components/CurrencyProvider";
+import { useTransactions } from "@/components/TransactionsProvider";
+import {
+  WealthItemSheet,
+  type WealthItemSheetHandle,
+} from "@/components/WealthItemSheet";
+import { useWealth, type WealthItem } from "@/components/WealthProvider";
+import { useColorScheme } from "@/components/useColorScheme";
+import Colors, { fonts } from "@/constants/Colors";
 import {
   ASSET_CATEGORIES,
   LIABILITY_CATEGORIES,
   getWealthCategory,
   type WealthCategory,
-} from '@/constants/wealth';
+} from "@/constants/wealth";
 
-type ViewMode = 'overview' | 'balance-sheet';
+type ViewMode = "overview" | "balance-sheet";
 
 type GroupedSection = {
   category: WealthCategory;
-  items: { id: string; name: string; amountUsd: number; note?: string; raw?: WealthItem }[];
+  items: {
+    id: string;
+    name: string;
+    amountUsd: number;
+    note?: string;
+    raw?: WealthItem;
+  }[];
   subtotalUsd: number;
 };
 
@@ -42,7 +59,7 @@ export default function WealthScreen() {
   const { items, includeCashBalance, setIncludeCashBalance } = useWealth();
 
   const sheetRef = useRef<WealthItemSheetHandle>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('overview');
+  const [viewMode, setViewMode] = useState<ViewMode>("overview");
 
   // Derive live Pockito Cash Balance & 30-day Monthly Income from transactions
   const { pockitoCashUsd, monthlyIncomeUsd } = useMemo(() => {
@@ -51,7 +68,7 @@ export default function WealthScreen() {
     let income30d = 0;
 
     for (const t of transactions) {
-      if (t.type === 'income') {
+      if (t.type === "income") {
         cash += t.amountUsd;
         if (+new Date(t.date) >= thirtyDaysAgo) {
           income30d += t.amountUsd;
@@ -75,37 +92,49 @@ export default function WealthScreen() {
     assetGroups,
     liabilityGroups,
   } = useMemo(() => {
-    const assets = items.filter((i) => i.kind === 'asset');
-    const liabilities = items.filter((i) => i.kind === 'liability');
+    const assets = items.filter((i) => i.kind === "asset");
+    const liabilities = items.filter((i) => i.kind === "liability");
 
     const customAssetsUsd = assets.reduce((sum, i) => sum + i.amountUsd, 0);
     const cashAdditionUsd = includeCashBalance ? pockitoCashUsd : 0;
     const totalAssets = customAssetsUsd + cashAdditionUsd;
-    const totalLiabilities = liabilities.reduce((sum, i) => sum + i.amountUsd, 0);
+    const totalLiabilities = liabilities.reduce(
+      (sum, i) => sum + i.amountUsd,
+      0,
+    );
     const netWorth = totalAssets - totalLiabilities;
 
     const debtRatio =
-      totalAssets > 0 ? Math.round((totalLiabilities / totalAssets) * 100) : totalLiabilities > 0 ? 100 : 0;
+      totalAssets > 0
+        ? Math.round((totalLiabilities / totalAssets) * 100)
+        : totalLiabilities > 0
+          ? 100
+          : 0;
 
     const liquidAssetsUsd =
       assets.reduce((sum, i) => {
-        const cat = getWealthCategory(i.categoryId, 'asset');
+        const cat = getWealthCategory(i.categoryId, "asset");
         return cat.isLiquid ? sum + i.amountUsd : sum;
       }, 0) + cashAdditionUsd;
 
     const liquidRatio =
-      totalAssets > 0 ? Math.max(0, Math.min(100, Math.round((liquidAssetsUsd / totalAssets) * 100))) : 0;
+      totalAssets > 0
+        ? Math.max(
+            0,
+            Math.min(100, Math.round((liquidAssetsUsd / totalAssets) * 100)),
+          )
+        : 0;
 
     // Group assets by category for Balance Sheet
     const aGroups: GroupedSection[] = [];
     for (const cat of ASSET_CATEGORIES) {
-      const catItems: GroupedSection['items'] = [];
-      if (cat.id === 'cash' && includeCashBalance) {
+      const catItems: GroupedSection["items"] = [];
+      if (cat.id === "cash" && includeCashBalance) {
         catItems.push({
-          id: 'pockito-cash',
-          name: 'Pockito Cash Balance',
+          id: "pockito-cash",
+          name: "Pockito Cash Balance",
           amountUsd: pockitoCashUsd,
-          note: 'Synced from transactions',
+          note: "Synced from transactions",
         });
       }
       for (const it of assets) {
@@ -163,8 +192,10 @@ export default function WealthScreen() {
   }, [items, includeCashBalance, pockitoCashUsd]);
 
   // Animated Assets vs Liabilities ratio bar
-  const grossTotal = Math.max(0, totalAssetsUsd) + Math.max(0, totalLiabilitiesUsd);
-  const targetAssetShare = grossTotal > 0 ? Math.max(0, totalAssetsUsd) / grossTotal : 1;
+  const grossTotal =
+    Math.max(0, totalAssetsUsd) + Math.max(0, totalLiabilitiesUsd);
+  const targetAssetShare =
+    grossTotal > 0 ? Math.max(0, totalAssetsUsd) / grossTotal : 1;
   const assetShareAnim = useSharedValue(targetAssetShare);
 
   useEffect(() => {
@@ -177,10 +208,10 @@ export default function WealthScreen() {
 
   const handleShareBalanceSheet = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    const today = new Date().toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    const today = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
 
     const lines: string[] = [
@@ -219,7 +250,7 @@ export default function WealthScreen() {
     lines.push(`NET WORTH (EQUITY): ${format(netWorthUsd)}`);
 
     try {
-      await Share.share({ message: lines.join('\n') });
+      await Share.share({ message: lines.join("\n") });
     } catch {
       // User dismissed share sheet
     }
@@ -233,24 +264,40 @@ export default function WealthScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               styles.content,
-              { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 20) + 90 },
-            ]}>
+              {
+                paddingTop: insets.top + 12,
+                paddingBottom: Math.max(insets.bottom, 20) + 90,
+              },
+            ]}
+          >
             {/* Header */}
-            <Animated.View entering={FadeInDown.duration(280)} style={styles.header}>
+            <Animated.View
+              entering={FadeInDown.duration(280)}
+              style={styles.header}
+            >
               <View style={{ flex: 1 }}>
-                <Text style={[styles.title, { color: colors.text }]}>Wealth</Text>
+                <Text style={[styles.title, { color: colors.text }]}>
+                  Wealth
+                </Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
                   Assets, liabilities & balance sheet
                 </Text>
               </View>
               <Pressable
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                  sheetRef.current?.open({ kind: 'asset' });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+                    () => {},
+                  );
+                  sheetRef.current?.open({ kind: "asset" });
                 }}
-                style={[styles.addBtn, { backgroundColor: colors.darkCard }]}>
+                style={[styles.addBtn, { backgroundColor: colors.darkCard }]}
+              >
                 <Ionicons name="add" size={18} color={colors.darkCardText} />
-                <Text style={[styles.addBtnText, { color: colors.darkCardText }]}>Add</Text>
+                <Text
+                  style={[styles.addBtnText, { color: colors.darkCardText }]}
+                >
+                  Add
+                </Text>
               </Pressable>
             </Animated.View>
 
@@ -258,12 +305,18 @@ export default function WealthScreen() {
             <View
               style={[
                 styles.toggleBar,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              ]}>
-              {([
-                { key: 'overview', label: 'Overview' },
-                { key: 'balance-sheet', label: 'Balance Sheet' },
-              ] as const).map((tab) => {
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.cardBorder,
+                },
+              ]}
+            >
+              {(
+                [
+                  { key: "overview", label: "Overview" },
+                  { key: "balance-sheet", label: "Balance Sheet" },
+                ] as const
+              ).map((tab) => {
                 const active = viewMode === tab.key;
                 return (
                   <Pressable
@@ -275,15 +328,17 @@ export default function WealthScreen() {
                     style={[
                       styles.togglePill,
                       active && { backgroundColor: colors.accent },
-                    ]}>
+                    ]}
+                  >
                     <Text
                       style={[
                         styles.toggleText,
                         {
-                          color: active ? '#1c1a17' : colors.textMuted,
+                          color: active ? "#1c1a17" : colors.textMuted,
                           fontFamily: active ? fonts.semiBold : fonts.medium,
                         },
-                      ]}>
+                      ]}
+                    >
                       {tab.label}
                     </Text>
                   </Pressable>
@@ -295,7 +350,8 @@ export default function WealthScreen() {
             <Animated.View
               entering={FadeInDown.delay(50).duration(300)}
               layout={LinearTransition.springify().damping(18)}
-              style={[styles.heroCard, { backgroundColor: colors.darkCard }]}>
+              style={[styles.heroCard, { backgroundColor: colors.darkCard }]}
+            >
               <View style={styles.heroTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.heroLabel, { color: colors.secondary }]}>
@@ -304,7 +360,8 @@ export default function WealthScreen() {
                   <Text
                     style={[styles.heroNet, { color: colors.darkCardText }]}
                     numberOfLines={1}
-                    adjustsFontSizeToFit>
+                    adjustsFontSizeToFit
+                  >
                     {format(netWorthUsd)}
                   </Text>
                 </View>
@@ -314,15 +371,17 @@ export default function WealthScreen() {
                     {
                       backgroundColor:
                         debtToAssetPct <= 35
-                          ? 'rgba(74,222,128,0.16)'
-                          : 'rgba(248,113,113,0.16)',
+                          ? "rgba(74,222,128,0.16)"
+                          : "rgba(248,113,113,0.16)",
                     },
-                  ]}>
+                  ]}
+                >
                   <Text
                     style={[
                       styles.ratioBadgeText,
-                      { color: debtToAssetPct <= 35 ? '#4ade80' : '#f87171' },
-                    ]}>
+                      { color: debtToAssetPct <= 35 ? "#4ade80" : "#f87171" },
+                    ]}
+                  >
                     {debtToAssetPct}% debt
                   </Text>
                 </View>
@@ -330,21 +389,38 @@ export default function WealthScreen() {
 
               {/* Animated Assets vs Liabilities Bar */}
               <View style={styles.barWrap}>
-                <View style={[styles.barTrack, { backgroundColor: 'rgba(248,113,113,0.45)' }]}>
+                <View
+                  style={[
+                    styles.barTrack,
+                    { backgroundColor: "rgba(248,113,113,0.45)" },
+                  ]}
+                >
                   <Animated.View
-                    style={[styles.barFill, { backgroundColor: '#4ade80' }, assetBarStyle]}
+                    style={[
+                      styles.barFill,
+                      { backgroundColor: "#4ade80" },
+                      assetBarStyle,
+                    ]}
                   />
                 </View>
                 <View style={styles.barLegend}>
                   <View style={styles.legendItem}>
-                    <View style={[styles.dot, { backgroundColor: '#4ade80' }]} />
-                    <Text style={[styles.legendLabel, { color: colors.secondary }]}>
+                    <View
+                      style={[styles.dot, { backgroundColor: "#4ade80" }]}
+                    />
+                    <Text
+                      style={[styles.legendLabel, { color: colors.secondary }]}
+                    >
                       Assets {format(totalAssetsUsd)}
                     </Text>
                   </View>
                   <View style={styles.legendItem}>
-                    <View style={[styles.dot, { backgroundColor: '#f87171' }]} />
-                    <Text style={[styles.legendLabel, { color: colors.secondary }]}>
+                    <View
+                      style={[styles.dot, { backgroundColor: "#f87171" }]}
+                    />
+                    <Text
+                      style={[styles.legendLabel, { color: colors.secondary }]}
+                    >
                       Liabilities {format(totalLiabilitiesUsd)}
                     </Text>
                   </View>
@@ -354,42 +430,82 @@ export default function WealthScreen() {
               {/* Key Metrics Row */}
               <View style={styles.metricsRow}>
                 <View style={styles.metricBox}>
-                  <Text style={[styles.metricLabel, { color: colors.secondary }]}>Liquid Cash</Text>
-                  <Text style={[styles.metricValue, { color: colors.darkCardText }]}>
+                  <Text
+                    style={[styles.metricLabel, { color: colors.secondary }]}
+                  >
+                    Liquid Cash
+                  </Text>
+                  <Text
+                    style={[styles.metricValue, { color: colors.darkCardText }]}
+                  >
                     {liquidPct}%
                   </Text>
                 </View>
-                <View style={[styles.metricDivider, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
+                <View
+                  style={[
+                    styles.metricDivider,
+                    { backgroundColor: "rgba(255,255,255,0.1)" },
+                  ]}
+                />
                 <View style={styles.metricBox}>
-                  <Text style={[styles.metricLabel, { color: colors.secondary }]}>30d Income</Text>
+                  <Text
+                    style={[styles.metricLabel, { color: colors.secondary }]}
+                  >
+                    30d Income
+                  </Text>
                   <Text
                     style={[styles.metricValue, { color: colors.darkCardText }]}
                     numberOfLines={1}
-                    adjustsFontSizeToFit>
+                    adjustsFontSizeToFit
+                  >
                     {format(monthlyIncomeUsd)}
                   </Text>
                 </View>
-                <View style={[styles.metricDivider, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
+                <View
+                  style={[
+                    styles.metricDivider,
+                    { backgroundColor: "rgba(255,255,255,0.1)" },
+                  ]}
+                />
                 <View style={styles.metricBox}>
-                  <Text style={[styles.metricLabel, { color: colors.secondary }]}>Items</Text>
-                  <Text style={[styles.metricValue, { color: colors.darkCardText }]}>
+                  <Text
+                    style={[styles.metricLabel, { color: colors.secondary }]}
+                  >
+                    Items
+                  </Text>
+                  <Text
+                    style={[styles.metricValue, { color: colors.darkCardText }]}
+                  >
                     {items.length + (includeCashBalance ? 1 : 0)}
                   </Text>
                 </View>
               </View>
             </Animated.View>
 
-            {viewMode === 'overview' ? (
+            {viewMode === "overview" ? (
               <>
                 {/* Pockito Cash Sync Switch */}
                 <Animated.View
                   entering={FadeInDown.delay(90).duration(280)}
                   style={[
                     styles.syncCard,
-                    { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                  ]}>
-                  <View style={[styles.syncIcon, { backgroundColor: colors.accentSoft }]}>
-                    <Ionicons name="sync-outline" size={18} color={colors.tint} />
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.cardBorder,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.syncIcon,
+                      { backgroundColor: colors.accentSoft },
+                    ]}
+                  >
+                    <Ionicons
+                      name="sync-outline"
+                      size={18}
+                      color={colors.tint}
+                    />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.syncTitle, { color: colors.text }]}>
@@ -405,7 +521,10 @@ export default function WealthScreen() {
                       Haptics.selectionAsync().catch(() => {});
                       setIncludeCashBalance(val);
                     }}
-                    trackColor={{ false: colors.cardBorder, true: colors.accent }}
+                    trackColor={{
+                      false: colors.cardBorder,
+                      true: colors.accent,
+                    }}
                     thumbColor="#ffffff"
                   />
                 </Animated.View>
@@ -413,24 +532,37 @@ export default function WealthScreen() {
                 {/* Assets Section */}
                 <Animated.View
                   entering={FadeInDown.delay(130).duration(280)}
-                  style={styles.section}>
+                  style={styles.section}
+                >
                   <View style={styles.sectionHeader}>
                     <View>
-                      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                      <Text
+                        style={[styles.sectionTitle, { color: colors.text }]}
+                      >
                         Assets & Possessions
                       </Text>
-                      <Text style={[styles.sectionSub, { color: colors.textMuted }]}>
+                      <Text
+                        style={[styles.sectionSub, { color: colors.textMuted }]}
+                      >
                         Total: {format(totalAssetsUsd)}
                       </Text>
                     </View>
                     <Pressable
                       onPress={() => {
                         Haptics.selectionAsync().catch(() => {});
-                        sheetRef.current?.open({ kind: 'asset' });
+                        sheetRef.current?.open({ kind: "asset" });
                       }}
-                      style={[styles.smallAddBtn, { backgroundColor: colors.accentSoft }]}>
+                      style={[
+                        styles.smallAddBtn,
+                        { backgroundColor: colors.accentSoft },
+                      ]}
+                    >
                       <Ionicons name="add" size={15} color={colors.tint} />
-                      <Text style={[styles.smallAddText, { color: colors.tint }]}>Asset</Text>
+                      <Text
+                        style={[styles.smallAddText, { color: colors.tint }]}
+                      >
+                        Asset
+                      </Text>
                     </Pressable>
                   </View>
 
@@ -438,32 +570,63 @@ export default function WealthScreen() {
                     <View
                       style={[
                         styles.itemCard,
-                        { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                      ]}>
-                      <View style={[styles.itemIcon, { backgroundColor: '#e0f2e9' }]}>
-                        <Ionicons name="wallet-outline" size={18} color="#1b6f47" />
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.cardBorder,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.itemIcon,
+                          { backgroundColor: "#e0f2e9" },
+                        ]}
+                      >
+                        <Ionicons
+                          name="wallet-outline"
+                          size={18}
+                          color="#1b6f47"
+                        />
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={styles.rowTitleWrap}>
-                          <Text style={[styles.itemTitle, { color: colors.text }]}>
+                          <Text
+                            style={[styles.itemTitle, { color: colors.text }]}
+                          >
                             Pockito Cash Balance
                           </Text>
-                          <View style={[styles.syncedPill, { backgroundColor: colors.accentSoft }]}>
-                            <Text style={[styles.syncedText, { color: colors.tint }]}>Synced</Text>
+                          <View
+                            style={[
+                              styles.syncedPill,
+                              { backgroundColor: colors.accentSoft },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.syncedText,
+                                { color: colors.tint },
+                              ]}
+                            >
+                              Synced
+                            </Text>
                           </View>
                         </View>
-                        <Text style={[styles.itemMeta, { color: colors.textMuted }]}>
+                        <Text
+                          style={[styles.itemMeta, { color: colors.textMuted }]}
+                        >
                           Cash & Bank · From transactions
                         </Text>
                       </View>
-                      <Text style={[styles.itemAmount, { color: colors.income }]}>
+                      <Text
+                        style={[styles.itemAmount, { color: colors.income }]}
+                      >
                         {format(pockitoCashUsd)}
                       </Text>
                     </View>
                   )}
 
                   {assetItems.map((item) => {
-                    const cat = getWealthCategory(item.categoryId, 'asset');
+                    const cat = getWealthCategory(item.categoryId, "asset");
                     return (
                       <Pressable
                         key={item.id}
@@ -473,21 +636,42 @@ export default function WealthScreen() {
                         }}
                         style={[
                           styles.itemCard,
-                          { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                        ]}>
-                        <View style={[styles.itemIcon, { backgroundColor: cat.bg }]}>
-                          <Ionicons name={cat.icon} size={18} color={cat.color} />
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: colors.cardBorder,
+                          },
+                        ]}
+                      >
+                        <View
+                          style={[styles.itemIcon, { backgroundColor: cat.bg }]}
+                        >
+                          <Ionicons
+                            name={cat.icon}
+                            size={18}
+                            color={cat.color}
+                          />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>
+                          <Text
+                            style={[styles.itemTitle, { color: colors.text }]}
+                            numberOfLines={1}
+                          >
                             {item.name}
                           </Text>
-                          <Text style={[styles.itemMeta, { color: colors.textMuted }]} numberOfLines={1}>
+                          <Text
+                            style={[
+                              styles.itemMeta,
+                              { color: colors.textMuted },
+                            ]}
+                            numberOfLines={1}
+                          >
                             {cat.label}
-                            {item.note ? ` · ${item.note}` : ''}
+                            {item.note ? ` · ${item.note}` : ""}
                           </Text>
                         </View>
-                        <Text style={[styles.itemAmount, { color: colors.text }]}>
+                        <Text
+                          style={[styles.itemAmount, { color: colors.text }]}
+                        >
                           {format(item.amountUsd)}
                         </Text>
                       </Pressable>
@@ -496,13 +680,23 @@ export default function WealthScreen() {
 
                   {assetItems.length === 0 && (
                     <Pressable
-                      onPress={() => sheetRef.current?.open({ kind: 'asset' })}
+                      onPress={() => sheetRef.current?.open({ kind: "asset" })}
                       style={[
                         styles.emptyCard,
-                        { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                      ]}>
-                      <Ionicons name="sparkles-outline" size={20} color={colors.textMuted} />
-                      <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.cardBorder,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="sparkles-outline"
+                        size={20}
+                        color={colors.textMuted}
+                      />
+                      <Text
+                        style={[styles.emptyText, { color: colors.textMuted }]}
+                      >
                         Add bank savings, investments, property, or possessions
                       </Text>
                     </Pressable>
@@ -512,29 +706,42 @@ export default function WealthScreen() {
                 {/* Liabilities Section */}
                 <Animated.View
                   entering={FadeInDown.delay(170).duration(280)}
-                  style={styles.section}>
+                  style={styles.section}
+                >
                   <View style={styles.sectionHeader}>
                     <View>
-                      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                      <Text
+                        style={[styles.sectionTitle, { color: colors.text }]}
+                      >
                         Liabilities & Debts
                       </Text>
-                      <Text style={[styles.sectionSub, { color: colors.textMuted }]}>
+                      <Text
+                        style={[styles.sectionSub, { color: colors.textMuted }]}
+                      >
                         Total: {format(totalLiabilitiesUsd)}
                       </Text>
                     </View>
                     <Pressable
                       onPress={() => {
                         Haptics.selectionAsync().catch(() => {});
-                        sheetRef.current?.open({ kind: 'liability' });
+                        sheetRef.current?.open({ kind: "liability" });
                       }}
-                      style={[styles.smallAddBtn, { backgroundColor: 'rgba(220,38,38,0.1)' }]}>
+                      style={[
+                        styles.smallAddBtn,
+                        { backgroundColor: "rgba(220,38,38,0.1)" },
+                      ]}
+                    >
                       <Ionicons name="add" size={15} color={colors.expense} />
-                      <Text style={[styles.smallAddText, { color: colors.expense }]}>Liability</Text>
+                      <Text
+                        style={[styles.smallAddText, { color: colors.expense }]}
+                      >
+                        Liability
+                      </Text>
                     </Pressable>
                   </View>
 
                   {liabilityItems.map((item) => {
-                    const cat = getWealthCategory(item.categoryId, 'liability');
+                    const cat = getWealthCategory(item.categoryId, "liability");
                     return (
                       <Pressable
                         key={item.id}
@@ -544,21 +751,42 @@ export default function WealthScreen() {
                         }}
                         style={[
                           styles.itemCard,
-                          { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                        ]}>
-                        <View style={[styles.itemIcon, { backgroundColor: cat.bg }]}>
-                          <Ionicons name={cat.icon} size={18} color={cat.color} />
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: colors.cardBorder,
+                          },
+                        ]}
+                      >
+                        <View
+                          style={[styles.itemIcon, { backgroundColor: cat.bg }]}
+                        >
+                          <Ionicons
+                            name={cat.icon}
+                            size={18}
+                            color={cat.color}
+                          />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>
+                          <Text
+                            style={[styles.itemTitle, { color: colors.text }]}
+                            numberOfLines={1}
+                          >
                             {item.name}
                           </Text>
-                          <Text style={[styles.itemMeta, { color: colors.textMuted }]} numberOfLines={1}>
+                          <Text
+                            style={[
+                              styles.itemMeta,
+                              { color: colors.textMuted },
+                            ]}
+                            numberOfLines={1}
+                          >
                             {cat.label}
-                            {item.note ? ` · ${item.note}` : ''}
+                            {item.note ? ` · ${item.note}` : ""}
                           </Text>
                         </View>
-                        <Text style={[styles.itemAmount, { color: colors.expense }]}>
+                        <Text
+                          style={[styles.itemAmount, { color: colors.expense }]}
+                        >
                           -{format(item.amountUsd)}
                         </Text>
                       </Pressable>
@@ -569,11 +797,22 @@ export default function WealthScreen() {
                     <View
                       style={[
                         styles.emptyCard,
-                        { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                      ]}>
-                      <Ionicons name="checkmark-circle-outline" size={20} color={colors.income} />
-                      <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                        No liabilities recorded — tap + Liability to track loans or cards
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.cardBorder,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={20}
+                        color={colors.income}
+                      />
+                      <Text
+                        style={[styles.emptyText, { color: colors.textMuted }]}
+                      >
+                        No liabilities recorded — tap + Liability to track loans
+                        or cards
                       </Text>
                     </View>
                   )}
@@ -585,33 +824,58 @@ export default function WealthScreen() {
                 entering={FadeInDown.duration(260)}
                 style={[
                   styles.statementCard,
-                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                ]}>
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.cardBorder,
+                  },
+                ]}
+              >
                 <View style={styles.statementHeader}>
                   <View>
-                    <Text style={[styles.statementTitle, { color: colors.text }]}>
+                    <Text
+                      style={[styles.statementTitle, { color: colors.text }]}
+                    >
                       Personal Balance Sheet
                     </Text>
-                    <Text style={[styles.statementDate, { color: colors.textMuted }]}>
-                      As of{' '}
-                      {new Date().toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}{' '}
+                    <Text
+                      style={[
+                        styles.statementDate,
+                        { color: colors.textMuted },
+                      ]}
+                    >
+                      As of{" "}
+                      {new Date().toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}{" "}
                       · {currency.code}
                     </Text>
                   </View>
                   <Pressable
                     onPress={handleShareBalanceSheet}
-                    style={[styles.exportBtn, { backgroundColor: colors.accentSoft }]}>
-                    <Ionicons name="share-outline" size={16} color={colors.tint} />
-                    <Text style={[styles.exportText, { color: colors.tint }]}>Share</Text>
+                    style={[
+                      styles.exportBtn,
+                      { backgroundColor: colors.accentSoft },
+                    ]}
+                  >
+                    <Ionicons
+                      name="share-outline"
+                      size={16}
+                      color={colors.tint}
+                    />
+                    <Text style={[styles.exportText, { color: colors.tint }]}>
+                      Share
+                    </Text>
                   </Pressable>
                 </View>
 
                 {/* 1. ASSETS */}
-                <Text style={[styles.bsSectionHeading, { color: colors.income }]}>ASSETS</Text>
+                <Text
+                  style={[styles.bsSectionHeading, { color: colors.income }]}
+                >
+                  ASSETS
+                </Text>
                 {assetGroups.length === 0 ? (
                   <Text style={[styles.bsEmpty, { color: colors.textMuted }]}>
                     No assets recorded
@@ -620,10 +884,14 @@ export default function WealthScreen() {
                   assetGroups.map((g) => (
                     <View key={g.category.id} style={styles.bsGroup}>
                       <View style={styles.bsGroupRow}>
-                        <Text style={[styles.bsGroupLabel, { color: colors.text }]}>
+                        <Text
+                          style={[styles.bsGroupLabel, { color: colors.text }]}
+                        >
                           {g.category.label}
                         </Text>
-                        <Text style={[styles.bsGroupTotal, { color: colors.text }]}>
+                        <Text
+                          style={[styles.bsGroupTotal, { color: colors.text }]}
+                        >
                           {format(g.subtotalUsd)}
                         </Text>
                       </View>
@@ -631,12 +899,26 @@ export default function WealthScreen() {
                         <Pressable
                           key={it.id}
                           disabled={!it.raw}
-                          onPress={() => it.raw && sheetRef.current?.open({ item: it.raw })}
-                          style={styles.bsLineRow}>
-                          <Text style={[styles.bsLineName, { color: colors.textMuted }]} numberOfLines={1}>
+                          onPress={() =>
+                            it.raw && sheetRef.current?.open({ item: it.raw })
+                          }
+                          style={styles.bsLineRow}
+                        >
+                          <Text
+                            style={[
+                              styles.bsLineName,
+                              { color: colors.textMuted },
+                            ]}
+                            numberOfLines={1}
+                          >
                             {it.name}
                           </Text>
-                          <Text style={[styles.bsLineVal, { color: colors.textMuted }]}>
+                          <Text
+                            style={[
+                              styles.bsLineVal,
+                              { color: colors.textMuted },
+                            ]}
+                          >
                             {format(it.amountUsd)}
                           </Text>
                         </Pressable>
@@ -645,15 +927,27 @@ export default function WealthScreen() {
                   ))
                 )}
 
-                <View style={[styles.bsTotalRow, { borderTopColor: colors.cardBorder }]}>
-                  <Text style={[styles.bsTotalLabel, { color: colors.text }]}>Total Assets</Text>
+                <View
+                  style={[
+                    styles.bsTotalRow,
+                    { borderTopColor: colors.cardBorder },
+                  ]}
+                >
+                  <Text style={[styles.bsTotalLabel, { color: colors.text }]}>
+                    Total Assets
+                  </Text>
                   <Text style={[styles.bsTotalValue, { color: colors.income }]}>
                     {format(totalAssetsUsd)}
                   </Text>
                 </View>
 
                 {/* 2. LIABILITIES */}
-                <Text style={[styles.bsSectionHeading, { color: colors.expense, marginTop: 18 }]}>
+                <Text
+                  style={[
+                    styles.bsSectionHeading,
+                    { color: colors.expense, marginTop: 18 },
+                  ]}
+                >
                   LIABILITIES
                 </Text>
                 {liabilityGroups.length === 0 ? (
@@ -664,10 +958,14 @@ export default function WealthScreen() {
                   liabilityGroups.map((g) => (
                     <View key={g.category.id} style={styles.bsGroup}>
                       <View style={styles.bsGroupRow}>
-                        <Text style={[styles.bsGroupLabel, { color: colors.text }]}>
+                        <Text
+                          style={[styles.bsGroupLabel, { color: colors.text }]}
+                        >
                           {g.category.label}
                         </Text>
-                        <Text style={[styles.bsGroupTotal, { color: colors.text }]}>
+                        <Text
+                          style={[styles.bsGroupTotal, { color: colors.text }]}
+                        >
                           {format(g.subtotalUsd)}
                         </Text>
                       </View>
@@ -675,12 +973,26 @@ export default function WealthScreen() {
                         <Pressable
                           key={it.id}
                           disabled={!it.raw}
-                          onPress={() => it.raw && sheetRef.current?.open({ item: it.raw })}
-                          style={styles.bsLineRow}>
-                          <Text style={[styles.bsLineName, { color: colors.textMuted }]} numberOfLines={1}>
+                          onPress={() =>
+                            it.raw && sheetRef.current?.open({ item: it.raw })
+                          }
+                          style={styles.bsLineRow}
+                        >
+                          <Text
+                            style={[
+                              styles.bsLineName,
+                              { color: colors.textMuted },
+                            ]}
+                            numberOfLines={1}
+                          >
                             {it.name}
                           </Text>
-                          <Text style={[styles.bsLineVal, { color: colors.textMuted }]}>
+                          <Text
+                            style={[
+                              styles.bsLineVal,
+                              { color: colors.textMuted },
+                            ]}
+                          >
                             {format(it.amountUsd)}
                           </Text>
                         </Pressable>
@@ -689,22 +1001,41 @@ export default function WealthScreen() {
                   ))
                 )}
 
-                <View style={[styles.bsTotalRow, { borderTopColor: colors.cardBorder }]}>
+                <View
+                  style={[
+                    styles.bsTotalRow,
+                    { borderTopColor: colors.cardBorder },
+                  ]}
+                >
                   <Text style={[styles.bsTotalLabel, { color: colors.text }]}>
                     Total Liabilities
                   </Text>
-                  <Text style={[styles.bsTotalValue, { color: colors.expense }]}>
+                  <Text
+                    style={[styles.bsTotalValue, { color: colors.expense }]}
+                  >
                     {format(totalLiabilitiesUsd)}
                   </Text>
                 </View>
 
                 {/* 3. NET WORTH (EQUITY) */}
-                <View style={[styles.bsEquityBox, { backgroundColor: colors.accentSoft }]}>
+                <View
+                  style={[
+                    styles.bsEquityBox,
+                    { backgroundColor: colors.accentSoft },
+                  ]}
+                >
                   <View>
-                    <Text style={[styles.bsEquityTitle, { color: colors.text }]}>
+                    <Text
+                      style={[styles.bsEquityTitle, { color: colors.text }]}
+                    >
                       Net Worth (Equity)
                     </Text>
-                    <Text style={[styles.bsEquityFormula, { color: colors.textMuted }]}>
+                    <Text
+                      style={[
+                        styles.bsEquityFormula,
+                        { color: colors.textMuted },
+                      ]}
+                    >
                       Total Assets − Total Liabilities
                     </Text>
                   </View>
@@ -726,12 +1057,17 @@ export default function WealthScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { paddingHorizontal: 18, gap: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   title: { fontFamily: fonts.bold, fontSize: 28 },
   sub: { fontFamily: fonts.regular, fontSize: 13, marginTop: 2 },
   addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -740,61 +1076,86 @@ const styles = StyleSheet.create({
   addBtnText: { fontFamily: fonts.semiBold, fontSize: 14 },
 
   toggleBar: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderRadius: 14,
     borderWidth: 1,
     padding: 4,
     gap: 4,
   },
-  togglePill: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
+  togglePill: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 10,
+    alignItems: "center",
+  },
   toggleText: { fontSize: 13 },
 
   heroCard: { borderRadius: 24, padding: 20, gap: 16 },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  heroTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   heroLabel: { fontFamily: fonts.medium, fontSize: 13 },
   heroNet: { fontFamily: fonts.bold, fontSize: 34, marginTop: 4 },
   ratioBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   ratioBadgeText: { fontFamily: fonts.semiBold, fontSize: 12 },
 
   barWrap: { gap: 8 },
-  barTrack: { height: 10, borderRadius: 999, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 999 },
-  barLegend: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  barTrack: { height: 10, borderRadius: 999, overflow: "hidden" },
+  barFill: { height: "100%", borderRadius: 999 },
+  barLegend: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 999 },
   legendLabel: { fontFamily: fonts.medium, fontSize: 12 },
 
   metricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.12)',
+    borderTopColor: "rgba(255,255,255,0.12)",
   },
-  metricBox: { flex: 1, alignItems: 'center', gap: 2 },
+  metricBox: { flex: 1, alignItems: "center", gap: 2 },
   metricLabel: { fontFamily: fonts.regular, fontSize: 11 },
   metricValue: { fontFamily: fonts.semiBold, fontSize: 15 },
   metricDivider: { width: 1, height: 24 },
 
   syncCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     padding: 14,
     borderRadius: 18,
     borderWidth: 1,
   },
-  syncIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  syncIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   syncTitle: { fontFamily: fonts.semiBold, fontSize: 14 },
   syncSub: { fontFamily: fonts.regular, fontSize: 12, marginTop: 2 },
 
   section: { gap: 10 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 17 },
   sectionSub: { fontFamily: fonts.medium, fontSize: 12, marginTop: 1 },
   smallAddBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -803,15 +1164,21 @@ const styles = StyleSheet.create({
   smallAddText: { fontFamily: fonts.semiBold, fontSize: 12 },
 
   itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     padding: 14,
     borderRadius: 18,
     borderWidth: 1,
   },
-  itemIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  rowTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  itemIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowTitleWrap: { flexDirection: "row", alignItems: "center", gap: 6 },
   itemTitle: { fontFamily: fonts.semiBold, fontSize: 15 },
   syncedPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   syncedText: { fontFamily: fonts.semiBold, fontSize: 10 },
@@ -819,8 +1186,8 @@ const styles = StyleSheet.create({
   itemAmount: { fontFamily: fonts.bold, fontSize: 15 },
 
   emptyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     padding: 16,
     borderRadius: 18,
@@ -835,18 +1202,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   statementHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.2)',
+    borderBottomColor: "rgba(128,128,128,0.2)",
   },
   statementTitle: { fontFamily: fonts.bold, fontSize: 18 },
   statementDate: { fontFamily: fonts.regular, fontSize: 12, marginTop: 2 },
   exportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     paddingHorizontal: 11,
     paddingVertical: 7,
@@ -854,16 +1221,25 @@ const styles = StyleSheet.create({
   },
   exportText: { fontFamily: fonts.semiBold, fontSize: 12 },
 
-  bsSectionHeading: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 0.8, marginTop: 6 },
+  bsSectionHeading: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    letterSpacing: 0.8,
+    marginTop: 6,
+  },
   bsEmpty: { fontFamily: fonts.italic, fontSize: 13, paddingVertical: 4 },
   bsGroup: { gap: 4, marginTop: 4 },
-  bsGroupRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  bsGroupRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   bsGroupLabel: { fontFamily: fonts.semiBold, fontSize: 14 },
   bsGroupTotal: { fontFamily: fonts.semiBold, fontSize: 14 },
   bsLineRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingLeft: 12,
     gap: 12,
   },
@@ -871,9 +1247,9 @@ const styles = StyleSheet.create({
   bsLineVal: { fontFamily: fonts.regular, fontSize: 13 },
 
   bsTotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingTop: 10,
     marginTop: 6,
     borderTopWidth: 1,
@@ -882,9 +1258,9 @@ const styles = StyleSheet.create({
   bsTotalValue: { fontFamily: fonts.bold, fontSize: 16 },
 
   bsEquityBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 14,
     borderRadius: 14,
     marginTop: 10,
@@ -893,4 +1269,3 @@ const styles = StyleSheet.create({
   bsEquityFormula: { fontFamily: fonts.regular, fontSize: 11, marginTop: 1 },
   bsEquityValue: { fontFamily: fonts.bold, fontSize: 18 },
 });
-

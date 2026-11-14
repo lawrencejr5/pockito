@@ -27,6 +27,18 @@ export type WealthItemSheetHandle = {
   close: () => void;
 };
 
+function formatAmountInput(raw: string): string {
+  const cleaned = raw.replace(/[^0-9.]/g, '');
+  if (!cleaned) return '';
+  const dotIndex = cleaned.indexOf('.');
+  if (dotIndex === -1) {
+    return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  const intPart = cleaned.slice(0, dotIndex).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const decPart = cleaned.slice(dotIndex + 1).replace(/\./g, '');
+  return `${intPart || '0'}.${decPart}`;
+}
+
 export const WealthItemSheet = forwardRef<WealthItemSheetHandle>(function WealthItemSheet(_, ref) {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
@@ -51,7 +63,7 @@ export const WealthItemSheet = forwardRef<WealthItemSheetHandle>(function Wealth
         setKind(it.kind);
         setCategoryId(it.categoryId);
         setName(it.name);
-        setAmountText(String(it.originalAmount));
+        setAmountText(formatAmountInput(String(it.originalAmount)));
         setItemCurrency(it.currency);
         setNote(it.note ?? '');
       } else {
@@ -249,7 +261,7 @@ export const WealthItemSheet = forwardRef<WealthItemSheetHandle>(function Wealth
               </Text>
               <BottomSheetTextInput
                 value={amountText}
-                onChangeText={setAmountText}
+                onChangeText={(text) => setAmountText(formatAmountInput(text))}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
                 placeholderTextColor={colors.textMuted}
@@ -356,8 +368,15 @@ export const WealthItemSheet = forwardRef<WealthItemSheetHandle>(function Wealth
         {/* Save Button */}
         <Pressable
           onPress={handleSave}
-          style={[styles.saveBtn, { backgroundColor: colors.darkCard }]}>
-          <Text style={[styles.saveBtnText, { color: colors.darkCardText }]}>
+          style={[
+            styles.saveBtn,
+            { backgroundColor: kind === 'asset' ? colors.accent : colors.expense },
+          ]}>
+          <Text
+            style={[
+              styles.saveBtnText,
+              { color: kind === 'asset' ? '#1c1a17' : '#ffffff' },
+            ]}>
             {editingId ? 'Save Changes' : `Add ${kind === 'asset' ? 'Asset' : 'Liability'}`}
           </Text>
         </Pressable>
