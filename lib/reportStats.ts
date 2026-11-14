@@ -20,6 +20,11 @@ export type CategoryStat = {
   count: number;
 };
 
+export type DayPeak = {
+  date: string;
+  amountUsd: number;
+};
+
 export type ReportStats = {
   incomeUsd: number;
   expenseUsd: number;
@@ -31,6 +36,8 @@ export type ReportStats = {
   expenseCount: number;
   largestExpense: Transaction | null;
   largestIncome: Transaction | null;
+  peakSpendingDay: DayPeak | null;
+  bestEarningDay: DayPeak | null;
   categories: CategoryStat[];
 };
 
@@ -52,20 +59,27 @@ export function computeReportStats(
   let largestExpense: Transaction | null = null;
   let largestIncome: Transaction | null = null;
   const byCategory = new Map<string, { amountUsd: number; count: number }>();
+  const dayTotals = new Map<string, { date: string; income: number; expense: number }>();
 
   let earliestMs = now.getTime();
   for (const t of filtered) {
-    const ms = new Date(t.date).getTime();
+    const d = new Date(t.date);
+    const ms = d.getTime();
     if (ms < earliestMs) earliestMs = ms;
+
+    const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const dayEntry = dayTotals.get(dayKey) ?? { date: t.date, income: 0, expense: 0 };
 
     if (t.type === 'income') {
       incomeUsd += t.amountUsd;
+      dayEntry.income += t.amountUsd;
       if (!largestIncome || t.amountUsd > largestIncome.amountUsd) {
         largestIncome = t;
       }
     } else {
       expenseUsd += t.amountUsd;
       expenseCount += 1;
+      dayEntry.expense += t.amountUsd;
       if (!largestExpense || t.amountUsd > largestExpense.amountUsd) {
         largestExpense = t;
       }
@@ -74,6 +88,18 @@ export function computeReportStats(
         amountUsd: prev.amountUsd + t.amountUsd,
         count: prev.count + 1,
       });
+    }
+    dayTotals.set(dayKey, dayEntry);
+  }
+
+  let peakSpendingDay: DayPeak | null = null;
+  let bestEarningDay: DayPeak | null = null;
+  for (const entry of dayTotals.values()) {
+    if (entry.expense > 0 && (!peakSpendingDay || entry.expense > peakSpendingDay.amountUsd)) {
+      peakSpendingDay = { date: entry.date, amountUsd: entry.expense };
+    }
+    if (entry.income > 0 && (!bestEarningDay || entry.income > bestEarningDay.amountUsd)) {
+      bestEarningDay = { date: entry.date, amountUsd: entry.income };
     }
   }
 
@@ -109,6 +135,8 @@ export function computeReportStats(
     expenseCount,
     largestExpense,
     largestIncome,
+    peakSpendingDay,
+    bestEarningDay,
     categories,
   };
 }

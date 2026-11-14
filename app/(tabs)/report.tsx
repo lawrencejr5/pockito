@@ -243,6 +243,56 @@ export default function ReportScreen() {
                 : 'No income'}
             </Text>
           </View>
+
+          {/* Peak Spending Day */}
+          <View style={[styles.metricCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={[styles.metricIcon, { backgroundColor: colors.expense + '26' }]}>
+              <Ionicons name="flame-outline" size={16} color={colors.expense} />
+            </View>
+            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Peak Spending Day</Text>
+            <Text
+              style={[styles.metricValue, { color: colors.text }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit>
+              {stats.peakSpendingDay
+                ? new Date(stats.peakSpendingDay.date).toLocaleDateString('en-GB', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                  })
+                : '—'}
+            </Text>
+            <Text style={[styles.metricMeta, { color: colors.expense }]} numberOfLines={1}>
+              {stats.peakSpendingDay
+                ? `${format(stats.peakSpendingDay.amountUsd)} spent`
+                : 'No expenses'}
+            </Text>
+          </View>
+
+          {/* Best Earning Day */}
+          <View style={[styles.metricCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={[styles.metricIcon, { backgroundColor: colors.income + '26' }]}>
+              <Ionicons name="sparkles-outline" size={16} color={colors.income} />
+            </View>
+            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Best Earning Day</Text>
+            <Text
+              style={[styles.metricValue, { color: colors.text }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit>
+              {stats.bestEarningDay
+                ? new Date(stats.bestEarningDay.date).toLocaleDateString('en-GB', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                  })
+                : '—'}
+            </Text>
+            <Text style={[styles.metricMeta, { color: colors.income }]} numberOfLines={1}>
+              {stats.bestEarningDay
+                ? `${format(stats.bestEarningDay.amountUsd)} earned`
+                : 'No income'}
+            </Text>
+          </View>
         </Animated.View>
 
         {/* Spending by Category */}
