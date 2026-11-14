@@ -7,9 +7,13 @@ import {
   type BottomSheetBackdropProps,
 } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
@@ -30,12 +34,14 @@ import { getCategory } from "@/constants/categories";
 
 const TOP_GAP = 8; // space between the status bar inset and the header row
 
-type MoneyPeriod = "today" | "week" | "month";
+type MoneyPeriod = "today" | "week" | "month" | "custom";
+type CustomMode = "single" | "range";
 
 const MONEY_PERIODS: { key: MoneyPeriod; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "week", label: "This week" },
   { key: "month", label: "This month" },
+  { key: "custom", label: "Custom" },
 ];
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -44,13 +50,33 @@ function sameMonth(a: Date, b: Date) {
   return a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
 }
 
-function isInPeriod(date: Date, now: Date, selectedMonth: Date, period: MoneyPeriod) {
+function formatShortDate(d: Date) {
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function isInPeriod(
+  date: Date,
+  now: Date,
+  selectedMonth: Date,
+  period: MoneyPeriod,
+  customMode: CustomMode,
+  customStart: Date,
+  customEnd: Date,
+) {
   if (period === "today") return date.toDateString() === now.toDateString();
   if (period === "week") {
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
     return date >= startOfWeek;
+  }
+  if (period === "custom") {
+    if (customMode === "single") return date.toDateString() === customStart.toDateString();
+    const start = new Date(customStart);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(customEnd < customStart ? customStart : customEnd);
+    end.setHours(23, 59, 59, 999);
+    return date >= start && date <= end;
   }
   return sameMonth(date, selectedMonth);
 }
@@ -61,10 +87,15 @@ export default function HomeScreen() {
   const { currency, format, parts } = useCurrency();
   const { transactions } = useTransactions();
   const [moneyPeriod, setMoneyPeriod] = useState<MoneyPeriod>("month");
+  const [customMode, setCustomMode] = useState<CustomMode>("single");
+  const [customStart, setCustomStart] = useState(() => new Date());
+  const [customEnd, setCustomEnd] = useState(() => new Date());
+  const [editingBound, setEditingBound] = useState<"start" | "end">("start");
   const [selectedMonth, setSelectedMonth] = useState(() => new Date());
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
   const [heroHeight, setHeroHeight] = useState(280);
   const periodSheetRef = useRef<BottomSheetModal>(null);
+  const customSheetRef = useRef<BottomSheetModal>(null);
   const monthSheetRef = useRef<BottomSheetModal>(null);
   const currencySheetRef = useRef<BottomSheetModal>(null);
 
@@ -91,7 +122,7 @@ export default function HomeScreen() {
       const d = new Date(t.date);
       const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
       totalNet += signed;
-      if (isInPeriod(d, now, selectedMonth, moneyPeriod)) {
+      if (isInPeriod(d, now, selectedMonth, moneyPeriod, customMode, customStart, customEnd)) {
         filtered.push(t);
         if (t.type === "income") inc += t.amountUsd;
         else exp += t.amountUsd;
@@ -105,7 +136,7 @@ export default function HomeScreen() {
       currentBalanceUsd: totalNet,
       recent: filtered.slice(0, 10),
     };
-  }, [transactions, moneyPeriod, selectedMonth]);
+  }, [transactions, moneyPeriod, selectedMonth, customMode, customStart, customEnd]);
 
   const stickyTop = insets.top + TOP_GAP;
   const scrollY = useSharedValue(0);
@@ -145,7 +176,30 @@ export default function HomeScreen() {
   }, [heroHeight, stickyTop]);
 
   const selectedPeriodLabel =
-    MONEY_PERIODS.find((p) => p.key === moneyPeriod)?.label ?? "This month";
+    moneyPeriod === "custom"
+      ? customMode === "single"
+        ? formatShortDate(customStart)
+        : `${formatShortDate(customStart)} – ${formatShortDate(customEnd)}`
+      : (MONEY_PERIODS.find((p) => p.key === moneyPeriod)?.label ?? "This month");
+
+  const updateCustomDate = (picked: Date, bound: "start" | "end") => {
+    if (bound === "start") {
+      setCustomStart(picked);
+      if (customEnd < picked) setCustomEnd(picked);
+    } else {
+      setCustomEnd(picked < customStart ? customStart : picked);
+    }
+  };
+
+  const openAndroidCustomDate = (bound: "start" | "end") => {
+    DateTimePickerAndroid.open({
+      value: bound === "start" ? customStart : customEnd,
+      mode: "date",
+      onChange: (_e, picked) => {
+        if (picked) updateCustomDate(picked, bound);
+      },
+    });
+  };
 
   const month = selectedMonth.toLocaleDateString("en-US", {
     month: "long",
@@ -462,8 +516,13 @@ export default function HomeScreen() {
                 key={p.key}
                 onPress={() => {
                   Haptics.selectionAsync().catch(() => {});
-                  setMoneyPeriod(p.key);
                   periodSheetRef.current?.dismiss();
+                  if (p.key === "custom") {
+                    setEditingBound("start");
+                    customSheetRef.current?.present();
+                  } else {
+                    setMoneyPeriod(p.key);
+                  }
                 }}
                 style={[
                   styles.periodRow,
@@ -486,6 +545,143 @@ export default function HomeScreen() {
               </Pressable>
             );
           })}
+        </BottomSheetView>
+      </BottomSheetModal>
+
+      <BottomSheetModal
+        ref={customSheetRef}
+        enableDynamicSizing
+        backdropComponent={renderBackdrop}
+        backgroundStyle={[styles.modalSheetBg, { backgroundColor: colors.sheet }]}
+        handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}
+      >
+        <BottomSheetView
+          style={[
+            styles.modalSheet,
+            { paddingBottom: Math.max(insets.bottom, 16) + 12 },
+          ]}
+        >
+          <Text style={[styles.modalTitle, { color: colors.text }]}>
+            Custom date
+          </Text>
+
+          <View
+            style={[
+              styles.customToggle,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            ]}
+          >
+            {(
+              [
+                { key: "single", label: "Single day" },
+                { key: "range", label: "Date range" },
+              ] as const
+            ).map((m) => {
+              const active = m.key === customMode;
+              return (
+                <Pressable
+                  key={m.key}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setCustomMode(m.key);
+                    setEditingBound("start");
+                  }}
+                  style={[
+                    styles.customToggleItem,
+                    active && { backgroundColor: colors.accent },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.customToggleText,
+                      { color: active ? "#1c1a17" : colors.textMuted },
+                    ]}
+                  >
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.row}>
+            <Pressable
+              onPress={() => {
+                setEditingBound("start");
+                if (Platform.OS === "android") openAndroidCustomDate("start");
+              }}
+              style={[
+                styles.dateBox,
+                {
+                  backgroundColor: colors.card,
+                  borderColor:
+                    editingBound === "start" ? colors.tint : colors.cardBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.dateBoxLabel, { color: colors.textMuted }]}>
+                {customMode === "single" ? "Date" : "From"}
+              </Text>
+              <Text style={[styles.dateBoxValue, { color: colors.text }]}>
+                {customStart.toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </Text>
+            </Pressable>
+
+            {customMode === "range" && (
+              <Pressable
+                onPress={() => {
+                  setEditingBound("end");
+                  if (Platform.OS === "android") openAndroidCustomDate("end");
+                }}
+                style={[
+                  styles.dateBox,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor:
+                      editingBound === "end" ? colors.tint : colors.cardBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.dateBoxLabel, { color: colors.textMuted }]}>
+                  To
+                </Text>
+                <Text style={[styles.dateBoxValue, { color: colors.text }]}>
+                  {customEnd.toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
+          {Platform.OS === "ios" && (
+            <DateTimePicker
+              value={editingBound === "start" ? customStart : customEnd}
+              mode="date"
+              display="spinner"
+              minimumDate={editingBound === "end" ? customStart : undefined}
+              onChange={(_e: DateTimePickerEvent, picked?: Date) => {
+                if (picked) updateCustomDate(picked, editingBound);
+              }}
+            />
+          )}
+
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              setMoneyPeriod("custom");
+              customSheetRef.current?.dismiss();
+            }}
+            style={[styles.applyBtn, { backgroundColor: colors.accent }]}
+          >
+            <Text style={styles.applyBtnText}>Apply</Text>
+          </Pressable>
         </BottomSheetView>
       </BottomSheetModal>
 
@@ -768,4 +964,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   monthCellText: { fontFamily: fonts.semiBold, fontSize: 14 },
+  customToggle: {
+    flexDirection: "row",
+    padding: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    gap: 4,
+  },
+  customToggleItem: {
+    flex: 1,
+    height: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  customToggleText: { fontFamily: fonts.semiBold, fontSize: 13 },
+  dateBox: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 2,
+  },
+  dateBoxLabel: { fontFamily: fonts.medium, fontSize: 11 },
+  dateBoxValue: { fontFamily: fonts.semiBold, fontSize: 14 },
+  applyBtn: {
+    height: 48,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  applyBtnText: { fontFamily: fonts.bold, fontSize: 15, color: "#1c1a17" },
 });
