@@ -165,21 +165,19 @@ export default function ReportScreen() {
             <Text style={[styles.metricMeta, { color: colors.textMuted }]}>per day</Text>
           </View>
 
-          {/* Average Expense Size */}
+          {/* Monthly Average Spending */}
           <View style={[styles.metricCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <View style={[styles.metricIcon, { backgroundColor: colors.accentSoft }]}>
-              <Ionicons name="receipt-outline" size={16} color={colors.tint} />
+              <Ionicons name="calendar-outline" size={16} color={colors.tint} />
             </View>
-            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Avg Expense</Text>
+            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Monthly Avg Spend</Text>
             <Text
               style={[styles.metricValue, { color: colors.text }]}
               numberOfLines={1}
               adjustsFontSizeToFit>
-              {format(stats.avgExpenseUsd)}
+              {format(stats.monthlyAvgSpendUsd)}
             </Text>
-            <Text style={[styles.metricMeta, { color: colors.textMuted }]}>
-              {stats.txCount} {stats.txCount === 1 ? 'entry' : 'entries'}
-            </Text>
+            <Text style={[styles.metricMeta, { color: colors.textMuted }]}>per month</Text>
           </View>
 
           {/* Largest Expense */}

@@ -31,7 +31,7 @@ export type ReportStats = {
   netUsd: number;
   savingsRate: number | null;
   dailyAvgSpendUsd: number;
-  avgExpenseUsd: number;
+  monthlyAvgSpendUsd: number;
   txCount: number;
   expenseCount: number;
   largestExpense: Transaction | null;
@@ -113,7 +113,7 @@ export function computeReportStats(
       : DAYS_IN_PERIOD[period];
 
   const dailyAvgSpendUsd = expenseUsd / spanDays;
-  const avgExpenseUsd = expenseCount > 0 ? expenseUsd / expenseCount : 0;
+  const monthlyAvgSpendUsd = expenseUsd / Math.max(1, spanDays / 30);
 
   const categories: CategoryStat[] = Array.from(byCategory.entries())
     .map(([id, data]) => ({
@@ -130,7 +130,7 @@ export function computeReportStats(
     netUsd,
     savingsRate,
     dailyAvgSpendUsd,
-    avgExpenseUsd,
+    monthlyAvgSpendUsd,
     txCount: filtered.length,
     expenseCount,
     largestExpense,
