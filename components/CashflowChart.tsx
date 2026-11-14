@@ -1,11 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, {
+  ClipPath,
+  Defs,
+  G,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+  Text as SvgText,
+} from 'react-native-svg';
 
 import { useCurrency } from '@/components/CurrencyProvider';
 import { useTransactions, type Transaction } from '@/components/TransactionsProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
+
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 type Range = '7D' | '30D' | '90D' | '180D';
 const RANGES: Range[] = ['7D', '30D', '90D', '180D'];
@@ -67,6 +85,27 @@ export function CashflowChart({
   const height = isHero ? 96 : 140;
   const padTop = isHero ? 20 : 24;
   const padBottom = isHero ? 18 : 20;
+
+  const revealWidth = useSharedValue(0);
+
+  const playReveal = useCallback(() => {
+    revealWidth.value = 0;
+    revealWidth.value = withTiming(WIDTH, {
+      duration: 650,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [revealWidth]);
+
+  // Re-draw the line whenever the user switches to this tab.
+  useFocusEffect(
+    useCallback(() => {
+      playReveal();
+    }, [playReveal]),
+  );
+
+  const clipProps = useAnimatedProps(() => ({
+    width: revealWidth.value,
+  }));
 
   const { line, area, hi, lo, change, isFlat } = useMemo(() => {
     const endBalance =
@@ -131,29 +170,34 @@ export function CashflowChart({
             <Stop offset="0" stopColor={strokeColor} stopOpacity={isHero ? 0.2 : 0.3} />
             <Stop offset="1" stopColor={strokeColor} stopOpacity={0} />
           </LinearGradient>
+          <ClipPath id="cashflowReveal">
+            <AnimatedRect x={0} y={0} height={height} animatedProps={clipProps} />
+          </ClipPath>
         </Defs>
-        <Path d={area} fill="url(#cashflowFill)" />
-        <Path d={line} fill="none" stroke={strokeColor} strokeWidth={2} strokeLinejoin="round" />
-        <SvgText
-          x={clampX(hi.x)}
-          y={Math.max(hi.y - 6, 11)}
-          fill={labelColor}
-          fontSize={10}
-          fontFamily={fonts.medium}
-          textAnchor="middle">
-          {format(hi.v)}
-        </SvgText>
-        {!isFlat && (
+        <G clipPath="url(#cashflowReveal)">
+          <Path d={area} fill="url(#cashflowFill)" />
+          <Path d={line} fill="none" stroke={strokeColor} strokeWidth={2} strokeLinejoin="round" />
           <SvgText
-            x={clampX(lo.x)}
-            y={Math.min(lo.y + 14, height - 3)}
+            x={clampX(hi.x)}
+            y={Math.max(hi.y - 6, 11)}
             fill={labelColor}
             fontSize={10}
             fontFamily={fonts.medium}
             textAnchor="middle">
-            {format(lo.v)}
+            {format(hi.v)}
           </SvgText>
-        )}
+          {!isFlat && (
+            <SvgText
+              x={clampX(lo.x)}
+              y={Math.min(lo.y + 14, height - 3)}
+              fill={labelColor}
+              fontSize={10}
+              fontFamily={fonts.medium}
+              textAnchor="middle">
+              {format(lo.v)}
+            </SvgText>
+          )}
+        </G>
       </Svg>
 
       <View style={styles.ranges}>
@@ -162,7 +206,10 @@ export function CashflowChart({
           return (
             <Pressable
               key={r}
-              onPress={() => setRange(r)}
+              onPress={() => {
+                setRange(r);
+                playReveal();
+              }}
               hitSlop={6}
               style={[styles.range, active && { backgroundColor: activeBg }]}>
               <Text
