@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { ConvexClientProvider } from '@/components/ConvexClientProvider';
 import { CurrencyProvider } from '@/components/CurrencyProvider';
 import { TransactionsProvider } from '@/components/TransactionsProvider';
+import { WealthProvider } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 
 export {
@@ -55,7 +56,9 @@ export default function RootLayout() {
       <ConvexClientProvider>
         <CurrencyProvider>
           <TransactionsProvider>
-            <RootLayoutNav />
+            <WealthProvider>
+              <RootLayoutNav />
+            </WealthProvider>
           </TransactionsProvider>
         </CurrencyProvider>
       </ConvexClientProvider>

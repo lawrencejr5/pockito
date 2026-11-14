@@ -25,6 +25,13 @@ export default function TabLayout() {
         />
         <NativeTabs.Trigger.Label>Report</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="wealth">
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'briefcase', selected: 'briefcase.fill' }}
+          md="account_balance_wallet"
+        />
+        <NativeTabs.Trigger.Label>Wealth</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} md="person" />
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
