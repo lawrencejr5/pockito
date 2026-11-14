@@ -31,6 +31,7 @@ export type WealthItemInput = Omit<WealthItem, 'id' | 'updatedAt'>;
 
 type WealthContextValue = {
   items: WealthItem[];
+  isLoading: boolean;
   includeCashBalance: boolean;
   setIncludeCashBalance: (next: boolean) => void;
   addItem: (input: WealthItemInput) => void;
@@ -108,6 +109,7 @@ export function WealthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<WealthContextValue>(
     () => ({
       items: cloudItems ?? [],
+      isLoading: isAuthenticated && (cloudItems === undefined || viewer === undefined),
       includeCashBalance: viewer?.includeCashBalance ?? true,
       setIncludeCashBalance,
       addItem,
@@ -115,8 +117,9 @@ export function WealthProvider({ children }: { children: ReactNode }) {
       deleteItem,
     }),
     [
+      isAuthenticated,
       cloudItems,
-      viewer?.includeCashBalance,
+      viewer,
       setIncludeCashBalance,
       addItem,
       updateItem,

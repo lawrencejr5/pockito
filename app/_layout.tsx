@@ -1,28 +1,35 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import { View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import 'react-native-reanimated';
+import { useFonts } from "expo-font";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import { View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import "react-native-reanimated";
 
-import SignInScreen from '@/app/sign-in';
-import { CloudSyncProvider, useCloudSync } from '@/components/CloudSyncProvider';
-import { ConvexClientProvider } from '@/components/ConvexClientProvider';
-import { CurrencyProvider } from '@/components/CurrencyProvider';
-import { TransactionsProvider } from '@/components/TransactionsProvider';
-import { WealthProvider } from '@/components/WealthProvider';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import SignInScreen from "@/app/sign-in";
+import { AppLoader } from "@/components/AppLoader";
+import {
+  CloudSyncProvider,
+  useCloudSync,
+} from "@/components/CloudSyncProvider";
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { CurrencyProvider, useCurrency } from "@/components/CurrencyProvider";
+import {
+  TransactionsProvider,
+  useTransactions,
+} from "@/components/TransactionsProvider";
+import { WealthProvider, useWealth } from "@/components/WealthProvider";
+import { useColorScheme } from "@/components/useColorScheme";
+import Colors from "@/constants/Colors";
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
-} from 'expo-router';
+} from "expo-router";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  anchor: '(tabs)',
+  anchor: "(tabs)",
 };
 
 // Prevent the splash screen from auto-hiding before asset & auth loading is complete.
@@ -30,14 +37,14 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    'GoogleSans-Regular': require('../assets/fonts/GoogleSans-Regular.ttf'),
-    'GoogleSans-Medium': require('../assets/fonts/GoogleSans-Medium.ttf'),
-    'GoogleSans-SemiBold': require('../assets/fonts/GoogleSans-SemiBold.ttf'),
-    'GoogleSans-Bold': require('../assets/fonts/GoogleSans-Bold.ttf'),
-    'GoogleSans-Italic': require('../assets/fonts/GoogleSans-Italic.ttf'),
-    'GoogleSans-MediumItalic': require('../assets/fonts/GoogleSans-MediumItalic.ttf'),
-    'GoogleSans-SemiBoldItalic': require('../assets/fonts/GoogleSans-SemiBoldItalic.ttf'),
-    'GoogleSans-BoldItalic': require('../assets/fonts/GoogleSans-BoldItalic.ttf'),
+    "GoogleSans-Regular": require("../assets/fonts/GoogleSans-Regular.ttf"),
+    "GoogleSans-Medium": require("../assets/fonts/GoogleSans-Medium.ttf"),
+    "GoogleSans-SemiBold": require("../assets/fonts/GoogleSans-SemiBold.ttf"),
+    "GoogleSans-Bold": require("../assets/fonts/GoogleSans-Bold.ttf"),
+    "GoogleSans-Italic": require("../assets/fonts/GoogleSans-Italic.ttf"),
+    "GoogleSans-MediumItalic": require("../assets/fonts/GoogleSans-MediumItalic.ttf"),
+    "GoogleSans-SemiBoldItalic": require("../assets/fonts/GoogleSans-SemiBoldItalic.ttf"),
+    "GoogleSans-BoldItalic": require("../assets/fonts/GoogleSans-BoldItalic.ttf"),
   });
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
@@ -70,6 +77,9 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const { isAuthenticated, isAuthLoading, isSyncing } = useCloudSync();
+  const { isLoading: txLoading } = useTransactions();
+  const { isLoading: wealthLoading } = useWealth();
+  const { isLoading: currencyLoading } = useCurrency();
 
   useEffect(() => {
     if (!isAuthLoading) {
@@ -81,20 +91,24 @@ function RootLayoutNav() {
     return <View style={{ flex: 1, backgroundColor: colors.sheet }} />;
   }
 
+  const isDataLoading = txLoading || wealthLoading || currencyLoading;
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       {!isAuthenticated || isSyncing ? (
         <SignInScreen />
+      ) : isDataLoading ? (
+        <AppLoader />
       ) : (
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="add-transaction"
-            options={{ presentation: 'modal', headerShown: false }}
+            options={{ presentation: "modal", headerShown: false }}
           />
           <Stack.Screen
             name="transaction/[id]"
-            options={{ presentation: 'modal', headerShown: false }}
+            options={{ presentation: "modal", headerShown: false }}
           />
         </Stack>
       )}

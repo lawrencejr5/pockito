@@ -15,6 +15,7 @@ import { api } from '@/convex/_generated/api';
 
 type CurrencyContextValue = {
   currency: CurrencyInfo;
+  isLoading: boolean;
   setCurrency: (code: CurrencyCode) => void;
   /** Formats an amount stored in USD into the selected currency. */
   format: (amountUsd: number, opts?: { sign?: boolean; decimals?: number }) => string;
@@ -57,6 +58,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     const currency = CURRENCIES[code];
     return {
       currency,
+      isLoading: isAuthenticated && viewer === undefined,
       setCurrency,
       format: (amountUsd, opts) => {
         const converted = amountUsd * currency.rate;
@@ -72,7 +74,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         return { whole: `${sign}${currency.symbol}${int}`, fraction: frac ? `.${frac}` : '' };
       },
     };
-  }, [code, setCurrency]);
+  }, [code, isAuthenticated, viewer, setCurrency]);
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }

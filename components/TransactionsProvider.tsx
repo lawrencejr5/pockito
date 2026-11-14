@@ -32,6 +32,7 @@ type TransactionInput = Omit<Transaction, 'id'>;
 
 type TransactionsContextValue = {
   transactions: Transaction[];
+  isLoading: boolean;
   isSeed: boolean;
   addTransaction: (t: TransactionInput) => void;
   updateTransaction: (id: string, patch: TransactionInput) => void;
@@ -117,12 +118,13 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
   const value = useMemo<TransactionsContextValue>(
     () => ({
       transactions: cloudTransactions ?? [],
+      isLoading: isAuthenticated && cloudTransactions === undefined,
       isSeed: false,
       addTransaction,
       updateTransaction,
       deleteTransaction,
     }),
-    [cloudTransactions, addTransaction, updateTransaction, deleteTransaction],
+    [isAuthenticated, cloudTransactions, addTransaction, updateTransaction, deleteTransaction],
   );
 
   return <TransactionsContext.Provider value={value}>{children}</TransactionsContext.Provider>;
