@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery } from 'convex/react';
 import {
   createContext,
@@ -13,8 +12,6 @@ import {
 import { useCloudSync } from '@/components/CloudSyncProvider';
 import { CURRENCIES, type CurrencyCode, type CurrencyInfo } from '@/constants/currencies';
 import { api } from '@/convex/_generated/api';
-
-const STORAGE_KEY = 'pockito.currency';
 
 type CurrencyContextValue = {
   currency: CurrencyInfo;
@@ -34,20 +31,11 @@ function group(n: number, decimals: number) {
 }
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isCloudMode } = useCloudSync();
+  const { isAuthenticated } = useCloudSync();
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
   const updatePreferences = useMutation(api.users.updatePreferences);
 
   const [code, setCode] = useState<CurrencyCode>('USD');
-
-  useEffect(() => {
-    if (isCloudMode) return;
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((saved) => {
-        if (saved && saved in CURRENCIES) setCode(saved as CurrencyCode);
-      })
-      .catch(() => {});
-  }, [isCloudMode]);
 
   useEffect(() => {
     if (isAuthenticated && viewer?.currency && viewer.currency in CURRENCIES) {
@@ -60,11 +48,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       setCode(next);
       if (isAuthenticated) {
         updatePreferences({ currency: next }).catch(() => {});
-      } else if (!isCloudMode) {
-        AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
       }
     },
-    [isAuthenticated, isCloudMode, updatePreferences],
+    [isAuthenticated, updatePreferences],
   );
 
   const value = useMemo<CurrencyContextValue>(() => {

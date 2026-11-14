@@ -1,11 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery } from 'convex/react';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,25 +29,13 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 import { api } from '@/convex/_generated/api';
 
-const PROFILE_STORAGE_KEY = 'pockito.profile';
-
-type ProfileData = {
-  name: string;
-  subtitle: string;
-};
-
-const DEFAULT_PROFILE: ProfileData = {
-  name: 'Pockito User',
-  subtitle: 'Personal Finance · Local Account',
-};
-
 export default function ProfileScreen() {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
   const { currency, format } = useCurrency();
   const { transactions } = useTransactions();
   const { items: wealthItems, includeCashBalance, setIncludeCashBalance } = useWealth();
-  const { isAuthenticated, isCloudMode, isSyncing, clearHasSignedInBefore } = useCloudSync();
+  const { isAuthenticated, isSyncing } = useCloudSync();
   const { signOut } = useAuthActions();
 
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
@@ -58,32 +44,12 @@ export default function ProfileScreen() {
 
   const currencySheetRef = useRef<BottomSheetModal>(null);
 
-  const [profile, setProfile] = useState<ProfileData>(DEFAULT_PROFILE);
   const [editing, setEditing] = useState(false);
-  const [draftName, setDraftName] = useState(DEFAULT_PROFILE.name);
-  const [draftSubtitle, setDraftSubtitle] = useState(DEFAULT_PROFILE.subtitle);
+  const [draftName, setDraftName] = useState('');
   const [accountActionBusy, setAccountActionBusy] = useState(false);
 
-  useEffect(() => {
-    if (isCloudMode) return;
-    AsyncStorage.getItem(PROFILE_STORAGE_KEY)
-      .then((raw) => {
-        if (raw) {
-          const parsed = JSON.parse(raw) as ProfileData;
-          setProfile(parsed);
-          setDraftName(parsed.name);
-          setDraftSubtitle(parsed.subtitle);
-        }
-      })
-      .catch(() => {});
-  }, [isCloudMode]);
-
-  const displayName = isAuthenticated
-    ? viewer?.fullname || viewer?.name || 'Pockito User'
-    : profile.name;
-  const displaySubtitle = isAuthenticated
-    ? viewer?.email || 'Cloud Account'
-    : profile.subtitle;
+  const displayName = viewer?.fullname || viewer?.name || 'Pockito User';
+  const displaySubtitle = viewer?.email || 'Cloud Account';
 
   const initials = useMemo(() => {
     const parts = displayName.trim().split(/\s+/).filter(Boolean);
@@ -111,24 +77,12 @@ export default function ProfileScreen() {
   }, [transactions, wealthItems, includeCashBalance]);
 
   const handleSaveProfile = () => {
-    const cleanName = draftName.trim() || DEFAULT_PROFILE.name;
+    const cleanName = draftName.trim() || 'Pockito User';
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-
-    if (isAuthenticated) {
-      setEditing(false);
-      updatePreferences({ fullname: cleanName }).catch((err) =>
-        console.error('Failed to update profile name:', err),
-      );
-      return;
-    }
-
-    const next: ProfileData = {
-      name: cleanName,
-      subtitle: draftSubtitle.trim() || DEFAULT_PROFILE.subtitle,
-    };
-    setProfile(next);
     setEditing(false);
-    AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+    updatePreferences({ fullname: cleanName }).catch((err) =>
+      console.error('Failed to update profile name:', err),
+    );
   };
 
   const handleExportSummary = async () => {
@@ -185,7 +139,6 @@ export default function ProfileScreen() {
             setAccountActionBusy(true);
             try {
               await deleteAccountMutation({});
-              await clearHasSignedInBefore();
               await signOut();
             } catch (err) {
               Alert.alert(
@@ -240,19 +193,6 @@ export default function ProfileScreen() {
                         { color: colors.darkCardText, borderColor: 'rgba(255,255,255,0.2)' },
                       ]}
                     />
-                    {!isAuthenticated && (
-                      <TextInput
-                        value={draftSubtitle}
-                        onChangeText={setDraftSubtitle}
-                        placeholder="Subtitle or email"
-                        placeholderTextColor={colors.secondary}
-                        style={[
-                          styles.editInput,
-                          styles.editSubInput,
-                          { color: colors.secondary, borderColor: 'rgba(255,255,255,0.2)' },
-                        ]}
-                      />
-                    )}
                   </View>
                 ) : (
                   <View style={{ flex: 1 }}>
@@ -272,7 +212,6 @@ export default function ProfileScreen() {
                       handleSaveProfile();
                     } else {
                       setDraftName(displayName);
-                      setDraftSubtitle(displaySubtitle);
                       setEditing(true);
                     }
                   }}
@@ -287,19 +226,6 @@ export default function ProfileScreen() {
                   />
                 </Pressable>
               </View>
-
-              {!isAuthenticated && (
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                    router.push('/sign-in');
-                  }}
-                  style={[styles.syncCta, { backgroundColor: colors.accent }]}>
-                  <Ionicons name="cloud-upload-outline" size={18} color="#1c1a17" />
-                  <Text style={styles.syncCtaText}>Sign in to sync data to cloud</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#1c1a17" />
-                </Pressable>
-              )}
 
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
@@ -403,112 +329,74 @@ export default function ProfileScreen() {
 
                 <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
 
-                <Pressable
-                  disabled={isAuthenticated}
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    router.push('/sign-in');
-                  }}
-                  style={styles.row}>
-                  <View
-                    style={[
-                      styles.rowIcon,
-                      {
-                        backgroundColor: isAuthenticated
-                          ? 'rgba(46,158,107,0.16)'
-                          : colors.secondarySoft,
-                      },
-                    ]}>
-                    <Ionicons
-                      name={isAuthenticated ? 'cloud-done-outline' : 'cloud-outline'}
-                      size={18}
-                      color={isAuthenticated ? colors.income : colors.textMuted}
-                    />
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: 'rgba(46,158,107,0.16)' }]}>
+                    <Ionicons name="cloud-done-outline" size={18} color={colors.income} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.rowTitle, { color: colors.text }]}>Cloud Backup</Text>
                     <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                      {isSyncing
-                        ? 'Syncing local data to Convex...'
-                        : isAuthenticated
-                          ? 'Backed up to Convex Cloud'
-                          : 'Tap to sign in with Apple or Google'}
+                      {isSyncing ? 'Syncing data to Convex...' : 'Backed up to Convex Cloud'}
                     </Text>
                   </View>
                   {isSyncing ? (
                     <ActivityIndicator size="small" color={colors.tint} />
                   ) : (
-                    <View
-                      style={[
-                        styles.badge,
-                        {
-                          backgroundColor: isAuthenticated
-                            ? 'rgba(46,158,107,0.16)'
-                            : colors.accentSoft,
-                        },
-                      ]}>
-                      <Text
-                        style={[
-                          styles.badgeText,
-                          { color: isAuthenticated ? colors.income : colors.tint },
-                        ]}>
-                        {isAuthenticated ? 'Synced' : 'Sign In'}
-                      </Text>
+                    <View style={[styles.badge, { backgroundColor: 'rgba(46,158,107,0.16)' }]}>
+                      <Text style={[styles.badgeText, { color: colors.income }]}>Synced</Text>
                     </View>
                   )}
-                </Pressable>
+                </View>
               </View>
             </Animated.View>
 
-            {/* Account Actions (when authenticated) */}
-            {isAuthenticated && (
-              <Animated.View entering={FadeInDown.delay(160).duration(300)} style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>ACCOUNT</Text>
-                <View
-                  style={[
-                    styles.groupCard,
-                    { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                  ]}>
-                  <Pressable
-                    disabled={accountActionBusy}
-                    onPress={handleSignOut}
-                    style={styles.row}>
-                    <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
-                      <Ionicons name="log-out-outline" size={18} color={colors.tint} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.rowTitle, { color: colors.text }]}>Sign Out</Text>
-                      <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                        Lock access until you sign back in
-                      </Text>
-                    </View>
-                    {accountActionBusy ? (
-                      <ActivityIndicator size="small" color={colors.textMuted} />
-                    ) : (
-                      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                    )}
-                  </Pressable>
+            {/* Account Actions */}
+            <Animated.View entering={FadeInDown.delay(160).duration(300)} style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>ACCOUNT</Text>
+              <View
+                style={[
+                  styles.groupCard,
+                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                ]}>
+                <Pressable
+                  disabled={accountActionBusy}
+                  onPress={handleSignOut}
+                  style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
+                    <Ionicons name="log-out-outline" size={18} color={colors.tint} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: colors.text }]}>Sign Out</Text>
+                    <Text style={[styles.rowSub, { color: colors.textMuted }]}>
+                      Sign out of your Pockito Cloud account
+                    </Text>
+                  </View>
+                  {accountActionBusy ? (
+                    <ActivityIndicator size="small" color={colors.textMuted} />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  )}
+                </Pressable>
 
-                  <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
+                <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
 
-                  <Pressable
-                    disabled={accountActionBusy}
-                    onPress={handleDeleteAccount}
-                    style={styles.row}>
-                    <View style={[styles.rowIcon, { backgroundColor: 'rgba(217,83,79,0.14)' }]}>
-                      <Ionicons name="trash-outline" size={18} color={colors.expense} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.rowTitle, { color: colors.expense }]}>Delete Account</Text>
-                      <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                        Permanently remove all cloud data
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.expense} />
-                  </Pressable>
-                </View>
-              </Animated.View>
-            )}
+                <Pressable
+                  disabled={accountActionBusy}
+                  onPress={handleDeleteAccount}
+                  style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: 'rgba(217,83,79,0.14)' }]}>
+                    <Ionicons name="trash-outline" size={18} color={colors.expense} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: colors.expense }]}>Delete Account</Text>
+                    <Text style={[styles.rowSub, { color: colors.textMuted }]}>
+                      Permanently remove all cloud data
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.expense} />
+                </Pressable>
+              </View>
+            </Animated.View>
 
             {/* About */}
             <Animated.View entering={FadeInDown.delay(180).duration(300)} style={styles.section}>
@@ -525,9 +413,7 @@ export default function ProfileScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.rowTitle, { color: colors.text }]}>Privacy</Text>
                     <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                      {isAuthenticated
-                        ? 'Your data is encrypted and synced to your private cloud account'
-                        : 'Data stays on your device until you sign in to sync'}
+                      Your data is encrypted and synced to your private cloud account
                     </Text>
                   </View>
                 </View>
@@ -581,27 +467,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  editSubInput: { fontFamily: fonts.regular, fontSize: 12 },
   editBtn: {
     width: 36,
     height: 36,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  syncCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 14,
-  },
-  syncCtaText: {
-    flex: 1,
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: '#1c1a17',
   },
 
   statsRow: {

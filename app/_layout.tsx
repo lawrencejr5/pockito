@@ -2,15 +2,18 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import SignInScreen from '@/app/sign-in';
 import { CloudSyncProvider, useCloudSync } from '@/components/CloudSyncProvider';
 import { ConvexClientProvider } from '@/components/ConvexClientProvider';
 import { CurrencyProvider } from '@/components/CurrencyProvider';
 import { TransactionsProvider } from '@/components/TransactionsProvider';
 import { WealthProvider } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -22,7 +25,7 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+// Prevent the splash screen from auto-hiding before asset & auth loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -41,12 +44,6 @@ export default function RootLayout() {
   useEffect(() => {
     if (error) throw error;
   }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
 
   if (!loaded) {
     return null;
@@ -71,29 +68,36 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { isCloudMode, isAuthenticated } = useCloudSync();
+  const colors = Colors[colorScheme];
+  const { isAuthenticated, isAuthLoading, isSyncing } = useCloudSync();
+
+  useEffect(() => {
+    if (!isAuthLoading) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isAuthLoading]);
+
+  if (isAuthLoading) {
+    return <View style={{ flex: 1, backgroundColor: colors.sheet }} />;
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="sign-in"
-          options={{
-            presentation: 'modal',
-            headerShown: false,
-            gestureEnabled: !isCloudMode || isAuthenticated,
-          }}
-        />
-        <Stack.Screen
-          name="add-transaction"
-          options={{ presentation: 'modal', headerShown: false }}
-        />
-        <Stack.Screen
-          name="transaction/[id]"
-          options={{ presentation: 'modal', headerShown: false }}
-        />
-      </Stack>
+      {!isAuthenticated || isSyncing ? (
+        <SignInScreen />
+      ) : (
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="add-transaction"
+            options={{ presentation: 'modal', headerShown: false }}
+          />
+          <Stack.Screen
+            name="transaction/[id]"
+            options={{ presentation: 'modal', headerShown: false }}
+          />
+        </Stack>
+      )}
     </ThemeProvider>
   );
 }

@@ -8,7 +8,6 @@ import { useConvex } from 'convex/react';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -91,7 +90,7 @@ export default function SignInScreen() {
   const colors = Colors[useColorScheme()];
   const { signIn } = useAuthActions();
   const convex = useConvex();
-  const { isAuthenticated, isCloudMode, isSyncing } = useCloudSync();
+  const { isAuthenticated, isSyncing } = useCloudSync();
 
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -111,16 +110,11 @@ export default function SignInScreen() {
       .catch(() => setAppleAvailable(false));
   }, []);
 
-  // Once authenticated and migration finishes, return to the app
+  // RootLayoutNav switches to (tabs) automatically once authenticated & synced
   useEffect(() => {
     if (isAuthenticated && !isSyncing) {
       setGoogleLoading(false);
       setAppleLoading(false);
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/(tabs)/profile');
-      }
     }
   }, [isAuthenticated, isSyncing]);
 
@@ -288,23 +282,11 @@ export default function SignInScreen() {
   };
 
   const busy = googleLoading || appleLoading || isSyncing;
-  const canDismiss = !isCloudMode;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.sheet }]}>
       <View style={styles.content}>
-        {/* Top Close Button (only before first cloud sign-in) */}
-        <View style={styles.topBar}>
-          {canDismiss ? (
-            <Pressable
-              onPress={() => router.back()}
-              style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-              <Ionicons name="close" size={20} color={colors.text} />
-            </Pressable>
-          ) : (
-            <View style={{ height: 38 }} />
-          )}
-        </View>
+        <View style={styles.topBar} />
 
         {/* Logo & Hero Copy */}
         <Animated.View entering={FadeInDown.duration(320)} style={styles.heroWrap}>

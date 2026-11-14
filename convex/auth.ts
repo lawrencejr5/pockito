@@ -5,6 +5,7 @@ import {
   createAccount,
   retrieveAccount,
 } from "@convex-dev/auth/server";
+import type { MutationCtx } from "./_generated/server";
 
 const decodeBase64 = (str: string): string => {
   if (typeof atob === "function") {
@@ -41,9 +42,11 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           googleProfile.given_name ||
           googleProfile.name?.split(" ")[0] ||
           googleProfile.email?.split("@")[0];
+        const email = googleProfile.email?.trim().toLowerCase();
         return {
           id: googleProfile.sub,
-          email: googleProfile.email,
+          email,
+          emailVerified: googleProfile.email_verified ?? true,
           fullname,
           username,
           name: fullname,
@@ -112,10 +115,11 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           return { userId: retrieved.user._id };
         }
 
-        const emailAddress = payload.email || (credentials.email as string);
-        if (!emailAddress) {
+        const rawEmail = payload.email || (credentials.email as string);
+        if (!rawEmail) {
           throw new Error("Email address is required for first-time sign-in");
         }
+        const emailAddress = rawEmail.trim().toLowerCase();
 
         let fullName = credentials.fullName as string | undefined;
         if (!fullName) {
@@ -143,6 +147,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           account: { id: appleUserId },
           profile: {
             email: emailAddress,
+            emailVerified: true,
             fullname: fullName,
             username,
             name: fullName,
@@ -155,6 +160,51 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     }),
   ],
   callbacks: {
+    async createOrUpdateUser(rawCtx, args) {
+      const ctx = rawCtx as MutationCtx;
+      if (args.existingUserId !== null) {
+        return args.existingUserId;
+      }
+
+      const rawEmail =
+        typeof args.profile.email === "string" ? args.profile.email : undefined;
+      const email = rawEmail?.trim().toLowerCase();
+
+      if (email) {
+        const existingUser = await ctx.db
+          .query("users")
+          .withIndex("email", (q) => q.eq("email", email))
+          .first();
+
+        if (existingUser) {
+          if (!existingUser.emailVerificationTime) {
+            await ctx.db.patch(existingUser._id, {
+              emailVerificationTime: Date.now(),
+            });
+          }
+          return existingUser._id;
+        }
+      }
+
+      const fullname =
+        typeof args.profile.fullname === "string"
+          ? args.profile.fullname
+          : typeof args.profile.name === "string"
+            ? args.profile.name
+            : undefined;
+      const username =
+        typeof args.profile.username === "string"
+          ? args.profile.username
+          : undefined;
+
+      return await ctx.db.insert("users", {
+        email,
+        emailVerificationTime: Date.now(),
+        fullname,
+        name: fullname,
+        username,
+      });
+    },
     async redirect({ redirectTo }) {
       const isAllowed =
         redirectTo.startsWith("http://localhost") ||
