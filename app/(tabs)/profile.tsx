@@ -1,9 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthActions } from '@convex-dev/auth/react';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useMutation, useQuery } from 'convex/react';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -18,12 +22,14 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useCloudSync } from '@/components/CloudSyncProvider';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { useCurrency } from '@/components/CurrencyProvider';
 import { useTransactions } from '@/components/TransactionsProvider';
 import { useWealth } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
+import { api } from '@/convex/_generated/api';
 
 const PROFILE_STORAGE_KEY = 'pockito.profile';
 
@@ -43,6 +49,12 @@ export default function ProfileScreen() {
   const { currency, format } = useCurrency();
   const { transactions } = useTransactions();
   const { items: wealthItems, includeCashBalance, setIncludeCashBalance } = useWealth();
+  const { isAuthenticated, isCloudMode, isSyncing, clearHasSignedInBefore } = useCloudSync();
+  const { signOut } = useAuthActions();
+
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
+  const updatePreferences = useMutation(api.users.updatePreferences);
+  const deleteAccountMutation = useMutation(api.users.deleteAccount);
 
   const currencySheetRef = useRef<BottomSheetModal>(null);
 
@@ -50,8 +62,10 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(DEFAULT_PROFILE.name);
   const [draftSubtitle, setDraftSubtitle] = useState(DEFAULT_PROFILE.subtitle);
+  const [accountActionBusy, setAccountActionBusy] = useState(false);
 
   useEffect(() => {
+    if (isCloudMode) return;
     AsyncStorage.getItem(PROFILE_STORAGE_KEY)
       .then((raw) => {
         if (raw) {
@@ -62,14 +76,21 @@ export default function ProfileScreen() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [isCloudMode]);
+
+  const displayName = isAuthenticated
+    ? viewer?.fullname || viewer?.name || 'Pockito User'
+    : profile.name;
+  const displaySubtitle = isAuthenticated
+    ? viewer?.email || 'Cloud Account'
+    : profile.subtitle;
 
   const initials = useMemo(() => {
-    const parts = profile.name.trim().split(/\s+/).filter(Boolean);
+    const parts = displayName.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return 'PU';
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-  }, [profile.name]);
+  }, [displayName]);
 
   const { cashBalanceUsd, netWorthUsd } = useMemo(() => {
     let cash = 0;
@@ -90,13 +111,23 @@ export default function ProfileScreen() {
   }, [transactions, wealthItems, includeCashBalance]);
 
   const handleSaveProfile = () => {
+    const cleanName = draftName.trim() || DEFAULT_PROFILE.name;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+
+    if (isAuthenticated) {
+      setEditing(false);
+      updatePreferences({ fullname: cleanName }).catch((err) =>
+        console.error('Failed to update profile name:', err),
+      );
+      return;
+    }
+
     const next: ProfileData = {
-      name: draftName.trim() || DEFAULT_PROFILE.name,
+      name: cleanName,
       subtitle: draftSubtitle.trim() || DEFAULT_PROFILE.subtitle,
     };
     setProfile(next);
     setEditing(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
   };
 
@@ -104,7 +135,7 @@ export default function ProfileScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     const message = [
       `POCKITO FINANCIAL SUMMARY (${currency.code})`,
-      `Account: ${profile.name}`,
+      `Account: ${displayName}`,
       `────────────────────────`,
       `Cash Balance: ${format(cashBalanceUsd)}`,
       `Net Worth: ${format(netWorthUsd)}`,
@@ -117,6 +148,57 @@ export default function ProfileScreen() {
     } catch {
       // User dismissed share sheet
     }
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign out',
+      'Your data remains safely stored in Pockito Cloud. You will need to sign in again to access it.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            setAccountActionBusy(true);
+            try {
+              await signOut();
+            } finally {
+              setAccountActionBusy(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete account?',
+      'This permanently removes your account, transactions, receipts, and wealth items from Pockito Cloud. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            setAccountActionBusy(true);
+            try {
+              await deleteAccountMutation({});
+              await clearHasSignedInBefore();
+              await signOut();
+            } catch (err) {
+              Alert.alert(
+                'Deletion failed',
+                err instanceof Error ? err.message : 'Please try again.',
+              );
+            } finally {
+              setAccountActionBusy(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -158,25 +240,27 @@ export default function ProfileScreen() {
                         { color: colors.darkCardText, borderColor: 'rgba(255,255,255,0.2)' },
                       ]}
                     />
-                    <TextInput
-                      value={draftSubtitle}
-                      onChangeText={setDraftSubtitle}
-                      placeholder="Subtitle or email"
-                      placeholderTextColor={colors.secondary}
-                      style={[
-                        styles.editInput,
-                        styles.editSubInput,
-                        { color: colors.secondary, borderColor: 'rgba(255,255,255,0.2)' },
-                      ]}
-                    />
+                    {!isAuthenticated && (
+                      <TextInput
+                        value={draftSubtitle}
+                        onChangeText={setDraftSubtitle}
+                        placeholder="Subtitle or email"
+                        placeholderTextColor={colors.secondary}
+                        style={[
+                          styles.editInput,
+                          styles.editSubInput,
+                          { color: colors.secondary, borderColor: 'rgba(255,255,255,0.2)' },
+                        ]}
+                      />
+                    )}
                   </View>
                 ) : (
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.profileName, { color: colors.darkCardText }]} numberOfLines={1}>
-                      {profile.name}
+                      {displayName}
                     </Text>
                     <Text style={[styles.profileSub, { color: colors.secondary }]} numberOfLines={1}>
-                      {profile.subtitle}
+                      {displaySubtitle}
                     </Text>
                   </View>
                 )}
@@ -187,8 +271,8 @@ export default function ProfileScreen() {
                     if (editing) {
                       handleSaveProfile();
                     } else {
-                      setDraftName(profile.name);
-                      setDraftSubtitle(profile.subtitle);
+                      setDraftName(displayName);
+                      setDraftSubtitle(displaySubtitle);
                       setEditing(true);
                     }
                   }}
@@ -203,6 +287,19 @@ export default function ProfileScreen() {
                   />
                 </Pressable>
               </View>
+
+              {!isAuthenticated && (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                    router.push('/sign-in');
+                  }}
+                  style={[styles.syncCta, { backgroundColor: colors.accent }]}>
+                  <Ionicons name="cloud-upload-outline" size={18} color="#1c1a17" />
+                  <Text style={styles.syncCtaText}>Sign in to sync data to cloud</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#1c1a17" />
+                </Pressable>
+              )}
 
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
@@ -307,29 +404,111 @@ export default function ProfileScreen() {
                 <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
 
                 <Pressable
+                  disabled={isAuthenticated}
                   onPress={() => {
                     Haptics.selectionAsync().catch(() => {});
-                    Alert.alert(
-                      'Cloud Sync',
-                      'Your data is currently saved locally on this device. Cloud sync with Convex will be available in a future update.',
-                    );
+                    router.push('/sign-in');
                   }}
                   style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: colors.secondarySoft }]}>
-                    <Ionicons name="cloud-outline" size={18} color={colors.textMuted} />
+                  <View
+                    style={[
+                      styles.rowIcon,
+                      {
+                        backgroundColor: isAuthenticated
+                          ? 'rgba(46,158,107,0.16)'
+                          : colors.secondarySoft,
+                      },
+                    ]}>
+                    <Ionicons
+                      name={isAuthenticated ? 'cloud-done-outline' : 'cloud-outline'}
+                      size={18}
+                      color={isAuthenticated ? colors.income : colors.textMuted}
+                    />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.rowTitle, { color: colors.text }]}>Cloud Backup</Text>
                     <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                      Local storage active · Cloud sync coming soon
+                      {isSyncing
+                        ? 'Syncing local data to Convex...'
+                        : isAuthenticated
+                          ? 'Backed up to Convex Cloud'
+                          : 'Tap to sign in with Apple or Google'}
                     </Text>
                   </View>
-                  <View style={[styles.badge, { backgroundColor: colors.accentSoft }]}>
-                    <Text style={[styles.badgeText, { color: colors.tint }]}>Local</Text>
-                  </View>
+                  {isSyncing ? (
+                    <ActivityIndicator size="small" color={colors.tint} />
+                  ) : (
+                    <View
+                      style={[
+                        styles.badge,
+                        {
+                          backgroundColor: isAuthenticated
+                            ? 'rgba(46,158,107,0.16)'
+                            : colors.accentSoft,
+                        },
+                      ]}>
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          { color: isAuthenticated ? colors.income : colors.tint },
+                        ]}>
+                        {isAuthenticated ? 'Synced' : 'Sign In'}
+                      </Text>
+                    </View>
+                  )}
                 </Pressable>
               </View>
             </Animated.View>
+
+            {/* Account Actions (when authenticated) */}
+            {isAuthenticated && (
+              <Animated.View entering={FadeInDown.delay(160).duration(300)} style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>ACCOUNT</Text>
+                <View
+                  style={[
+                    styles.groupCard,
+                    { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                  ]}>
+                  <Pressable
+                    disabled={accountActionBusy}
+                    onPress={handleSignOut}
+                    style={styles.row}>
+                    <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
+                      <Ionicons name="log-out-outline" size={18} color={colors.tint} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.rowTitle, { color: colors.text }]}>Sign Out</Text>
+                      <Text style={[styles.rowSub, { color: colors.textMuted }]}>
+                        Lock access until you sign back in
+                      </Text>
+                    </View>
+                    {accountActionBusy ? (
+                      <ActivityIndicator size="small" color={colors.textMuted} />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                    )}
+                  </Pressable>
+
+                  <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
+
+                  <Pressable
+                    disabled={accountActionBusy}
+                    onPress={handleDeleteAccount}
+                    style={styles.row}>
+                    <View style={[styles.rowIcon, { backgroundColor: 'rgba(217,83,79,0.14)' }]}>
+                      <Ionicons name="trash-outline" size={18} color={colors.expense} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.rowTitle, { color: colors.expense }]}>Delete Account</Text>
+                      <Text style={[styles.rowSub, { color: colors.textMuted }]}>
+                        Permanently remove all cloud data
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.expense} />
+                  </Pressable>
+                </View>
+              </Animated.View>
+            )}
 
             {/* About */}
             <Animated.View entering={FadeInDown.delay(180).duration(300)} style={styles.section}>
@@ -346,7 +525,9 @@ export default function ProfileScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.rowTitle, { color: colors.text }]}>Privacy</Text>
                     <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                      All transactions & wealth data stay on your device
+                      {isAuthenticated
+                        ? 'Your data is encrypted and synced to your private cloud account'
+                        : 'Data stays on your device until you sign in to sync'}
                     </Text>
                   </View>
                 </View>
@@ -407,6 +588,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  syncCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 14,
+  },
+  syncCtaText: {
+    flex: 1,
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: '#1c1a17',
   },
 
   statsRow: {

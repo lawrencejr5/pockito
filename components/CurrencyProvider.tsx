@@ -1,7 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
+import { useCloudSync } from '@/components/CloudSyncProvider';
 import { CURRENCIES, type CurrencyCode, type CurrencyInfo } from '@/constants/currencies';
+import { api } from '@/convex/_generated/api';
 
 const STORAGE_KEY = 'pockito.currency';
 
@@ -23,20 +34,38 @@ function group(n: number, decimals: number) {
 }
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isCloudMode } = useCloudSync();
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
+  const updatePreferences = useMutation(api.users.updatePreferences);
+
   const [code, setCode] = useState<CurrencyCode>('USD');
 
   useEffect(() => {
+    if (isCloudMode) return;
     AsyncStorage.getItem(STORAGE_KEY)
       .then((saved) => {
         if (saved && saved in CURRENCIES) setCode(saved as CurrencyCode);
       })
       .catch(() => {});
-  }, []);
+  }, [isCloudMode]);
 
-  const setCurrency = useCallback((next: CurrencyCode) => {
-    setCode(next);
-    AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
-  }, []);
+  useEffect(() => {
+    if (isAuthenticated && viewer?.currency && viewer.currency in CURRENCIES) {
+      setCode(viewer.currency);
+    }
+  }, [isAuthenticated, viewer?.currency]);
+
+  const setCurrency = useCallback(
+    (next: CurrencyCode) => {
+      setCode(next);
+      if (isAuthenticated) {
+        updatePreferences({ currency: next }).catch(() => {});
+      } else if (!isCloudMode) {
+        AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
+      }
+    },
+    [isAuthenticated, isCloudMode, updatePreferences],
+  );
 
   const value = useMemo<CurrencyContextValue>(() => {
     const currency = CURRENCIES[code];
@@ -67,4 +96,3 @@ export function useCurrency() {
   if (!ctx) throw new Error('useCurrency must be used inside CurrencyProvider');
   return ctx;
 }
-

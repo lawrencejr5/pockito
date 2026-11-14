@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import { CloudSyncProvider, useCloudSync } from '@/components/CloudSyncProvider';
 import { ConvexClientProvider } from '@/components/ConvexClientProvider';
 import { CurrencyProvider } from '@/components/CurrencyProvider';
 import { TransactionsProvider } from '@/components/TransactionsProvider';
@@ -54,13 +55,15 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ConvexClientProvider>
-        <CurrencyProvider>
-          <TransactionsProvider>
-            <WealthProvider>
-              <RootLayoutNav />
-            </WealthProvider>
-          </TransactionsProvider>
-        </CurrencyProvider>
+        <CloudSyncProvider>
+          <CurrencyProvider>
+            <TransactionsProvider>
+              <WealthProvider>
+                <RootLayoutNav />
+              </WealthProvider>
+            </TransactionsProvider>
+          </CurrencyProvider>
+        </CloudSyncProvider>
       </ConvexClientProvider>
     </GestureHandlerRootView>
   );
@@ -68,11 +71,20 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const { isCloudMode, isAuthenticated } = useCloudSync();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="sign-in"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+            gestureEnabled: !isCloudMode || isAuthenticated,
+          }}
+        />
         <Stack.Screen
           name="add-transaction"
           options={{ presentation: 'modal', headerShown: false }}
