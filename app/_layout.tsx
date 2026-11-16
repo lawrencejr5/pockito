@@ -107,6 +107,10 @@ function RootLayoutNav() {
             options={{ presentation: "modal", headerShown: false }}
           />
           <Stack.Screen
+            name="report"
+            options={{ presentation: "modal", headerShown: false }}
+          />
+          <Stack.Screen
             name="transaction/[id]"
             options={{ presentation: "modal", headerShown: false }}
           />

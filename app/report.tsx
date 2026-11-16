@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
@@ -39,15 +40,26 @@ export default function ReportScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 20) + 90 },
+          { paddingTop: 20, paddingBottom: Math.max(insets.bottom, 24) + 16 },
         ]}>
         {/* Header & Period Switcher */}
         <Animated.View entering={FadeInDown.duration(300)} style={styles.header}>
-          <View>
-            <Text style={[styles.title, { color: colors.text }]}>Report</Text>
-            <Text style={[styles.sub, { color: colors.textMuted }]}>
-              Spending insights & cashflow
-            </Text>
+          <View style={styles.headerTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.title, { color: colors.text }]}>Report</Text>
+              <Text style={[styles.sub, { color: colors.textMuted }]}>
+                Spending insights & cashflow
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                router.back();
+              }}
+              hitSlop={10}
+              style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              <Ionicons name="close" size={20} color={colors.text} />
+            </Pressable>
           </View>
           <View style={[styles.periodBar, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             {REPORT_PERIODS.map((p) => {
@@ -310,6 +322,15 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, gap: 16 },
 
   header: { gap: 12 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  closeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: { fontSize: 28, fontFamily: fonts.bold },
   sub: { fontSize: 13, fontFamily: fonts.regular, marginTop: 2 },
   periodBar: {

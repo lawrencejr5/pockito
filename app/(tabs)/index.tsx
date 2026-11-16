@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -13,7 +13,14 @@ import DateTimePicker, {
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
@@ -267,10 +274,12 @@ export default function HomeScreen() {
               ]}
             >
               <View style={styles.topBar}>
-                <View
-                  style={[styles.circle, { backgroundColor: colors.secondary }]}
-                >
-                  <Ionicons name="person" size={17} color="#fff" />
+                <View style={styles.circle}>
+                  <Image
+                    source={require("@/assets/images/logo-mark.png")}
+                    style={{ width: 24, height: 24 }}
+                    resizeMode="contain"
+                  />
                 </View>
 
                 <Pressable
@@ -292,11 +301,18 @@ export default function HomeScreen() {
                 </Pressable>
 
                 <Pressable
-                  onPress={() => router.push("/add-transaction")}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    router.push("/report");
+                  }}
                   hitSlop={8}
                   style={[styles.circle, { backgroundColor: "transparent" }]}
                 >
-                  <Ionicons name="add" size={35} color={colors.heroText} />
+                  <MaterialIcons
+                    name="bar-chart"
+                    size={30}
+                    color={colors.heroChartLine}
+                  />
                 </Pressable>
               </View>
 

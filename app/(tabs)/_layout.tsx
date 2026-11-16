@@ -18,13 +18,6 @@ export default function TabLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="report">
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }}
-          md="bar_chart"
-        />
-        <NativeTabs.Trigger.Label>Report</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="wealth">
         <NativeTabs.Trigger.Icon
           sf={{ default: 'briefcase', selected: 'briefcase.fill' }}
@@ -35,6 +28,10 @@ export default function TabLayout() {
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} md="person" />
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="add" role="search">
+        <NativeTabs.Trigger.Icon sf={{ default: 'plus', selected: 'plus' }} md="add" />
+        <NativeTabs.Trigger.Label hidden />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
