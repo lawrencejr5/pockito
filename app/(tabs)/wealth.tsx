@@ -13,8 +13,6 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
-  FadeInDown,
-  LinearTransition,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -22,6 +20,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCurrency } from "@/components/CurrencyProvider";
+import { FocusFadeIn } from "@/components/FocusFadeIn";
 import { WealthGroupStack } from "@/components/WealthGroupStack";
 import { useTransactions } from "@/components/TransactionsProvider";
 import {
@@ -272,10 +271,7 @@ export default function WealthScreen() {
             ]}
           >
             {/* Header */}
-            <Animated.View
-              entering={FadeInDown.duration(280)}
-              style={styles.header}
-            >
+            <FocusFadeIn delay={0} style={styles.header}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.title, { color: colors.text }]}>
                   Wealth
@@ -300,7 +296,7 @@ export default function WealthScreen() {
                   Add
                 </Text>
               </Pressable>
-            </Animated.View>
+            </FocusFadeIn>
 
             {/* View Toggle */}
             <View
@@ -348,9 +344,8 @@ export default function WealthScreen() {
             </View>
 
             {/* Net Worth Hero Card */}
-            <Animated.View
-              entering={FadeInDown.delay(50).duration(300)}
-              layout={LinearTransition.springify().damping(18)}
+            <FocusFadeIn
+              delay={60}
               style={[styles.heroCard, { backgroundColor: colors.darkCard }]}
             >
               <View style={styles.heroTop}>
@@ -481,13 +476,13 @@ export default function WealthScreen() {
                   </Text>
                 </View>
               </View>
-            </Animated.View>
+            </FocusFadeIn>
 
             {viewMode === "overview" ? (
               <>
                 {/* Pockito Cash Sync Switch */}
-                <Animated.View
-                  entering={FadeInDown.delay(90).duration(280)}
+                <FocusFadeIn
+                  delay={100}
                   style={[
                     styles.syncCard,
                     {
@@ -528,13 +523,10 @@ export default function WealthScreen() {
                     }}
                     thumbColor="#ffffff"
                   />
-                </Animated.View>
+                </FocusFadeIn>
 
                 {/* Assets Section */}
-                <Animated.View
-                  entering={FadeInDown.delay(130).duration(280)}
-                  style={styles.section}
-                >
+                <FocusFadeIn delay={140} style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <View>
                       <Text
@@ -604,13 +596,10 @@ export default function WealthScreen() {
                       </Text>
                     </Pressable>
                   )}
-                </Animated.View>
+                </FocusFadeIn>
 
                 {/* Liabilities Section */}
-                <Animated.View
-                  entering={FadeInDown.delay(170).duration(280)}
-                  style={styles.section}
-                >
+                <FocusFadeIn delay={180} style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <View>
                       <Text
@@ -680,12 +669,12 @@ export default function WealthScreen() {
                       </Text>
                     </View>
                   )}
-                </Animated.View>
+                </FocusFadeIn>
               </>
             ) : (
               /* Balance Sheet Statement Mode */
-              <Animated.View
-                entering={FadeInDown.duration(260)}
+              <FocusFadeIn
+                delay={60}
                 style={[
                   styles.statementCard,
                   {
@@ -907,7 +896,7 @@ export default function WealthScreen() {
                     {format(netWorthUsd)}
                   </Text>
                 </View>
-              </Animated.View>
+              </FocusFadeIn>
             )}
           </ScrollView>
 

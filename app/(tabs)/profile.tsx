@@ -17,13 +17,13 @@ import {
   View,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCloudSync } from '@/components/CloudSyncProvider';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { useCurrency } from '@/components/CurrencyProvider';
 import { FavoriteCurrenciesSheet } from '@/components/FavoriteCurrenciesSheet';
+import { FocusFadeIn } from '@/components/FocusFadeIn';
 import { useTransactions } from '@/components/TransactionsProvider';
 import { useWealth } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -167,16 +167,16 @@ export default function ProfileScreen() {
               { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 20) + 90 },
             ]}>
             {/* Header */}
-            <Animated.View entering={FadeInDown.duration(280)} style={styles.header}>
+            <FocusFadeIn delay={0} style={styles.header}>
               <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
               <Text style={[styles.sub, { color: colors.textMuted }]}>
                 Account, preferences & app info
               </Text>
-            </Animated.View>
+            </FocusFadeIn>
 
             {/* Account Hero Card */}
-            <Animated.View
-              entering={FadeInDown.delay(50).duration(300)}
+            <FocusFadeIn
+              delay={60}
               style={[styles.heroCard, { backgroundColor: colors.darkCard }]}>
               <View style={styles.profileRow}>
                 <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
@@ -251,10 +251,10 @@ export default function ProfileScreen() {
                   <Text style={[styles.statLabel, { color: colors.secondary }]}>Currency</Text>
                 </View>
               </View>
-            </Animated.View>
+            </FocusFadeIn>
 
             {/* Preferences */}
-            <Animated.View entering={FadeInDown.delay(100).duration(300)} style={styles.section}>
+            <FocusFadeIn delay={120} style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>PREFERENCES</Text>
               <View
                 style={[
@@ -326,10 +326,10 @@ export default function ProfileScreen() {
                   />
                 </View>
               </View>
-            </Animated.View>
+            </FocusFadeIn>
 
             {/* Data & Sync */}
-            <Animated.View entering={FadeInDown.delay(140).duration(300)} style={styles.section}>
+            <FocusFadeIn delay={160} style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>DATA & SYNC</Text>
               <View
                 style={[
@@ -372,10 +372,10 @@ export default function ProfileScreen() {
                   )}
                 </View>
               </View>
-            </Animated.View>
+            </FocusFadeIn>
 
             {/* Account Actions */}
-            <Animated.View entering={FadeInDown.delay(160).duration(300)} style={styles.section}>
+            <FocusFadeIn delay={200} style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>ACCOUNT</Text>
               <View
                 style={[
@@ -420,10 +420,10 @@ export default function ProfileScreen() {
                   <Ionicons name="chevron-forward" size={18} color={colors.expense} />
                 </Pressable>
               </View>
-            </Animated.View>
+            </FocusFadeIn>
 
             {/* About */}
-            <Animated.View entering={FadeInDown.delay(180).duration(300)} style={styles.section}>
+            <FocusFadeIn delay={240} style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>ABOUT</Text>
               <View
                 style={[
@@ -454,7 +454,7 @@ export default function ProfileScreen() {
                   </View>
                 </View>
               </View>
-            </Animated.View>
+            </FocusFadeIn>
           </ScrollView>
 
           <CurrencyPicker ref={currencySheetRef} />
