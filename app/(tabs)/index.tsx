@@ -183,7 +183,11 @@ export default function HomeScreen() {
                 month: "long",
                 year: "numeric",
               }),
-              totalPrefix: isToday ? "Today" : isYesterday ? "Yesterday" : "Total",
+              totalPrefix: isToday
+                ? "Today"
+                : isYesterday
+                  ? "Yesterday"
+                  : "Total",
               netUsd: 0,
               items: [],
             };
@@ -243,6 +247,19 @@ export default function HomeScreen() {
     const offset = Math.max(0, scrollY.value - threshold);
     return {
       transform: [{ translateY: offset }],
+    };
+  }, [heroHeight, stickyTop]);
+
+  // Masks the status-bar area above the pinned sheetHeader so scrolled items never bleed past it.
+  const topMaskStyle = useAnimatedStyle(() => {
+    const threshold = Math.max(0, heroHeight - stickyTop);
+    return {
+      opacity: interpolate(
+        scrollY.value,
+        [Math.max(0, threshold - 8), threshold],
+        [0, 1],
+        Extrapolation.CLAMP,
+      ),
     };
   }, [heroHeight, stickyTop]);
 
@@ -401,17 +418,34 @@ export default function HomeScreen() {
             >
               <Animated.View
                 style={[
-                  styles.sheetHeader,
-                  { backgroundColor: colors.sheet },
+                  styles.stickyWrap,
                   stickyHeaderStyle,
                 ]}
               >
-                <View
+                <Animated.View
+                  pointerEvents="none"
                   style={[
-                    styles.grabber,
-                    { backgroundColor: colors.cardBorder },
+                    styles.stickyCornerMask,
+                    {
+                      top: -stickyTop,
+                      height: stickyTop + 28,
+                      backgroundColor: colors.hero,
+                    },
+                    topMaskStyle,
                   ]}
                 />
+                <View
+                  style={[
+                    styles.sheetHeader,
+                    { backgroundColor: colors.sheet },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.grabber,
+                      { backgroundColor: colors.cardBorder },
+                    ]}
+                  />
 
                 <FocusFadeIn delay={60}>
                   <View style={styles.rowBetween}>
@@ -500,6 +534,7 @@ export default function HomeScreen() {
                     ))}
                   </View>
                 </FocusFadeIn>
+                </View>
               </Animated.View>
 
               <FocusFadeIn delay={120} style={styles.txSection}>
@@ -535,7 +570,8 @@ export default function HomeScreen() {
                         <Text
                           style={[styles.todayTotal, { color: colors.text }]}
                         >
-                          {group.totalPrefix}: {format(group.netUsd, { sign: true })}
+                          {group.totalPrefix}:{" "}
+                          {format(group.netUsd, { sign: true })}
                         </Text>
                       </View>
 
@@ -578,7 +614,10 @@ export default function HomeScreen() {
                               </View>
                               <View style={styles.txBody}>
                                 <Text
-                                  style={[styles.txTitle, { color: colors.text }]}
+                                  style={[
+                                    styles.txTitle,
+                                    { color: colors.text },
+                                  ]}
                                 >
                                   {t.title}
                                 </Text>
@@ -998,6 +1037,14 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     zIndex: 1,
   },
+  stickyWrap: {
+    zIndex: 10,
+  },
+  stickyCornerMask: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+  },
   sheetHeader: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -1005,7 +1052,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 14,
     gap: 14,
-    zIndex: 10,
   },
   txSection: {
     paddingHorizontal: 20,
