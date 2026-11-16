@@ -1,22 +1,33 @@
-import { useMutation, useQuery } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 
 import { useCloudSync } from '@/components/CloudSyncProvider';
-import { CURRENCIES, type CurrencyCode, type CurrencyInfo } from '@/constants/currencies';
+import {
+  CURRENCIES,
+  CURRENCY_LIST,
+  DEFAULT_FAVORITE_CURRENCIES,
+  type CurrencyCode,
+  type CurrencyInfo,
+} from '@/constants/currencies';
 import { api } from '@/convex/_generated/api';
 
 type CurrencyContextValue = {
   currency: CurrencyInfo;
+  currencies: CurrencyInfo[];
+  favorites: CurrencyCode[];
   isLoading: boolean;
+  getCurrency: (code: CurrencyCode) => CurrencyInfo;
   setCurrency: (code: CurrencyCode) => void;
+  toggleFavorite: (code: CurrencyCode) => void;
   /** Formats an amount stored in USD into the selected currency. */
   format: (amountUsd: number, opts?: { sign?: boolean; decimals?: number }) => string;
   /** Splits a formatted amount into whole and fractional parts for styled display. */
@@ -34,15 +45,79 @@ function group(n: number, decimals: number) {
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useCloudSync();
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
+  const dbCurrencies = useQuery(api.currencies.list, isAuthenticated ? {} : 'skip');
+
   const updatePreferences = useMutation(api.users.updatePreferences);
+  const ensureSeeded = useAction(api.currencies.ensureSeeded);
+  const seededTriggeredRef = useRef(false);
 
   const [code, setCode] = useState<CurrencyCode>('USD');
+  const [favorites, setFavorites] = useState<CurrencyCode[]>(DEFAULT_FAVORITE_CURRENCIES);
 
+  // Trigger initial live rate seed if the currencies table is empty
   useEffect(() => {
-    if (isAuthenticated && viewer?.currency && viewer.currency in CURRENCIES) {
+    if (
+      isAuthenticated &&
+      dbCurrencies !== undefined &&
+      dbCurrencies.length === 0 &&
+      !seededTriggeredRef.current
+    ) {
+      seededTriggeredRef.current = true;
+      ensureSeeded({}).catch((err) => {
+        console.warn('Initial currency seed failed:', err);
+        seededTriggeredRef.current = false;
+      });
+    }
+  }, [isAuthenticated, dbCurrencies, ensureSeeded]);
+
+  // Sync user's default currency & favorites from Convex
+  useEffect(() => {
+    if (!isAuthenticated || !viewer) return;
+    if (viewer.currency) {
       setCode(viewer.currency);
     }
-  }, [isAuthenticated, viewer?.currency]);
+    if (viewer.favoriteCurrencies) {
+      setFavorites(viewer.favoriteCurrencies);
+    }
+  }, [isAuthenticated, viewer]);
+
+  const { currencyMap, currencies } = useMemo(() => {
+    const map: Record<string, CurrencyInfo> = { ...CURRENCIES };
+    if (dbCurrencies && dbCurrencies.length > 0) {
+      for (const c of dbCurrencies) {
+        map[c.code] = {
+          code: c.code,
+          symbol: c.symbol,
+          name: c.name,
+          rate: c.rate,
+          decimals: c.decimals,
+        };
+      }
+      return {
+        currencyMap: map,
+        currencies: dbCurrencies.map((c) => map[c.code]),
+      };
+    }
+    return {
+      currencyMap: map,
+      currencies: CURRENCY_LIST,
+    };
+  }, [dbCurrencies]);
+
+  const getCurrency = useCallback(
+    (targetCode: CurrencyCode): CurrencyInfo => {
+      return (
+        currencyMap[targetCode] ?? {
+          code: targetCode,
+          symbol: targetCode,
+          name: targetCode,
+          rate: 1,
+          decimals: 2,
+        }
+      );
+    },
+    [currencyMap],
+  );
 
   const setCurrency = useCallback(
     (next: CurrencyCode) => {
@@ -54,12 +129,32 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     [isAuthenticated, updatePreferences],
   );
 
+  const toggleFavorite = useCallback(
+    (targetCode: CurrencyCode) => {
+      setFavorites((prev) => {
+        const exists = prev.includes(targetCode);
+        const next = exists
+          ? prev.filter((c) => c !== targetCode)
+          : [...prev, targetCode];
+        if (isAuthenticated) {
+          updatePreferences({ favoriteCurrencies: next }).catch(() => {});
+        }
+        return next;
+      });
+    },
+    [isAuthenticated, updatePreferences],
+  );
+
   const value = useMemo<CurrencyContextValue>(() => {
-    const currency = CURRENCIES[code];
+    const currency = getCurrency(code);
     return {
       currency,
-      isLoading: isAuthenticated && viewer === undefined,
+      currencies,
+      favorites,
+      isLoading: isAuthenticated && (viewer === undefined || dbCurrencies === undefined),
+      getCurrency,
       setCurrency,
+      toggleFavorite,
       format: (amountUsd, opts) => {
         const converted = amountUsd * currency.rate;
         const d = opts?.decimals ?? currency.decimals;
@@ -74,7 +169,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         return { whole: `${sign}${currency.symbol}${int}`, fraction: frac ? `.${frac}` : '' };
       },
     };
-  }, [code, isAuthenticated, viewer, setCurrency]);
+  }, [code, currencies, favorites, isAuthenticated, viewer, dbCurrencies, getCurrency, setCurrency, toggleFavorite]);
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }

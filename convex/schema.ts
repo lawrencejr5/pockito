@@ -2,12 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-export const currencyValidator = v.union(
-  v.literal("USD"),
-  v.literal("NGN"),
-  v.literal("GBP"),
-  v.literal("EUR"),
-);
+export const currencyValidator = v.string();
 
 export default defineSchema({
   ...authTables,
@@ -20,8 +15,18 @@ export default defineSchema({
     image: v.optional(v.string()),
     emailVerificationTime: v.optional(v.number()),
     currency: v.optional(currencyValidator),
+    favoriteCurrencies: v.optional(v.array(v.string())),
     includeCashBalance: v.optional(v.boolean()),
   }).index("email", ["email"]),
+
+  currencies: defineTable({
+    code: v.string(),
+    name: v.string(),
+    symbol: v.string(),
+    rate: v.number(),
+    decimals: v.number(),
+    updatedAt: v.number(),
+  }).index("by_code", ["code"]),
 
   transactions: defineTable({
     userId: v.id("users"),

@@ -15,7 +15,7 @@ import { useCurrency } from '@/components/CurrencyProvider';
 import { useWealth, type WealthItem } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
-import { CURRENCIES, CURRENCY_LIST, type CurrencyCode } from '@/constants/currencies';
+import type { CurrencyCode } from '@/constants/currencies';
 import {
   ASSET_CATEGORIES,
   LIABILITY_CATEGORIES,
@@ -42,7 +42,7 @@ function formatAmountInput(raw: string): string {
 export const WealthItemSheet = forwardRef<WealthItemSheetHandle>(function WealthItemSheet(_, ref) {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
-  const { currency: appCurrency } = useCurrency();
+  const { currency: appCurrency, favorites, getCurrency } = useCurrency();
   const { addItem, updateItem, deleteItem } = useWealth();
 
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -108,7 +108,7 @@ export const WealthItemSheet = forwardRef<WealthItemSheetHandle>(function Wealth
       return;
     }
 
-    const rate = CURRENCIES[itemCurrency].rate;
+    const rate = getCurrency(itemCurrency).rate;
     const amountUsd = numeric / rate;
 
     const payload = {
@@ -257,7 +257,7 @@ export const WealthItemSheet = forwardRef<WealthItemSheetHandle>(function Wealth
                 { backgroundColor: colors.card, borderColor: colors.cardBorder },
               ]}>
               <Text style={[styles.currencySymbol, { color: colors.textMuted }]}>
-                {CURRENCIES[itemCurrency].symbol}
+                {getCurrency(itemCurrency).symbol}
               </Text>
               <BottomSheetTextInput
                 value={amountText}
@@ -271,7 +271,8 @@ export const WealthItemSheet = forwardRef<WealthItemSheetHandle>(function Wealth
           </View>
 
           <View style={styles.currencyRow}>
-            {CURRENCY_LIST.map((c) => {
+            {Array.from(new Set([...favorites, itemCurrency])).map((code) => {
+              const c = getCurrency(code);
               const active = c.code === itemCurrency;
               return (
                 <Pressable

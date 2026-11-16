@@ -75,7 +75,7 @@ export const migrateLocalData = mutation({
     }
 
     const patch: {
-      currency?: "USD" | "NGN" | "GBP" | "EUR";
+      currency?: string;
       includeCashBalance?: boolean;
       fullname?: string;
       name?: string;

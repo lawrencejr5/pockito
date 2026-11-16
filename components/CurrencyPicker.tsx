@@ -6,14 +6,14 @@ import {
   type BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCurrency } from '@/components/CurrencyProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
-import { CURRENCY_LIST, type CurrencyCode } from '@/constants/currencies';
+import type { CurrencyCode } from '@/constants/currencies';
 
 type Props = {
   /** Optional: pick a currency locally instead of changing the app currency. */
@@ -25,11 +25,18 @@ export const CurrencyPicker = forwardRef<BottomSheetModal, Props>(
   function CurrencyPicker({ selected, onSelect }, ref) {
     const colors = Colors[useColorScheme()];
     const insets = useSafeAreaInsets();
-    const { currency, setCurrency } = useCurrency();
+    const { currency, favorites, getCurrency, setCurrency } = useCurrency();
     const activeCode = selected ?? currency.code;
     const innerRef = useRef<BottomSheetModal>(null);
 
     useImperativeHandle(ref, () => innerRef.current as BottomSheetModal);
+
+    const visibleCurrencies = useMemo(() => {
+      const codes = Array.from(
+        new Set(activeCode && !favorites.includes(activeCode) ? [activeCode, ...favorites] : favorites),
+      );
+      return codes.map((code) => getCurrency(code));
+    }, [favorites, activeCode, getCurrency]);
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
@@ -52,7 +59,7 @@ export const CurrencyPicker = forwardRef<BottomSheetModal, Props>(
         handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}>
         <BottomSheetView style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
           <Text style={[styles.title, { color: colors.text }]}>Currency</Text>
-          {CURRENCY_LIST.map((c) => {
+          {visibleCurrencies.map((c) => {
             const active = c.code === activeCode;
             return (
               <Pressable
@@ -64,14 +71,21 @@ export const CurrencyPicker = forwardRef<BottomSheetModal, Props>(
                 }}
                 style={[
                   styles.row,
-                  { backgroundColor: colors.card, borderColor: active ? colors.tint : colors.cardBorder },
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: active ? colors.tint : colors.cardBorder,
+                  },
                 ]}>
                 <View style={[styles.symbol, { backgroundColor: colors.accentSoft }]}>
-                  <Text style={[styles.symbolText, { color: colors.tint }]}>{c.symbol}</Text>
+                  <Text style={[styles.symbolText, { color: colors.tint }]} numberOfLines={1}>
+                    {c.symbol}
+                  </Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.code, { color: colors.text }]}>{c.code}</Text>
-                  <Text style={[styles.name, { color: colors.textMuted }]}>{c.name}</Text>
+                  <Text style={[styles.name, { color: colors.textMuted }]} numberOfLines={1}>
+                    {c.name}
+                  </Text>
                 </View>
                 {active && <Ionicons name="checkmark-circle" size={22} color={colors.tint} />}
               </Pressable>
@@ -95,8 +109,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
   },
-  symbol: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  symbolText: { fontFamily: fonts.bold, fontSize: 18 },
+  symbol: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  symbolText: { fontFamily: fonts.bold, fontSize: 16 },
   code: { fontFamily: fonts.semiBold, fontSize: 15 },
-  name: { fontFamily: fonts.regular, fontSize: 12 },
+  name: { fontFamily: fonts.regular, fontSize: 12, marginTop: 1 },
 });

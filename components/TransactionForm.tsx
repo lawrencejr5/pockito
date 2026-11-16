@@ -30,7 +30,7 @@ import { useTransactions, type Transaction } from '@/components/TransactionsProv
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 import { getCategory, type TransactionType } from '@/constants/categories';
-import { CURRENCIES, type CurrencyCode } from '@/constants/currencies';
+import type { CurrencyCode } from '@/constants/currencies';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'] as const;
 
@@ -49,7 +49,7 @@ type Props = {
 export function TransactionForm({ transaction }: Props) {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
-  const { currency: appCurrency } = useCurrency();
+  const { currency: appCurrency, getCurrency } = useCurrency();
   const { addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const isEditing = !!transaction;
 
@@ -67,7 +67,7 @@ export function TransactionForm({ transaction }: Props) {
   const currencySheetRef = useRef<BottomSheetModal>(null);
   const [dateOpen, setDateOpen] = useState(false);
 
-  const currency = CURRENCIES[currencyCode];
+  const currency = getCurrency(currencyCode);
   const accent = type === 'expense' ? colors.expense : colors.income;
   const amount = parseFloat(amountText || '0') || 0;
   const canSave = amount > 0 && !!categoryId;

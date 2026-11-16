@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import { useCloudSync } from '@/components/CloudSyncProvider';
+import { useCurrency } from '@/components/CurrencyProvider';
 import type { TransactionType } from '@/constants/categories';
 import type { CurrencyCode } from '@/constants/currencies';
 import { api } from '@/convex/_generated/api';
@@ -43,6 +44,7 @@ const TransactionsContext = createContext<TransactionsContextValue | null>(null)
 
 export function TransactionsProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, uploadReceiptIfNeeded } = useCloudSync();
+  const { currency } = useCurrency();
 
   const cloudTransactions = useQuery(
     api.transactions.list,
@@ -115,16 +117,33 @@ export function TransactionsProvider({ children }: { children: ReactNode }) {
     [isAuthenticated, removeMutation],
   );
 
+  const normalizedTransactions = useMemo(
+    () =>
+      (cloudTransactions ?? []).map((t) =>
+        t.currency === currency.code
+          ? { ...t, amountUsd: t.originalAmount / currency.rate }
+          : t,
+      ),
+    [cloudTransactions, currency.code, currency.rate],
+  );
+
   const value = useMemo<TransactionsContextValue>(
     () => ({
-      transactions: cloudTransactions ?? [],
+      transactions: normalizedTransactions,
       isLoading: isAuthenticated && cloudTransactions === undefined,
       isSeed: false,
       addTransaction,
       updateTransaction,
       deleteTransaction,
     }),
-    [isAuthenticated, cloudTransactions, addTransaction, updateTransaction, deleteTransaction],
+    [
+      isAuthenticated,
+      cloudTransactions,
+      normalizedTransactions,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+    ],
   );
 
   return <TransactionsContext.Provider value={value}>{children}</TransactionsContext.Provider>;

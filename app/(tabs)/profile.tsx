@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCloudSync } from '@/components/CloudSyncProvider';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { useCurrency } from '@/components/CurrencyProvider';
+import { FavoriteCurrenciesSheet } from '@/components/FavoriteCurrenciesSheet';
 import { useTransactions } from '@/components/TransactionsProvider';
 import { useWealth } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -32,7 +33,7 @@ import { api } from '@/convex/_generated/api';
 export default function ProfileScreen() {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
-  const { currency, format } = useCurrency();
+  const { currency, favorites, format } = useCurrency();
   const { transactions } = useTransactions();
   const { items: wealthItems, includeCashBalance, setIncludeCashBalance } = useWealth();
   const { isAuthenticated, isSyncing } = useCloudSync();
@@ -43,6 +44,7 @@ export default function ProfileScreen() {
   const deleteAccountMutation = useMutation(api.users.deleteAccount);
 
   const currencySheetRef = useRef<BottomSheetModal>(null);
+  const favoritesSheetRef = useRef<BottomSheetModal>(null);
 
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState('');
@@ -279,6 +281,28 @@ export default function ProfileScreen() {
 
                 <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
 
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    favoritesSheetRef.current?.present();
+                  }}
+                  style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: 'rgba(234,179,8,0.14)' }]}>
+                    <Ionicons name="star-outline" size={18} color="#eab308" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: colors.text }]}>
+                      Favorite Currencies
+                    </Text>
+                    <Text style={[styles.rowSub, { color: colors.textMuted }]} numberOfLines={1}>
+                      {favorites.length > 0 ? favorites.join(' · ') : 'None selected'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                </Pressable>
+
+                <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
+
                 <View style={styles.row}>
                   <View style={[styles.rowIcon, { backgroundColor: '#e0f2e9' }]}>
                     <Ionicons name="wallet-outline" size={18} color="#1b6f47" />
@@ -434,6 +458,7 @@ export default function ProfileScreen() {
           </ScrollView>
 
           <CurrencyPicker ref={currencySheetRef} />
+          <FavoriteCurrenciesSheet ref={favoritesSheetRef} />
         </View>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>

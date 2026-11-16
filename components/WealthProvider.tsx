@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import { useCloudSync } from '@/components/CloudSyncProvider';
+import { useCurrency } from '@/components/CurrencyProvider';
 import type { CurrencyCode } from '@/constants/currencies';
 import type { WealthKind } from '@/constants/wealth';
 import { api } from '@/convex/_generated/api';
@@ -43,6 +44,7 @@ const WealthContext = createContext<WealthContextValue | null>(null);
 
 export function WealthProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useCloudSync();
+  const { currency } = useCurrency();
 
   const cloudItems = useQuery(api.wealth.list, isAuthenticated ? {} : 'skip');
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
@@ -106,9 +108,19 @@ export function WealthProvider({ children }: { children: ReactNode }) {
     [isAuthenticated, removeMutation],
   );
 
+  const normalizedItems = useMemo(
+    () =>
+      (cloudItems ?? []).map((item) =>
+        item.currency === currency.code
+          ? { ...item, amountUsd: item.originalAmount / currency.rate }
+          : item,
+      ),
+    [cloudItems, currency.code, currency.rate],
+  );
+
   const value = useMemo<WealthContextValue>(
     () => ({
-      items: cloudItems ?? [],
+      items: normalizedItems,
       isLoading: isAuthenticated && (cloudItems === undefined || viewer === undefined),
       includeCashBalance: viewer?.includeCashBalance ?? true,
       setIncludeCashBalance,
@@ -119,6 +131,7 @@ export function WealthProvider({ children }: { children: ReactNode }) {
     [
       isAuthenticated,
       cloudItems,
+      normalizedItems,
       viewer,
       setIncludeCashBalance,
       addItem,

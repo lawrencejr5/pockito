@@ -45,6 +45,7 @@ export const updatePreferences = mutation({
   args: {
     fullname: v.optional(v.string()),
     currency: v.optional(currencyValidator),
+    favoriteCurrencies: v.optional(v.array(v.string())),
     includeCashBalance: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -56,7 +57,8 @@ export const updatePreferences = mutation({
     const patch: {
       fullname?: string;
       name?: string;
-      currency?: "USD" | "NGN" | "GBP" | "EUR";
+      currency?: string;
+      favoriteCurrencies?: string[];
       includeCashBalance?: boolean;
     } = {};
 
@@ -66,6 +68,9 @@ export const updatePreferences = mutation({
     }
     if (args.currency !== undefined) {
       patch.currency = args.currency;
+    }
+    if (args.favoriteCurrencies !== undefined) {
+      patch.favoriteCurrencies = args.favoriteCurrencies;
     }
     if (args.includeCashBalance !== undefined) {
       patch.includeCashBalance = args.includeCashBalance;

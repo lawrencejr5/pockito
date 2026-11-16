@@ -9,6 +9,8 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
+import type * as currencies from "../currencies.js";
 import type * as http from "../http.js";
 import type * as sync from "../sync.js";
 import type * as transactions from "../transactions.js";
@@ -23,6 +25,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  crons: typeof crons;
+  currencies: typeof currencies;
   http: typeof http;
   sync: typeof sync;
   transactions: typeof transactions;

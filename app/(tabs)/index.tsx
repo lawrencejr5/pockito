@@ -6,11 +6,11 @@ import {
   BottomSheetView,
   type BottomSheetBackdropProps,
 } from "@gorhom/bottom-sheet";
-import * as Haptics from "expo-haptics";
 import DateTimePicker, {
   DateTimePickerAndroid,
   type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -44,7 +44,20 @@ const MONEY_PERIODS: { key: MoneyPeriod; label: string }[] = [
   { key: "custom", label: "Custom" },
 ];
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function sameMonth(a: Date, b: Date) {
   return a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
@@ -71,7 +84,8 @@ function isInPeriod(
     return date >= startOfWeek;
   }
   if (period === "custom") {
-    if (customMode === "single") return date.toDateString() === customStart.toDateString();
+    if (customMode === "single")
+      return date.toDateString() === customStart.toDateString();
     const start = new Date(customStart);
     start.setHours(0, 0, 0, 0);
     const end = new Date(customEnd < customStart ? customStart : customEnd);
@@ -111,32 +125,50 @@ export default function HomeScreen() {
     [],
   );
 
-  const { incomeUsd, expenseUsd, todayNetUsd, currentBalanceUsd, recent } = useMemo(() => {
-    const now = new Date();
-    let inc = 0;
-    let exp = 0;
-    let todayNet = 0;
-    let totalNet = 0;
-    const filtered = [];
-    for (const t of transactions) {
-      const d = new Date(t.date);
-      const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
-      totalNet += signed;
-      if (isInPeriod(d, now, selectedMonth, moneyPeriod, customMode, customStart, customEnd)) {
-        filtered.push(t);
-        if (t.type === "income") inc += t.amountUsd;
-        else exp += t.amountUsd;
+  const { incomeUsd, expenseUsd, todayNetUsd, currentBalanceUsd, recent } =
+    useMemo(() => {
+      const now = new Date();
+      let inc = 0;
+      let exp = 0;
+      let todayNet = 0;
+      let totalNet = 0;
+      const filtered = [];
+      for (const t of transactions) {
+        const d = new Date(t.date);
+        const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
+        totalNet += signed;
+        if (
+          isInPeriod(
+            d,
+            now,
+            selectedMonth,
+            moneyPeriod,
+            customMode,
+            customStart,
+            customEnd,
+          )
+        ) {
+          filtered.push(t);
+          if (t.type === "income") inc += t.amountUsd;
+          else exp += t.amountUsd;
+        }
+        if (d.toDateString() === now.toDateString()) todayNet += signed;
       }
-      if (d.toDateString() === now.toDateString()) todayNet += signed;
-    }
-    return {
-      incomeUsd: inc,
-      expenseUsd: exp,
-      todayNetUsd: todayNet,
-      currentBalanceUsd: totalNet,
-      recent: filtered.slice(0, 10),
-    };
-  }, [transactions, moneyPeriod, selectedMonth, customMode, customStart, customEnd]);
+      return {
+        incomeUsd: inc,
+        expenseUsd: exp,
+        todayNetUsd: todayNet,
+        currentBalanceUsd: totalNet,
+        recent: filtered.slice(0, 10),
+      };
+    }, [
+      transactions,
+      moneyPeriod,
+      selectedMonth,
+      customMode,
+      customStart,
+      customEnd,
+    ]);
 
   const stickyTop = insets.top + TOP_GAP;
   const scrollY = useSharedValue(0);
@@ -180,7 +212,8 @@ export default function HomeScreen() {
       ? customMode === "single"
         ? formatShortDate(customStart)
         : `${formatShortDate(customStart)} – ${formatShortDate(customEnd)}`
-      : (MONEY_PERIODS.find((p) => p.key === moneyPeriod)?.label ?? "This month");
+      : (MONEY_PERIODS.find((p) => p.key === moneyPeriod)?.label ??
+        "This month");
 
   const updateCustomDate = (picked: Date, bound: "start" | "end") => {
     if (bound === "start") {
@@ -217,555 +250,640 @@ export default function HomeScreen() {
     <GestureHandlerRootView style={styles.screen}>
       <BottomSheetModalProvider>
         <View style={[styles.screen, { backgroundColor: colors.hero }]}>
-      <Animated.ScrollView
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        style={styles.screen}
-      >
-        {/* Hero lives in the scroll content but is counter-translated to stay pinned,
-            so the sheet (higher zIndex) slides over it. */}
-        <Animated.View
-          onLayout={(e) => setHeroHeight(e.nativeEvent.layout.height)}
-          style={[styles.hero, { paddingTop: insets.top + TOP_GAP }, heroStyle]}
-        >
-          <View style={styles.topBar}>
-            <View
-              style={[styles.circle, { backgroundColor: colors.secondary }]}
-            >
-              <Ionicons name="person" size={17} color="#fff" />
-            </View>
-
-            <Pressable
-              onPress={() => {
-                setPickerYear(selectedMonth.getFullYear());
-                monthSheetRef.current?.present();
-              }}
-              hitSlop={8}
-              style={[styles.pill, { backgroundColor: colors.pill }]}
-            >
-              <Text style={[styles.pillText, { color: colors.heroText }]}>
-                {month}
-              </Text>
-              <Ionicons name="chevron-down" size={14} color={colors.heroText} />
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push("/add-transaction")}
-              hitSlop={8}
-              style={[styles.circle, { backgroundColor: colors.pill }]}
-            >
-              <Ionicons name="add" size={22} color={colors.heroText} />
-            </Pressable>
-          </View>
-
-          <View style={styles.balanceBlock}>
-            <View style={styles.balanceRow}>
-              <Text style={[styles.balance, { color: colors.heroText }]}>
-                {balance.whole}
-                <Text style={styles.balanceFraction}>{balance.fraction}</Text>
-              </Text>
-              <Pressable
-                onPress={() => currencySheetRef.current?.present()}
-                hitSlop={10}
-                style={({ pressed }) => [
-                  styles.pill,
-                  styles.currencyPill,
-                  { backgroundColor: colors.pill, opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <Text style={[styles.currencyText, { color: colors.heroText }]}>
-                  {currency.code}
-                </Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={12}
-                  color={colors.heroText}
-                />
-              </Pressable>
-            </View>
-          </View>
-
-          <CashflowChart variant="hero" currentBalanceUsd={currentBalanceUsd} />
-        </Animated.View>
-
-        <View style={{ height: heroHeight }} pointerEvents="none" />
-
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.sheet,
-              paddingBottom: Math.max(insets.bottom, 20) + 100,
-            },
-          ]}
-        >
-          <Animated.View
-            style={[
-              styles.sheetHeader,
-              { backgroundColor: colors.sheet },
-              stickyHeaderStyle,
-            ]}
+          <Animated.ScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+            style={styles.screen}
           >
-            <View
-              style={[styles.grabber, { backgroundColor: colors.cardBorder }]}
-            />
-
-            <View style={styles.rowBetween}>
-              <Text style={[styles.h2, { color: colors.text }]}>
-                Your Money
-              </Text>
-              <Pressable
-                onPress={() => periodSheetRef.current?.present()}
-                hitSlop={8}
-                style={[
-                  styles.smallPill,
-                  {
-                    borderColor: colors.cardBorder,
-                    backgroundColor: colors.card,
-                  },
-                ]}
-              >
-                <Text style={[styles.smallPillText, { color: colors.text }]}>
-                  {selectedPeriodLabel}
-                </Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={12}
-                  color={colors.textMuted}
-                />
-              </Pressable>
-            </View>
-
-            <View style={styles.row}>
-              {[
-                {
-                  label: "Income",
-                  value: incomeUsd,
-                  icon: "arrow-down",
-                  color: colors.income,
-                },
-                {
-                  label: "Expense",
-                  value: expenseUsd,
-                  icon: "arrow-up",
-                  color: colors.expense,
-                },
-              ].map((c) => (
+            {/* Hero lives in the scroll content but is counter-translated to stay pinned,
+            so the sheet (higher zIndex) slides over it. */}
+            <Animated.View
+              onLayout={(e) => setHeroHeight(e.nativeEvent.layout.height)}
+              style={[
+                styles.hero,
+                { paddingTop: insets.top + TOP_GAP },
+                heroStyle,
+              ]}
+            >
+              <View style={styles.topBar}>
                 <View
-                  key={c.label}
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.cardBorder,
-                    },
-                  ]}
+                  style={[styles.circle, { backgroundColor: colors.secondary }]}
                 >
-                  <View style={styles.statTop}>
-                    <View
-                      style={[
-                        styles.statBadge,
-                        { backgroundColor: colors.accentSoft },
-                      ]}
-                    >
-                      <Ionicons
-                        name={c.icon as "arrow-up"}
-                        size={14}
-                        color={c.color}
-                      />
-                    </View>
-                    <Text
-                      style={[styles.statLabel, { color: colors.textMuted }]}
-                    >
-                      {c.label}
+                  <Ionicons name="person" size={17} color="#fff" />
+                </View>
+
+                <Pressable
+                  onPress={() => {
+                    setPickerYear(selectedMonth.getFullYear());
+                    monthSheetRef.current?.present();
+                  }}
+                  hitSlop={8}
+                  style={[styles.pill, { backgroundColor: colors.pill }]}
+                >
+                  <Text style={[styles.pillText, { color: colors.heroText }]}>
+                    {month}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={14}
+                    color={colors.heroText}
+                  />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => router.push("/add-transaction")}
+                  hitSlop={8}
+                  style={[styles.circle, { backgroundColor: "transparent" }]}
+                >
+                  <Ionicons name="add" size={35} color={colors.heroText} />
+                </Pressable>
+              </View>
+
+              <View style={styles.balanceBlock}>
+                <View style={styles.balanceRow}>
+                  <Text style={[styles.balance, { color: colors.heroText }]}>
+                    {balance.whole}
+                    <Text style={styles.balanceFraction}>
+                      {balance.fraction}
                     </Text>
-                  </View>
-                  <Text
-                    style={[styles.stat, { color: colors.text }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                  >
-                    {format(c.value)}
                   </Text>
-                </View>
-              ))}
-            </View>
-          </Animated.View>
-
-          <View style={styles.txSection}>
-            <View style={styles.rowBetween}>
-              <Text style={[styles.h2, { color: colors.text }]}>
-                Transactions
-              </Text>
-            </View>
-
-            <View style={styles.rowBetween}>
-              <Text style={[styles.dateText, { color: colors.textMuted }]}>
-                {today}
-              </Text>
-              <Text style={[styles.todayTotal, { color: colors.text }]}>
-                Today: {format(todayNetUsd, { sign: true })}
-              </Text>
-            </View>
-
-            <View style={styles.list}>
-              {recent.length === 0 ? (
-                <View
-                  style={[
-                    styles.emptyBox,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.cardBorder,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.txSub, { color: colors.textMuted }]}>
-                    No transactions for {selectedPeriodLabel.toLowerCase()}
-                  </Text>
-                </View>
-              ) : (
-                recent.map((t) => {
-                const cat = getCategory(t.categoryId);
-                const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
-                const when = new Date(t.date);
-                const sub = `${cat.label} · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-                return (
                   <Pressable
-                    key={t.id}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/transaction/[id]",
-                        params: { id: t.id },
-                      })
-                    }
+                    onPress={() => currencySheetRef.current?.present()}
+                    hitSlop={10}
                     style={({ pressed }) => [
-                      styles.tx,
+                      styles.pill,
+                      styles.currencyPill,
                       {
-                        backgroundColor: colors.card,
-                        borderColor: colors.cardBorder,
-                        opacity: pressed ? 0.75 : 1,
+                        backgroundColor: colors.pill,
+                        opacity: pressed ? 0.7 : 1,
                       },
                     ]}
                   >
-                    <View
-                      style={[
-                        styles.txBadge,
-                        { backgroundColor: cat.color + "26" },
-                      ]}
+                    <Text
+                      style={[styles.currencyText, { color: colors.heroText }]}
                     >
-                      <Ionicons name={cat.icon} size={18} color={cat.color} />
-                    </View>
-                    <View style={styles.txBody}>
-                      <Text style={[styles.txTitle, { color: colors.text }]}>
-                        {t.title}
-                      </Text>
-                      <Text style={[styles.txSub, { color: colors.textMuted }]}>
-                        {sub}
-                      </Text>
-                    </View>
-                    <View style={styles.txRight}>
-                      <Text
-                        style={[
-                          styles.txAmount,
-                          {
-                            color: signed < 0 ? colors.expense : colors.income,
-                          },
-                        ]}
-                      >
-                        {format(signed, { sign: true })}
-                      </Text>
-                      <Text style={[styles.txSub, { color: colors.textMuted }]}>
-                        {when.toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </Text>
-                    </View>
+                      {currency.code}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={12}
+                      color={colors.heroText}
+                    />
                   </Pressable>
-                );
-              })
-              )}
-            </View>
-          </View>
-        </View>
-      </Animated.ScrollView>
+                </View>
+              </View>
 
-      <CurrencyPicker ref={currencySheetRef} />
+              <CashflowChart
+                variant="hero"
+                currentBalanceUsd={currentBalanceUsd}
+              />
+            </Animated.View>
 
-      <BottomSheetModal
-        ref={periodSheetRef}
-        enableDynamicSizing
-        backdropComponent={renderBackdrop}
-        backgroundStyle={[styles.modalSheetBg, { backgroundColor: colors.sheet }]}
-        handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}
-      >
-        <BottomSheetView
-          style={[
-            styles.modalSheet,
-            { paddingBottom: Math.max(insets.bottom, 16) + 8 },
-          ]}
-        >
-          <Text style={[styles.modalTitle, { color: colors.text }]}>
-            Show totals for
-          </Text>
-          {MONEY_PERIODS.map((p) => {
-            const active = p.key === moneyPeriod;
-            return (
-              <Pressable
-                key={p.key}
-                onPress={() => {
-                  Haptics.selectionAsync().catch(() => {});
-                  periodSheetRef.current?.dismiss();
-                  if (p.key === "custom") {
-                    setEditingBound("start");
-                    customSheetRef.current?.present();
-                  } else {
-                    setMoneyPeriod(p.key);
-                  }
-                }}
-                style={[
-                  styles.periodRow,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: active ? colors.tint : colors.cardBorder,
-                  },
-                ]}
-              >
-                <Text style={[styles.periodLabel, { color: colors.text }]}>
-                  {p.label}
-                </Text>
-                {active && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={22}
-                    color={colors.tint}
-                  />
-                )}
-              </Pressable>
-            );
-          })}
-        </BottomSheetView>
-      </BottomSheetModal>
+            <View style={{ height: heroHeight }} pointerEvents="none" />
 
-      <BottomSheetModal
-        ref={customSheetRef}
-        enableDynamicSizing
-        backdropComponent={renderBackdrop}
-        backgroundStyle={[styles.modalSheetBg, { backgroundColor: colors.sheet }]}
-        handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}
-      >
-        <BottomSheetView
-          style={[
-            styles.modalSheet,
-            { paddingBottom: Math.max(insets.bottom, 16) + 12 },
-          ]}
-        >
-          <Text style={[styles.modalTitle, { color: colors.text }]}>
-            Custom date
-          </Text>
-
-          <View
-            style={[
-              styles.customToggle,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
-            ]}
-          >
-            {(
-              [
-                { key: "single", label: "Single day" },
-                { key: "range", label: "Date range" },
-              ] as const
-            ).map((m) => {
-              const active = m.key === customMode;
-              return (
-                <Pressable
-                  key={m.key}
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    setCustomMode(m.key);
-                    setEditingBound("start");
-                  }}
-                  style={[
-                    styles.customToggleItem,
-                    active && { backgroundColor: colors.accent },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.customToggleText,
-                      { color: active ? "#1c1a17" : colors.textMuted },
-                    ]}
-                  >
-                    {m.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <View style={styles.row}>
-            <Pressable
-              onPress={() => {
-                setEditingBound("start");
-                if (Platform.OS === "android") openAndroidCustomDate("start");
-              }}
+            <View
               style={[
-                styles.dateBox,
+                styles.sheet,
                 {
-                  backgroundColor: colors.card,
-                  borderColor:
-                    editingBound === "start" ? colors.tint : colors.cardBorder,
+                  backgroundColor: colors.sheet,
+                  paddingBottom: Math.max(insets.bottom, 20) + 100,
                 },
               ]}
             >
-              <Text style={[styles.dateBoxLabel, { color: colors.textMuted }]}>
-                {customMode === "single" ? "Date" : "From"}
-              </Text>
-              <Text style={[styles.dateBoxValue, { color: colors.text }]}>
-                {customStart.toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </Text>
-            </Pressable>
-
-            {customMode === "range" && (
-              <Pressable
-                onPress={() => {
-                  setEditingBound("end");
-                  if (Platform.OS === "android") openAndroidCustomDate("end");
-                }}
+              <Animated.View
                 style={[
-                  styles.dateBox,
+                  styles.sheetHeader,
+                  { backgroundColor: colors.sheet },
+                  stickyHeaderStyle,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.grabber,
+                    { backgroundColor: colors.cardBorder },
+                  ]}
+                />
+
+                <View style={styles.rowBetween}>
+                  <Text style={[styles.h2, { color: colors.text }]}>
+                    Your Money
+                  </Text>
+                  <Pressable
+                    onPress={() => periodSheetRef.current?.present()}
+                    hitSlop={8}
+                    style={[
+                      styles.smallPill,
+                      {
+                        borderColor: colors.cardBorder,
+                        backgroundColor: colors.card,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.smallPillText, { color: colors.text }]}
+                    >
+                      {selectedPeriodLabel}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={12}
+                      color={colors.textMuted}
+                    />
+                  </Pressable>
+                </View>
+
+                <View style={styles.row}>
+                  {[
+                    {
+                      label: "Income",
+                      value: incomeUsd,
+                      icon: "arrow-down",
+                      color: colors.income,
+                    },
+                    {
+                      label: "Expense",
+                      value: expenseUsd,
+                      icon: "arrow-up",
+                      color: colors.expense,
+                    },
+                  ].map((c) => (
+                    <View
+                      key={c.label}
+                      style={[
+                        styles.statCard,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.cardBorder,
+                        },
+                      ]}
+                    >
+                      <View style={styles.statTop}>
+                        <View
+                          style={[
+                            styles.statBadge,
+                            { backgroundColor: colors.accentSoft },
+                          ]}
+                        >
+                          <Ionicons
+                            name={c.icon as "arrow-up"}
+                            size={14}
+                            color={c.color}
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.statLabel,
+                            { color: colors.textMuted },
+                          ]}
+                        >
+                          {c.label}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[styles.stat, { color: colors.text }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        {format(c.value)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </Animated.View>
+
+              <View style={styles.txSection}>
+                <View style={styles.rowBetween}>
+                  <Text style={[styles.h2, { color: colors.text }]}>
+                    Transactions
+                  </Text>
+                </View>
+
+                <View style={styles.rowBetween}>
+                  <Text style={[styles.dateText, { color: colors.textMuted }]}>
+                    {today}
+                  </Text>
+                  <Text style={[styles.todayTotal, { color: colors.text }]}>
+                    Today: {format(todayNetUsd, { sign: true })}
+                  </Text>
+                </View>
+
+                <View style={styles.list}>
+                  {recent.length === 0 ? (
+                    <View
+                      style={[
+                        styles.emptyBox,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.cardBorder,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.txSub, { color: colors.textMuted }]}>
+                        No transactions for {selectedPeriodLabel.toLowerCase()}
+                      </Text>
+                    </View>
+                  ) : (
+                    recent.map((t) => {
+                      const cat = getCategory(t.categoryId);
+                      const signed =
+                        t.type === "income" ? t.amountUsd : -t.amountUsd;
+                      const when = new Date(t.date);
+                      const sub = `${cat.label} · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+                      return (
+                        <Pressable
+                          key={t.id}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/transaction/[id]",
+                              params: { id: t.id },
+                            })
+                          }
+                          style={({ pressed }) => [
+                            styles.tx,
+                            {
+                              backgroundColor: colors.card,
+                              borderColor: colors.cardBorder,
+                              opacity: pressed ? 0.75 : 1,
+                            },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.txBadge,
+                              { backgroundColor: cat.color + "26" },
+                            ]}
+                          >
+                            <Ionicons
+                              name={cat.icon}
+                              size={18}
+                              color={cat.color}
+                            />
+                          </View>
+                          <View style={styles.txBody}>
+                            <Text
+                              style={[styles.txTitle, { color: colors.text }]}
+                            >
+                              {t.title}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.txSub,
+                                { color: colors.textMuted },
+                              ]}
+                            >
+                              {sub}
+                            </Text>
+                          </View>
+                          <View style={styles.txRight}>
+                            <Text
+                              style={[
+                                styles.txAmount,
+                                {
+                                  color:
+                                    signed < 0 ? colors.expense : colors.income,
+                                },
+                              ]}
+                            >
+                              {format(signed, { sign: true })}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.txSub,
+                                { color: colors.textMuted },
+                              ]}
+                            >
+                              {when.toLocaleTimeString("en-US", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      );
+                    })
+                  )}
+                </View>
+              </View>
+            </View>
+          </Animated.ScrollView>
+
+          <CurrencyPicker ref={currencySheetRef} />
+
+          <BottomSheetModal
+            ref={periodSheetRef}
+            enableDynamicSizing
+            backdropComponent={renderBackdrop}
+            backgroundStyle={[
+              styles.modalSheetBg,
+              { backgroundColor: colors.sheet },
+            ]}
+            handleIndicatorStyle={{
+              backgroundColor: colors.cardBorder,
+              width: 38,
+            }}
+          >
+            <BottomSheetView
+              style={[
+                styles.modalSheet,
+                { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Show totals for
+              </Text>
+              {MONEY_PERIODS.map((p) => {
+                const active = p.key === moneyPeriod;
+                return (
+                  <Pressable
+                    key={p.key}
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      periodSheetRef.current?.dismiss();
+                      if (p.key === "custom") {
+                        setEditingBound("start");
+                        customSheetRef.current?.present();
+                      } else {
+                        setMoneyPeriod(p.key);
+                      }
+                    }}
+                    style={[
+                      styles.periodRow,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: active ? colors.tint : colors.cardBorder,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.periodLabel, { color: colors.text }]}>
+                      {p.label}
+                    </Text>
+                    {active && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={22}
+                        color={colors.tint}
+                      />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </BottomSheetView>
+          </BottomSheetModal>
+
+          <BottomSheetModal
+            ref={customSheetRef}
+            enableDynamicSizing
+            backdropComponent={renderBackdrop}
+            backgroundStyle={[
+              styles.modalSheetBg,
+              { backgroundColor: colors.sheet },
+            ]}
+            handleIndicatorStyle={{
+              backgroundColor: colors.cardBorder,
+              width: 38,
+            }}
+          >
+            <BottomSheetView
+              style={[
+                styles.modalSheet,
+                { paddingBottom: Math.max(insets.bottom, 16) + 12 },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Custom date
+              </Text>
+
+              <View
+                style={[
+                  styles.customToggle,
                   {
                     backgroundColor: colors.card,
-                    borderColor:
-                      editingBound === "end" ? colors.tint : colors.cardBorder,
+                    borderColor: colors.cardBorder,
                   },
                 ]}
               >
-                <Text style={[styles.dateBoxLabel, { color: colors.textMuted }]}>
-                  To
-                </Text>
-                <Text style={[styles.dateBoxValue, { color: colors.text }]}>
-                  {customEnd.toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </Text>
-              </Pressable>
-            )}
-          </View>
+                {(
+                  [
+                    { key: "single", label: "Single day" },
+                    { key: "range", label: "Date range" },
+                  ] as const
+                ).map((m) => {
+                  const active = m.key === customMode;
+                  return (
+                    <Pressable
+                      key={m.key}
+                      onPress={() => {
+                        Haptics.selectionAsync().catch(() => {});
+                        setCustomMode(m.key);
+                        setEditingBound("start");
+                      }}
+                      style={[
+                        styles.customToggleItem,
+                        active && { backgroundColor: colors.accent },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.customToggleText,
+                          { color: active ? "#1c1a17" : colors.textMuted },
+                        ]}
+                      >
+                        {m.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-          {Platform.OS === "ios" && (
-            <DateTimePicker
-              value={editingBound === "start" ? customStart : customEnd}
-              mode="date"
-              display="spinner"
-              minimumDate={editingBound === "end" ? customStart : undefined}
-              onChange={(_e: DateTimePickerEvent, picked?: Date) => {
-                if (picked) updateCustomDate(picked, editingBound);
-              }}
-            />
-          )}
-
-          <Pressable
-            onPress={() => {
-              Haptics.selectionAsync().catch(() => {});
-              setMoneyPeriod("custom");
-              customSheetRef.current?.dismiss();
-            }}
-            style={[styles.applyBtn, { backgroundColor: colors.accent }]}
-          >
-            <Text style={styles.applyBtnText}>Apply</Text>
-          </Pressable>
-        </BottomSheetView>
-      </BottomSheetModal>
-
-      <BottomSheetModal
-        ref={monthSheetRef}
-        enableDynamicSizing
-        backdropComponent={renderBackdrop}
-        backgroundStyle={[styles.modalSheetBg, { backgroundColor: colors.sheet }]}
-        handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}
-      >
-        <BottomSheetView
-          style={[
-            styles.modalSheet,
-            { paddingBottom: Math.max(insets.bottom, 16) + 12 },
-          ]}
-        >
-          <View style={styles.yearRow}>
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync().catch(() => {});
-                setPickerYear((y) => y - 1);
-              }}
-              hitSlop={10}
-              style={[
-                styles.yearBtn,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              ]}
-            >
-              <Ionicons name="chevron-back" size={18} color={colors.text} />
-            </Pressable>
-            <Text style={[styles.yearText, { color: colors.text }]}>
-              {pickerYear}
-            </Text>
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync().catch(() => {});
-                setPickerYear((y) => y + 1);
-              }}
-              hitSlop={10}
-              style={[
-                styles.yearBtn,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              ]}
-            >
-              <Ionicons name="chevron-forward" size={18} color={colors.text} />
-            </Pressable>
-          </View>
-
-          <View style={styles.monthGrid}>
-            {MONTH_NAMES.map((name, idx) => {
-              const active =
-                selectedMonth.getFullYear() === pickerYear &&
-                selectedMonth.getMonth() === idx;
-              return (
+              <View style={styles.row}>
                 <Pressable
-                  key={name}
                   onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    setSelectedMonth(new Date(pickerYear, idx, 1));
-                    setMoneyPeriod("month");
-                    monthSheetRef.current?.dismiss();
+                    setEditingBound("start");
+                    if (Platform.OS === "android")
+                      openAndroidCustomDate("start");
                   }}
                   style={[
-                    styles.monthCell,
+                    styles.dateBox,
                     {
-                      backgroundColor: active ? colors.accent : colors.card,
-                      borderColor: active ? colors.tint : colors.cardBorder,
+                      backgroundColor: colors.card,
+                      borderColor:
+                        editingBound === "start"
+                          ? colors.tint
+                          : colors.cardBorder,
                     },
                   ]}
                 >
                   <Text
-                    style={[
-                      styles.monthCellText,
-                      { color: active ? "#1c1a17" : colors.text },
-                    ]}
+                    style={[styles.dateBoxLabel, { color: colors.textMuted }]}
                   >
-                    {name}
+                    {customMode === "single" ? "Date" : "From"}
+                  </Text>
+                  <Text style={[styles.dateBoxValue, { color: colors.text }]}>
+                    {customStart.toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
                   </Text>
                 </Pressable>
-              );
-            })}
-          </View>
-        </BottomSheetView>
-      </BottomSheetModal>
+
+                {customMode === "range" && (
+                  <Pressable
+                    onPress={() => {
+                      setEditingBound("end");
+                      if (Platform.OS === "android")
+                        openAndroidCustomDate("end");
+                    }}
+                    style={[
+                      styles.dateBox,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor:
+                          editingBound === "end"
+                            ? colors.tint
+                            : colors.cardBorder,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.dateBoxLabel, { color: colors.textMuted }]}
+                    >
+                      To
+                    </Text>
+                    <Text style={[styles.dateBoxValue, { color: colors.text }]}>
+                      {customEnd.toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {Platform.OS === "ios" && (
+                <DateTimePicker
+                  value={editingBound === "start" ? customStart : customEnd}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={editingBound === "end" ? customStart : undefined}
+                  onChange={(_e: DateTimePickerEvent, picked?: Date) => {
+                    if (picked) updateCustomDate(picked, editingBound);
+                  }}
+                />
+              )}
+
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  setMoneyPeriod("custom");
+                  customSheetRef.current?.dismiss();
+                }}
+                style={[styles.applyBtn, { backgroundColor: colors.accent }]}
+              >
+                <Text style={styles.applyBtnText}>Apply</Text>
+              </Pressable>
+            </BottomSheetView>
+          </BottomSheetModal>
+
+          <BottomSheetModal
+            ref={monthSheetRef}
+            enableDynamicSizing
+            backdropComponent={renderBackdrop}
+            backgroundStyle={[
+              styles.modalSheetBg,
+              { backgroundColor: colors.sheet },
+            ]}
+            handleIndicatorStyle={{
+              backgroundColor: colors.cardBorder,
+              width: 38,
+            }}
+          >
+            <BottomSheetView
+              style={[
+                styles.modalSheet,
+                { paddingBottom: Math.max(insets.bottom, 16) + 12 },
+              ]}
+            >
+              <View style={styles.yearRow}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setPickerYear((y) => y - 1);
+                  }}
+                  hitSlop={10}
+                  style={[
+                    styles.yearBtn,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.cardBorder,
+                    },
+                  ]}
+                >
+                  <Ionicons name="chevron-back" size={18} color={colors.text} />
+                </Pressable>
+                <Text style={[styles.yearText, { color: colors.text }]}>
+                  {pickerYear}
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setPickerYear((y) => y + 1);
+                  }}
+                  hitSlop={10}
+                  style={[
+                    styles.yearBtn,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.cardBorder,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={colors.text}
+                  />
+                </Pressable>
+              </View>
+
+              <View style={styles.monthGrid}>
+                {MONTH_NAMES.map((name, idx) => {
+                  const active =
+                    selectedMonth.getFullYear() === pickerYear &&
+                    selectedMonth.getMonth() === idx;
+                  return (
+                    <Pressable
+                      key={name}
+                      onPress={() => {
+                        Haptics.selectionAsync().catch(() => {});
+                        setSelectedMonth(new Date(pickerYear, idx, 1));
+                        setMoneyPeriod("month");
+                        monthSheetRef.current?.dismiss();
+                      }}
+                      style={[
+                        styles.monthCell,
+                        {
+                          backgroundColor: active ? colors.accent : colors.card,
+                          borderColor: active ? colors.tint : colors.cardBorder,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.monthCellText,
+                          { color: active ? "#1c1a17" : colors.text },
+                        ]}
+                      >
+                        {name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </BottomSheetView>
+          </BottomSheetModal>
         </View>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
