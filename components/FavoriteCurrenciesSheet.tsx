@@ -16,13 +16,20 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 import type { CurrencyInfo } from '@/constants/currencies';
 
+const PAGE_SIZE = 25;
+
+type ListEntry =
+  | { kind: 'section'; id: string; title: string }
+  | { kind: 'currency'; id: string; item: CurrencyInfo };
+
 export const FavoriteCurrenciesSheet = forwardRef<BottomSheetModal>(
   function FavoriteCurrenciesSheet(_, ref) {
     const colors = Colors[useColorScheme()];
     const insets = useSafeAreaInsets();
-    const { currencies, favorites, toggleFavorite } = useCurrency();
+    const { currency, currencies, favorites, setCurrency, toggleFavorite } = useCurrency();
     const innerRef = useRef<BottomSheetModal>(null);
     const [search, setSearch] = useState('');
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
     useImperativeHandle(ref, () => innerRef.current as BottomSheetModal);
 
@@ -40,7 +47,7 @@ export const FavoriteCurrenciesSheet = forwardRef<BottomSheetModal>(
 
     const favSet = useMemo(() => new Set(favorites), [favorites]);
 
-    const sortedCurrencies = useMemo(() => {
+    const rows = useMemo<ListEntry[]>(() => {
       const q = search.trim().toLowerCase();
       const filtered = q
         ? currencies.filter(
@@ -50,28 +57,68 @@ export const FavoriteCurrenciesSheet = forwardRef<BottomSheetModal>(
           )
         : currencies;
 
-      return [...filtered].sort((a, b) => {
-        const aFav = favSet.has(a.code) ? 0 : 1;
-        const bFav = favSet.has(b.code) ? 0 : 1;
-        if (aFav !== bFav) return aFav - bFav;
+      const byDisplayThenCode = (a: CurrencyInfo, b: CurrencyInfo) => {
+        if (a.code === currency.code) return -1;
+        if (b.code === currency.code) return 1;
         return a.code.localeCompare(b.code);
-      });
-    }, [currencies, favSet, search]);
+      };
+
+      const favItems = filtered.filter((c) => favSet.has(c.code)).sort(byDisplayThenCode);
+      const otherItems = filtered.filter((c) => !favSet.has(c.code)).sort(byDisplayThenCode);
+
+      const out: ListEntry[] = [];
+      if (favItems.length > 0) {
+        out.push({ kind: 'section', id: 'sec-fav', title: 'FAVORITES' });
+        for (const item of favItems) {
+          out.push({ kind: 'currency', id: `fav-${item.code}`, item });
+        }
+      }
+      if (otherItems.length > 0) {
+        out.push({
+          kind: 'section',
+          id: 'sec-all',
+          title: favItems.length > 0 ? 'ALL CURRENCIES' : 'CURRENCIES',
+        });
+        for (const item of otherItems) {
+          out.push({ kind: 'currency', id: `all-${item.code}`, item });
+        }
+      }
+      return out;
+    }, [currencies, currency.code, favSet, search]);
+
+    const visibleRows = useMemo(
+      () => rows.slice(0, visibleCount),
+      [rows, visibleCount],
+    );
+
+    const handleLoadMore = useCallback(() => {
+      setVisibleCount((prev) => (prev < rows.length ? prev + PAGE_SIZE : prev));
+    }, [rows.length]);
 
     const renderItem = useCallback(
-      ({ item: c }: { item: CurrencyInfo }) => {
+      ({ item: entry }: { item: ListEntry }) => {
+        if (entry.kind === 'section') {
+          return (
+            <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+              {entry.title}
+            </Text>
+          );
+        }
+
+        const c = entry.item;
         const isFav = favSet.has(c.code);
+        const isDisplay = c.code === currency.code;
         return (
           <Pressable
             onPress={() => {
               Haptics.selectionAsync().catch(() => {});
-              toggleFavorite(c.code);
+              setCurrency(c.code);
             }}
             style={[
               styles.row,
               {
                 backgroundColor: colors.card,
-                borderColor: isFav ? colors.tint : colors.cardBorder,
+                borderColor: isDisplay ? colors.tint : colors.cardBorder,
               },
             ]}>
             <View style={[styles.symbol, { backgroundColor: colors.accentSoft }]}>
@@ -85,15 +132,25 @@ export const FavoriteCurrenciesSheet = forwardRef<BottomSheetModal>(
                 {c.name}
               </Text>
             </View>
-            <Ionicons
-              name={isFav ? 'star' : 'star-outline'}
-              size={22}
-              color={isFav ? '#eab308' : colors.textMuted}
-            />
+            {isDisplay && <Ionicons name="checkmark-circle" size={20} color={colors.tint} />}
+            <Pressable
+              hitSlop={10}
+              onPress={(e) => {
+                e.stopPropagation();
+                Haptics.selectionAsync().catch(() => {});
+                toggleFavorite(c.code);
+              }}
+              style={{ padding: 4 }}>
+              <Ionicons
+                name={isFav ? 'star' : 'star-outline'}
+                size={21}
+                color={isFav ? '#eab308' : colors.textMuted}
+              />
+            </Pressable>
           </Pressable>
         );
       },
-      [colors, favSet, toggleFavorite],
+      [colors, currency.code, favSet, setCurrency, toggleFavorite],
     );
 
     return (
@@ -104,16 +161,19 @@ export const FavoriteCurrenciesSheet = forwardRef<BottomSheetModal>(
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        onDismiss={() => setSearch('')}
+        onDismiss={() => {
+          setSearch('');
+          setVisibleCount(PAGE_SIZE);
+        }}
         backdropComponent={renderBackdrop}
         backgroundStyle={[styles.sheetBg, { backgroundColor: colors.sheet }]}
         handleIndicatorStyle={{ backgroundColor: colors.cardBorder, width: 38 }}>
         <View style={styles.topHeader}>
           <View style={styles.titleRow}>
-            <View>
-              <Text style={[styles.title, { color: colors.text }]}>Favorite Currencies</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.title, { color: colors.text }]}>Currencies</Text>
               <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-                Pinned in pickers & quick selectors ({favorites.length} selected)
+                Tap to set display · Star to favorite ({favorites.length})
               </Text>
             </View>
             <Pressable
@@ -131,13 +191,21 @@ export const FavoriteCurrenciesSheet = forwardRef<BottomSheetModal>(
             <Ionicons name="search" size={16} color={colors.textMuted} />
             <BottomSheetTextInput
               value={search}
-              onChangeText={setSearch}
+              onChangeText={(text) => {
+                setSearch(text);
+                setVisibleCount(PAGE_SIZE);
+              }}
               placeholder="Search currency (e.g. USD, Naira, Euro)"
               placeholderTextColor={colors.textMuted}
               style={[styles.searchInput, { color: colors.text }]}
             />
             {search.length > 0 && (
-              <Pressable hitSlop={8} onPress={() => setSearch('')}>
+              <Pressable
+                hitSlop={8}
+                onPress={() => {
+                  setSearch('');
+                  setVisibleCount(PAGE_SIZE);
+                }}>
                 <Ionicons name="close-circle" size={16} color={colors.textMuted} />
               </Pressable>
             )}
@@ -145,9 +213,14 @@ export const FavoriteCurrenciesSheet = forwardRef<BottomSheetModal>(
         </View>
 
         <BottomSheetFlatList
-          data={sortedCurrencies}
-          keyExtractor={(item: CurrencyInfo) => item.code}
+          data={visibleRows}
+          keyExtractor={(item: ListEntry) => item.id}
           renderItem={renderItem}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.4}
+          initialNumToRender={15}
+          maxToRenderPerBatch={15}
+          windowSize={5}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             styles.listContent,
@@ -188,6 +261,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   listContent: { paddingHorizontal: 20, gap: 8 },
+  sectionLabel: {
+    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    marginTop: 8,
+    marginBottom: 2,
+    paddingLeft: 4,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -214,4 +295,3 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
 });
-

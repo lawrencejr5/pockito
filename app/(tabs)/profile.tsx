@@ -20,7 +20,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCloudSync } from '@/components/CloudSyncProvider';
-import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { useCurrency } from '@/components/CurrencyProvider';
 import { FavoriteCurrenciesSheet } from '@/components/FavoriteCurrenciesSheet';
 import { FocusFadeIn } from '@/components/FocusFadeIn';
@@ -43,7 +42,6 @@ export default function ProfileScreen() {
   const updatePreferences = useMutation(api.users.updatePreferences);
   const deleteAccountMutation = useMutation(api.users.deleteAccount);
 
-  const currencySheetRef = useRef<BottomSheetModal>(null);
   const favoritesSheetRef = useRef<BottomSheetModal>(null);
 
   const [editing, setEditing] = useState(false);
@@ -264,38 +262,17 @@ export default function ProfileScreen() {
                 <Pressable
                   onPress={() => {
                     Haptics.selectionAsync().catch(() => {});
-                    currencySheetRef.current?.present();
+                    favoritesSheetRef.current?.present();
                   }}
                   style={styles.row}>
                   <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
                     <Ionicons name="cash-outline" size={18} color={colors.tint} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowTitle, { color: colors.text }]}>Display Currency</Text>
-                    <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                      {currency.symbol} {currency.code} · {currency.name}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                </Pressable>
-
-                <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
-
-                <Pressable
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    favoritesSheetRef.current?.present();
-                  }}
-                  style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: 'rgba(234,179,8,0.14)' }]}>
-                    <Ionicons name="star-outline" size={18} color="#eab308" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowTitle, { color: colors.text }]}>
-                      Favorite Currencies
-                    </Text>
+                    <Text style={[styles.rowTitle, { color: colors.text }]}>Currencies</Text>
                     <Text style={[styles.rowSub, { color: colors.textMuted }]} numberOfLines={1}>
-                      {favorites.length > 0 ? favorites.join(' · ') : 'None selected'}
+                      Display: {currency.symbol} {currency.code}
+                      {favorites.length > 0 ? ` · Favorites: ${favorites.join(', ')}` : ''}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -457,7 +434,6 @@ export default function ProfileScreen() {
             </FocusFadeIn>
           </ScrollView>
 
-          <CurrencyPicker ref={currencySheetRef} />
           <FavoriteCurrenciesSheet ref={favoritesSheetRef} />
         </View>
       </BottomSheetModalProvider>
