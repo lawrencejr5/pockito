@@ -133,14 +133,26 @@ export default function HomeScreen() {
     [],
   );
 
-  const { incomeUsd, expenseUsd, todayNetUsd, currentBalanceUsd, recent } =
+  const { incomeUsd, expenseUsd, currentBalanceUsd, groupedRecent } =
     useMemo(() => {
       const now = new Date();
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+
       let inc = 0;
       let exp = 0;
-      let todayNet = 0;
       let totalNet = 0;
-      const filtered = [];
+      const groupsMap = new Map<
+        string,
+        {
+          key: string;
+          dateLabel: string;
+          totalPrefix: string;
+          netUsd: number;
+          items: typeof transactions;
+        }
+      >();
+
       for (const t of transactions) {
         const d = new Date(t.date);
         const signed = t.type === "income" ? t.amountUsd : -t.amountUsd;
@@ -156,18 +168,37 @@ export default function HomeScreen() {
             customEnd,
           )
         ) {
-          filtered.push(t);
           if (t.type === "income") inc += t.amountUsd;
           else exp += t.amountUsd;
+
+          const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+          let group = groupsMap.get(key);
+          if (!group) {
+            const isToday = d.toDateString() === now.toDateString();
+            const isYesterday = d.toDateString() === yesterday.toDateString();
+            group = {
+              key,
+              dateLabel: d.toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+              totalPrefix: isToday ? "Today" : isYesterday ? "Yesterday" : "Total",
+              netUsd: 0,
+              items: [],
+            };
+            groupsMap.set(key, group);
+          }
+          group.netUsd += signed;
+          group.items.push(t);
         }
-        if (d.toDateString() === now.toDateString()) todayNet += signed;
       }
+
       return {
         incomeUsd: inc,
         expenseUsd: exp,
-        todayNetUsd: todayNet,
         currentBalanceUsd: totalNet,
-        recent: filtered.slice(0, 10),
+        groupedRecent: Array.from(groupsMap.values()),
       };
     }, [
       transactions,
@@ -478,111 +509,121 @@ export default function HomeScreen() {
                   </Text>
                 </View>
 
-                <View style={styles.rowBetween}>
-                  <Text style={[styles.dateText, { color: colors.textMuted }]}>
-                    {today}
-                  </Text>
-                  <Text style={[styles.todayTotal, { color: colors.text }]}>
-                    Today: {format(todayNetUsd, { sign: true })}
-                  </Text>
-                </View>
-
-                <View style={styles.list}>
-                  {recent.length === 0 ? (
-                    <View
-                      style={[
-                        styles.emptyBox,
-                        {
-                          backgroundColor: colors.card,
-                          borderColor: colors.cardBorder,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.txSub, { color: colors.textMuted }]}>
-                        No transactions for {selectedPeriodLabel.toLowerCase()}
-                      </Text>
-                    </View>
-                  ) : (
-                    recent.map((t) => {
-                      const cat = getCategory(t.categoryId);
-                      const signed =
-                        t.type === "income" ? t.amountUsd : -t.amountUsd;
-                      const when = new Date(t.date);
-                      const sub = `${cat.label} · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-                      return (
-                        <Pressable
-                          key={t.id}
-                          onPress={() =>
-                            router.push({
-                              pathname: "/transaction/[id]",
-                              params: { id: t.id },
-                            })
-                          }
-                          style={({ pressed }) => [
-                            styles.tx,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.cardBorder,
-                              opacity: pressed ? 0.75 : 1,
-                            },
-                          ]}
+                {groupedRecent.length === 0 ? (
+                  <View
+                    style={[
+                      styles.emptyBox,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.cardBorder,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.txSub, { color: colors.textMuted }]}>
+                      No transactions for {selectedPeriodLabel.toLowerCase()}
+                    </Text>
+                  </View>
+                ) : (
+                  groupedRecent.map((group) => (
+                    <View key={group.key} style={styles.dayGroup}>
+                      <View style={styles.rowBetween}>
+                        <Text
+                          style={[styles.dateText, { color: colors.textMuted }]}
                         >
-                          <View
-                            style={[
-                              styles.txBadge,
-                              { backgroundColor: cat.color + "26" },
-                            ]}
-                          >
-                            <Ionicons
-                              name={cat.icon}
-                              size={18}
-                              color={cat.color}
-                            />
-                          </View>
-                          <View style={styles.txBody}>
-                            <Text
-                              style={[styles.txTitle, { color: colors.text }]}
-                            >
-                              {t.title}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.txSub,
-                                { color: colors.textMuted },
-                              ]}
-                            >
-                              {sub}
-                            </Text>
-                          </View>
-                          <View style={styles.txRight}>
-                            <Text
-                              style={[
-                                styles.txAmount,
+                          {group.dateLabel}
+                        </Text>
+                        <Text
+                          style={[styles.todayTotal, { color: colors.text }]}
+                        >
+                          {group.totalPrefix}: {format(group.netUsd, { sign: true })}
+                        </Text>
+                      </View>
+
+                      <View style={styles.list}>
+                        {group.items.map((t) => {
+                          const cat = getCategory(t.categoryId);
+                          const signed =
+                            t.type === "income" ? t.amountUsd : -t.amountUsd;
+                          const when = new Date(t.date);
+                          const sub = `${cat.label} · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+                          return (
+                            <Pressable
+                              key={t.id}
+                              onPress={() =>
+                                router.push({
+                                  pathname: "/transaction/[id]",
+                                  params: { id: t.id },
+                                })
+                              }
+                              style={({ pressed }) => [
+                                styles.tx,
                                 {
-                                  color:
-                                    signed < 0 ? colors.expense : colors.income,
+                                  backgroundColor: colors.card,
+                                  borderColor: colors.cardBorder,
+                                  opacity: pressed ? 0.75 : 1,
                                 },
                               ]}
                             >
-                              {format(signed, { sign: true })}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.txSub,
-                                { color: colors.textMuted },
-                              ]}
-                            >
-                              {when.toLocaleTimeString("en-US", {
-                                hour: "numeric",
-                                minute: "2-digit",
-                              })}
-                            </Text>
-                          </View>
-                        </Pressable>
-                      );
-                    })
-                  )}
-                </View>
+                              <View
+                                style={[
+                                  styles.txBadge,
+                                  { backgroundColor: cat.color + "26" },
+                                ]}
+                              >
+                                <Ionicons
+                                  name={cat.icon}
+                                  size={18}
+                                  color={cat.color}
+                                />
+                              </View>
+                              <View style={styles.txBody}>
+                                <Text
+                                  style={[styles.txTitle, { color: colors.text }]}
+                                >
+                                  {t.title}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.txSub,
+                                    { color: colors.textMuted },
+                                  ]}
+                                >
+                                  {sub}
+                                </Text>
+                              </View>
+                              <View style={styles.txRight}>
+                                <Text
+                                  style={[
+                                    styles.txAmount,
+                                    {
+                                      color:
+                                        signed < 0
+                                          ? colors.expense
+                                          : colors.income,
+                                    },
+                                  ]}
+                                >
+                                  {format(signed, { sign: true })}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.txSub,
+                                    { color: colors.textMuted },
+                                  ]}
+                                >
+                                  {when.toLocaleTimeString("en-US", {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                  })}
+                                </Text>
+                              </View>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ))
+                )}
               </FocusFadeIn>
             </View>
           </Animated.ScrollView>
@@ -1025,6 +1066,7 @@ const styles = StyleSheet.create({
   dateText: { fontFamily: fonts.regular, fontSize: 12 },
   todayTotal: { fontFamily: fonts.semiBold, fontSize: 12 },
 
+  dayGroup: { gap: 10 },
   list: { gap: 10 },
   tx: {
     flexDirection: "row",
