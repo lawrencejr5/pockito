@@ -1,3 +1,5 @@
+import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -29,7 +31,16 @@ export default function TabLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} md="person" />
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="add" role="search">
+      <NativeTabs.Trigger
+        name="add"
+        role="search"
+        disabled
+        listeners={{
+          tabPress: () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+            router.push('/add-transaction');
+          },
+        }}>
         <NativeTabs.Trigger.Icon sf={{ default: 'plus', selected: 'plus' }} md="add" />
         <NativeTabs.Trigger.Label hidden />
       </NativeTabs.Trigger>
