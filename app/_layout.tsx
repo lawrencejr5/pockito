@@ -98,9 +98,9 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      {!isAuthenticated || isSyncing ? (
+      {!isAuthenticated ? (
         <SignInScreen />
-      ) : isDataLoading ? (
+      ) : isSyncing || isDataLoading ? (
         <AppLoader />
       ) : (
         <Stack>

@@ -50,10 +50,18 @@ type LocalWealthItem = {
   updatedAt: string;
 };
 
+export type PendingOnboardingData = {
+  onboardingGoals: string[];
+  referralSource?: string;
+  currency: CurrencyCode;
+  favoriteCurrencies: CurrencyCode[];
+};
+
 type CloudSyncContextValue = {
   isAuthenticated: boolean;
   isAuthLoading: boolean;
   isSyncing: boolean;
+  setPendingOnboarding: (data: PendingOnboardingData | null) => void;
   uploadReceiptIfNeeded: (
     uri?: string,
   ) => Promise<{ receiptStorageId?: Id<'_storage'>; receiptUri?: string }>;
@@ -66,9 +74,18 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
 
   const generateUploadUrl = useMutation(api.transactions.generateUploadUrl);
   const migrateLocalData = useMutation(api.sync.migrateLocalData);
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const migratingRef = useRef(false);
+  const pendingOnboardingRef = useRef<PendingOnboardingData | null>(null);
+
+  const setPendingOnboarding = useCallback(
+    (data: PendingOnboardingData | null) => {
+      pendingOnboardingRef.current = data;
+    },
+    [],
+  );
 
   const uploadReceiptIfNeeded = useCallback(
     async (
@@ -193,6 +210,19 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
           });
         }
 
+        if (pendingOnboardingRef.current) {
+          const pending = pendingOnboardingRef.current;
+          pendingOnboardingRef.current = null;
+          if (!cancelled) setIsSyncing(true);
+          await updatePreferences({
+            currency: pending.currency,
+            favoriteCurrencies: pending.favoriteCurrencies,
+            onboardingGoals: pending.onboardingGoals,
+            referralSource: pending.referralSource,
+            onboardingCompleted: true,
+          });
+        }
+
         await AsyncStorage.multiRemove(LEGACY_KEYS);
       } catch (err) {
         console.error('Legacy migration error:', err);
@@ -207,16 +237,17 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, migrateLocalData, uploadReceiptIfNeeded]);
+  }, [isAuthenticated, migrateLocalData, updatePreferences, uploadReceiptIfNeeded]);
 
   const value = useMemo<CloudSyncContextValue>(
     () => ({
       isAuthenticated,
       isAuthLoading: isLoading,
       isSyncing,
+      setPendingOnboarding,
       uploadReceiptIfNeeded,
     }),
-    [isAuthenticated, isLoading, isSyncing, uploadReceiptIfNeeded],
+    [isAuthenticated, isLoading, isSyncing, setPendingOnboarding, uploadReceiptIfNeeded],
   );
 
   return (

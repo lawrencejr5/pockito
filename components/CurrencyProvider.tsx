@@ -39,14 +39,15 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 
 function group(n: number, decimals: number) {
   const fixed = Math.abs(n).toFixed(decimals);
-  const [int, frac] = fixed.split('.');
+  const [int, rawFrac] = fixed.split('.');
+  const frac = rawFrac && Number(rawFrac) !== 0 ? rawFrac : '';
   return { int: int.replace(/\B(?=(\d{3})+(?!\d))/g, ','), frac };
 }
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useCloudSync();
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
-  const dbCurrencies = useQuery(api.currencies.list, isAuthenticated ? {} : 'skip');
+  const dbCurrencies = useQuery(api.currencies.list, {});
 
   const updatePreferences = useMutation(api.users.updatePreferences);
   const ensureSeeded = useAction(api.currencies.ensureSeeded);
@@ -58,7 +59,6 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   // Trigger initial live rate seed if the currencies table is empty
   useEffect(() => {
     if (
-      isAuthenticated &&
       dbCurrencies !== undefined &&
       dbCurrencies.length === 0 &&
       !seededTriggeredRef.current
@@ -69,7 +69,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         seededTriggeredRef.current = false;
       });
     }
-  }, [isAuthenticated, dbCurrencies, ensureSeeded]);
+  }, [dbCurrencies, ensureSeeded]);
 
   // Sync user's default currency & favorites from Convex
   useEffect(() => {
@@ -123,11 +123,17 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const setCurrency = useCallback(
     (next: CurrencyCode) => {
       setCode(next);
-      if (isAuthenticated) {
+      if (!favorites.includes(next)) {
+        const nextFavorites = [...favorites, next];
+        setFavorites(nextFavorites);
+        if (isAuthenticated) {
+          updatePreferences({ currency: next, favoriteCurrencies: nextFavorites }).catch(() => {});
+        }
+      } else if (isAuthenticated) {
         updatePreferences({ currency: next }).catch(() => {});
       }
     },
-    [isAuthenticated, updatePreferences],
+    [favorites, isAuthenticated, updatePreferences],
   );
 
   const toggleFavorite = useCallback(

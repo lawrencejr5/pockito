@@ -47,6 +47,9 @@ export const updatePreferences = mutation({
     currency: v.optional(currencyValidator),
     favoriteCurrencies: v.optional(v.array(v.string())),
     includeCashBalance: v.optional(v.boolean()),
+    onboardingGoals: v.optional(v.array(v.string())),
+    referralSource: v.optional(v.string()),
+    onboardingCompleted: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -60,6 +63,9 @@ export const updatePreferences = mutation({
       currency?: string;
       favoriteCurrencies?: string[];
       includeCashBalance?: boolean;
+      onboardingGoals?: string[];
+      referralSource?: string;
+      onboardingCompleted?: boolean;
     } = {};
 
     if (args.fullname !== undefined) {
@@ -74,6 +80,15 @@ export const updatePreferences = mutation({
     }
     if (args.includeCashBalance !== undefined) {
       patch.includeCashBalance = args.includeCashBalance;
+    }
+    if (args.onboardingGoals !== undefined) {
+      patch.onboardingGoals = args.onboardingGoals;
+    }
+    if (args.referralSource !== undefined) {
+      patch.referralSource = args.referralSource;
+    }
+    if (args.onboardingCompleted !== undefined) {
+      patch.onboardingCompleted = args.onboardingCompleted;
     }
 
     await ctx.db.patch(userId, patch);
