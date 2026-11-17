@@ -30,7 +30,7 @@ import { useTransactions, type Transaction } from '@/components/TransactionsProv
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 import { getCategory, type TransactionType } from '@/constants/categories';
-import type { CurrencyCode } from '@/constants/currencies';
+import { symbolSpacer, type CurrencyCode } from '@/constants/currencies';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'] as const;
 
@@ -229,6 +229,7 @@ export function TransactionForm({ transaction }: Props) {
                 numberOfLines={1}
                 adjustsFontSizeToFit>
                 {currency.symbol}
+                {symbolSpacer(currency.symbol)}
                 {display}
               </Text>
               <Text style={[styles.amountCode, { color: colors.textMuted }]}>{currency.code}</Text>

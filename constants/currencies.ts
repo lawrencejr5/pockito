@@ -11,6 +11,11 @@ export type CurrencyInfo = {
 
 export const DEFAULT_FAVORITE_CURRENCIES: CurrencyCode[] = ['USD', 'NGN', 'GBP', 'EUR'];
 
+/** Adds a space after alphabetic/code symbols (e.g. "CHF", "KSh", "AED") when placed before a number. */
+export function symbolSpacer(symbol: string): string {
+  return /[A-Za-z]$/.test(symbol) ? ' ' : '';
+}
+
 /** Fallback metadata & initial rates used before live Convex rates finish loading. */
 export const CURRENCIES: Record<string, CurrencyInfo> = {
   USD: { code: 'USD', symbol: '$', name: 'US Dollar', rate: 1, decimals: 2 },

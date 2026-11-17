@@ -15,6 +15,7 @@ import {
   CURRENCIES,
   CURRENCY_LIST,
   DEFAULT_FAVORITE_CURRENCIES,
+  symbolSpacer,
   type CurrencyCode,
   type CurrencyInfo,
 } from '@/constants/currencies';
@@ -147,6 +148,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CurrencyContextValue>(() => {
     const currency = getCurrency(code);
+    const spacer = symbolSpacer(currency.symbol);
     return {
       currency,
       currencies,
@@ -160,13 +162,13 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         const d = opts?.decimals ?? currency.decimals;
         const { int, frac } = group(converted, d);
         const sign = opts?.sign ? (converted < 0 ? '-' : '+') : converted < 0 ? '-' : '';
-        return `${sign}${currency.symbol}${int}${frac ? '.' + frac : ''}`;
+        return `${sign}${currency.symbol}${spacer}${int}${frac ? '.' + frac : ''}`;
       },
       parts: (amountUsd) => {
         const converted = amountUsd * currency.rate;
         const { int, frac } = group(converted, currency.decimals);
         const sign = converted < 0 ? '-' : '';
-        return { whole: `${sign}${currency.symbol}${int}`, fraction: frac ? `.${frac}` : '' };
+        return { whole: `${sign}${currency.symbol}${spacer}${int}`, fraction: frac ? `.${frac}` : '' };
       },
     };
   }, [code, currencies, favorites, isAuthenticated, viewer, dbCurrencies, getCurrency, setCurrency, toggleFavorite]);
