@@ -1,10 +1,16 @@
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
-import { View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Image } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import "react-native-reanimated";
+import Animated, {
+  Easing,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import SignInScreen from "@/app/sign-in";
 import { AppLoader } from "@/components/AppLoader";
@@ -21,7 +27,6 @@ import {
 } from "@/components/TransactionsProvider";
 import { WealthProvider, useWealth } from "@/components/WealthProvider";
 import { useColorScheme } from "@/components/useColorScheme";
-import Colors from "@/constants/Colors";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -78,20 +83,57 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme];
   const { isAuthenticated, isAuthLoading, isSyncing } = useCloudSync();
   const { isLoading: txLoading } = useTransactions();
   const { isLoading: wealthLoading } = useWealth();
   const { isLoading: currencyLoading } = useCurrency();
+  const [showBrandSplash, setShowBrandSplash] = useState(true);
+  const splashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const splashOpacity = useSharedValue(0);
+
+  const splashImageStyle = useAnimatedStyle(() => ({
+    flex: 1,
+    opacity: splashOpacity.value,
+  }));
 
   useEffect(() => {
     if (!isAuthLoading) {
       SplashScreen.hideAsync().catch(() => {});
+      splashOpacity.value = withTiming(1, {
+        duration: 550,
+        easing: Easing.out(Easing.cubic),
+      });
+      if (!splashTimerRef.current) {
+        splashTimerRef.current = setTimeout(() => {
+          setShowBrandSplash(false);
+        }, 2000);
+      }
     }
-  }, [isAuthLoading]);
+  }, [isAuthLoading, splashOpacity]);
 
-  if (isAuthLoading) {
-    return <View style={{ flex: 1, backgroundColor: colors.sheet }} />;
+  useEffect(() => {
+    return () => {
+      if (splashTimerRef.current) {
+        clearTimeout(splashTimerRef.current);
+      }
+    };
+  }, []);
+
+  if (isAuthLoading || showBrandSplash) {
+    return (
+      <Animated.View
+        exiting={FadeOut.duration(250)}
+        style={{ flex: 1, backgroundColor: "#161714" }}
+      >
+        <Animated.View style={splashImageStyle}>
+          <Image
+            source={require("../assets/images/splash-screen.png")}
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </Animated.View>
+    );
   }
 
   const isDataLoading = txLoading || wealthLoading || currencyLoading;
