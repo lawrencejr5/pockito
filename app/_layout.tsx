@@ -110,6 +110,10 @@ function RootLayoutNav() {
             options={{ presentation: "modal", headerShown: false }}
           />
           <Stack.Screen
+            name="wealth-item"
+            options={{ presentation: "modal", headerShown: false }}
+          />
+          <Stack.Screen
             name="report"
             options={{ presentation: "modal", headerShown: false }}
           />

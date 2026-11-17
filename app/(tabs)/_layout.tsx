@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useSegments } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -7,6 +7,7 @@ import Colors, { fonts } from '@/constants/Colors';
 
 export default function TabLayout() {
   const colors = Colors[useColorScheme()];
+  const segments = useSegments();
 
   return (
     <NativeTabs
@@ -38,7 +39,11 @@ export default function TabLayout() {
         listeners={{
           tabPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            router.push('/add-transaction');
+            if (segments[1] === 'wealth') {
+              router.push({ pathname: '/wealth-item', params: { kind: 'asset' } });
+            } else {
+              router.push('/add-transaction');
+            }
           },
         }}>
         <NativeTabs.Trigger.Icon sf={{ default: 'plus', selected: 'plus' }} md="add" />

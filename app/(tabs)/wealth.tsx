@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -29,10 +28,6 @@ import { useCurrency } from "@/components/CurrencyProvider";
 import { FocusFadeIn } from "@/components/FocusFadeIn";
 import { WealthGroupStack } from "@/components/WealthGroupStack";
 import { useTransactions } from "@/components/TransactionsProvider";
-import {
-  WealthItemSheet,
-  type WealthItemSheetHandle,
-} from "@/components/WealthItemSheet";
 import { useWealth, type WealthItem } from "@/components/WealthProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
@@ -64,7 +59,6 @@ export default function WealthScreen() {
   const { transactions } = useTransactions();
   const { items, includeCashBalance, setIncludeCashBalance } = useWealth();
 
-  const sheetRef = useRef<WealthItemSheetHandle>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("overview");
 
   // Derive live Pockito Cash Balance & 30-day Monthly Income from transactions
@@ -309,7 +303,6 @@ export default function WealthScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
         <View style={[styles.screen, { backgroundColor: colors.sheet }]}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -336,7 +329,7 @@ export default function WealthScreen() {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
                     () => {},
                   );
-                  sheetRef.current?.open({ kind: "asset" });
+                  router.push({ pathname: "/wealth-item", params: { kind: "asset" } });
                 }}
                 style={[styles.addBtn, { backgroundColor: colors.darkCard }]}
               >
@@ -640,7 +633,7 @@ export default function WealthScreen() {
                     <Pressable
                       onPress={() => {
                         Haptics.selectionAsync().catch(() => {});
-                        sheetRef.current?.open({ kind: "asset" });
+                        router.push({ pathname: "/wealth-item", params: { kind: "asset" } });
                       }}
                       style={[
                         styles.smallAddBtn,
@@ -666,13 +659,17 @@ export default function WealthScreen() {
                       kind="asset"
                       format={format}
                       index={gi}
-                      onItemPress={(item) => sheetRef.current?.open({ item })}
+                      onItemPress={(item) =>
+                        router.push({ pathname: "/wealth-item", params: { id: item.id } })
+                      }
                     />
                   ))}
 
                   {assetGroups.length === 0 && (
                     <Pressable
-                      onPress={() => sheetRef.current?.open({ kind: "asset" })}
+                      onPress={() =>
+                        router.push({ pathname: "/wealth-item", params: { kind: "asset" } })
+                      }
                       style={[
                         styles.emptyCard,
                         {
@@ -713,7 +710,7 @@ export default function WealthScreen() {
                     <Pressable
                       onPress={() => {
                         Haptics.selectionAsync().catch(() => {});
-                        sheetRef.current?.open({ kind: "liability" });
+                        router.push({ pathname: "/wealth-item", params: { kind: "liability" } });
                       }}
                       style={[
                         styles.smallAddBtn,
@@ -739,7 +736,9 @@ export default function WealthScreen() {
                       kind="liability"
                       format={format}
                       index={gi}
-                      onItemPress={(item) => sheetRef.current?.open({ item })}
+                      onItemPress={(item) =>
+                        router.push({ pathname: "/wealth-item", params: { id: item.id } })
+                      }
                     />
                   ))}
 
@@ -850,7 +849,8 @@ export default function WealthScreen() {
                           key={it.id}
                           disabled={!it.raw}
                           onPress={() =>
-                            it.raw && sheetRef.current?.open({ item: it.raw })
+                            it.raw &&
+                            router.push({ pathname: "/wealth-item", params: { id: it.raw.id } })
                           }
                           style={styles.bsLineRow}
                         >
@@ -924,7 +924,8 @@ export default function WealthScreen() {
                           key={it.id}
                           disabled={!it.raw}
                           onPress={() =>
-                            it.raw && sheetRef.current?.open({ item: it.raw })
+                            it.raw &&
+                            router.push({ pathname: "/wealth-item", params: { id: it.raw.id } })
                           }
                           style={styles.bsLineRow}
                         >
@@ -996,10 +997,7 @@ export default function WealthScreen() {
               </FocusFadeIn>
             )}
           </ScrollView>
-
-          <WealthItemSheet ref={sheetRef} />
         </View>
-      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }
