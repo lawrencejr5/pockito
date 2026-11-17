@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -13,11 +14,16 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
-  useAnimatedStyle,
+  Easing,
+  useAnimatedProps,
   useSharedValue,
+  withDelay,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, Line, Path } from "react-native-svg";
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 import { useCurrency } from "@/components/CurrencyProvider";
 import { FocusFadeIn } from "@/components/FocusFadeIn";
@@ -191,19 +197,64 @@ export default function WealthScreen() {
     };
   }, [items, includeCashBalance, pockitoCashUsd]);
 
-  // Animated Assets vs Liabilities ratio bar
+  const hasAssets = totalAssetsUsd > 0;
+  const hasLiabilities = totalLiabilitiesUsd > 0;
   const grossTotal =
     Math.max(0, totalAssetsUsd) + Math.max(0, totalLiabilitiesUsd);
-  const targetAssetShare =
+  const assetShare =
     grossTotal > 0 ? Math.max(0, totalAssetsUsd) / grossTotal : 1;
-  const assetShareAnim = useSharedValue(targetAssetShare);
 
-  useEffect(() => {
-    assetShareAnim.value = withTiming(targetAssetShare, { duration: 450 });
-  }, [targetAssetShare, assetShareAnim]);
+  // Semi-circle gauge geometry
+  const gaugeWidth = 296;
+  const gaugeStroke = 14;
+  const gaugeRadius = (gaugeWidth - gaugeStroke) / 2;
+  const gaugeCx = gaugeWidth / 2;
+  const gaugeCy = gaugeRadius + gaugeStroke / 2;
+  const gaugeHeight = gaugeCy + gaugeStroke / 2;
+  const arcPath = `M ${gaugeCx - gaugeRadius} ${gaugeCy} A ${gaugeRadius} ${gaugeRadius} 0 0 1 ${gaugeCx + gaugeRadius} ${gaugeCy}`;
+  const arcLen = Math.PI * gaugeRadius;
+  const arcGap = hasAssets && hasLiabilities ? 22 : 0;
+  const usableArc = Math.max(0, arcLen - arcGap);
+  const assetArcLen =
+    hasAssets && hasLiabilities
+      ? Math.max(12, Math.min(usableArc - 12, usableArc * assetShare))
+      : hasAssets || !hasLiabilities
+        ? arcLen
+        : 0;
+  const liabArcLen =
+    hasAssets && hasLiabilities
+      ? Math.max(12, usableArc - assetArcLen)
+      : hasLiabilities
+        ? arcLen
+        : 0;
 
-  const assetBarStyle = useAnimatedStyle(() => ({
-    width: `${Math.round(assetShareAnim.value * 100)}%`,
+  const divAngle = Math.PI * (1 - (assetArcLen + arcGap / 2) / arcLen);
+  const divInnerR = gaugeRadius - gaugeStroke / 2 - 3;
+  const divOuterR = gaugeRadius + gaugeStroke / 2 + 3;
+  const divX1 = gaugeCx + divInnerR * Math.cos(divAngle);
+  const divY1 = gaugeCy - divInnerR * Math.sin(divAngle);
+  const divX2 = gaugeCx + divOuterR * Math.cos(divAngle);
+  const divY2 = gaugeCy - divOuterR * Math.sin(divAngle);
+
+  const gaugeProgress = useSharedValue(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      gaugeProgress.value = 0;
+      gaugeProgress.value = withDelay(
+        100,
+        withTiming(1, { duration: 680, easing: Easing.out(Easing.cubic) }),
+      );
+    }, [gaugeProgress]),
+  );
+
+  const assetArcProps = useAnimatedProps(() => ({
+    strokeDasharray: `${gaugeProgress.value * assetArcLen} ${arcLen}`,
+  }));
+
+  const liabArcProps = useAnimatedProps(() => ({
+    strokeDasharray: `${gaugeProgress.value * liabArcLen} ${arcLen}`,
+    strokeDashoffset: -(arcLen - gaugeProgress.value * liabArcLen),
   }));
 
   const handleShareBalanceSheet = async () => {
@@ -348,61 +399,107 @@ export default function WealthScreen() {
               delay={60}
               style={[styles.heroCard, { backgroundColor: colors.darkCard }]}
             >
-              <View style={styles.heroTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.heroLabel, { color: colors.secondary }]}>
-                    Total Net Worth
-                  </Text>
-                  <Text
-                    style={[styles.heroNet, { color: colors.darkCardText }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                  >
-                    {format(netWorthUsd)}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.ratioBadge,
-                    {
-                      backgroundColor:
-                        debtToAssetPct <= 35
-                          ? "rgba(74,222,128,0.16)"
-                          : "rgba(248,113,113,0.16)",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.ratioBadgeText,
-                      { color: debtToAssetPct <= 35 ? "#4ade80" : "#f87171" },
-                    ]}
-                  >
-                    {debtToAssetPct}% debt
-                  </Text>
-                </View>
-              </View>
+              {/* Semi-Circle Gauge with Total Net Worth in Center */}
+              <View style={styles.gaugeContainer}>
+                <View style={{ width: gaugeWidth, height: gaugeHeight }}>
+                  <Svg width={gaugeWidth} height={gaugeHeight}>
+                    <Path
+                      d={arcPath}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.08)"
+                      strokeWidth={gaugeStroke}
+                      strokeLinecap="round"
+                    />
+                    {assetArcLen > 0 && (
+                      <>
+                        <Circle
+                          cx={gaugeCx - gaugeRadius}
+                          cy={gaugeCy}
+                          r={gaugeStroke / 2}
+                          fill="#2e9e6b"
+                        />
+                        <AnimatedPath
+                          d={arcPath}
+                          fill="none"
+                          stroke="#2e9e6b"
+                          strokeWidth={gaugeStroke}
+                          strokeLinecap="butt"
+                          animatedProps={assetArcProps}
+                        />
+                      </>
+                    )}
+                    {liabArcLen > 0 && (
+                      <>
+                        <Circle
+                          cx={gaugeCx + gaugeRadius}
+                          cy={gaugeCy}
+                          r={gaugeStroke / 2}
+                          fill="rgba(248,113,113,0.75)"
+                        />
+                        <AnimatedPath
+                          d={arcPath}
+                          fill="none"
+                          stroke="rgba(248,113,113,0.75)"
+                          strokeWidth={gaugeStroke}
+                          strokeLinecap="butt"
+                          animatedProps={liabArcProps}
+                        />
+                      </>
+                    )}
+                    {hasAssets && hasLiabilities && (
+                      <Line
+                        x1={divX1}
+                        y1={divY1}
+                        x2={divX2}
+                        y2={divY2}
+                        stroke="rgba(255,255,255,0.55)"
+                        strokeWidth={2.5}
+                        strokeLinecap="round"
+                      />
+                    )}
+                  </Svg>
 
-              {/* Animated Assets vs Liabilities Bar */}
-              <View style={styles.barWrap}>
-                <View
-                  style={[
-                    styles.barTrack,
-                    { backgroundColor: "rgba(248,113,113,0.45)" },
-                  ]}
-                >
-                  <Animated.View
-                    style={[
-                      styles.barFill,
-                      { backgroundColor: "#4ade80" },
-                      assetBarStyle,
-                    ]}
-                  />
+                  <View style={styles.gaugeCenter}>
+                    <Text style={[styles.heroLabel, { color: colors.secondary }]}>
+                      Total Net Worth
+                    </Text>
+                    <Text
+                      style={[styles.heroNet, { color: colors.darkCardText }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {format(netWorthUsd)}
+                    </Text>
+                    <View
+                      style={[
+                        styles.ratioBadge,
+                        {
+                          backgroundColor:
+                            debtToAssetPct <= 35
+                              ? "rgba(74,222,128,0.16)"
+                              : "rgba(248,113,113,0.16)",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.ratioBadgeText,
+                          {
+                            color:
+                              debtToAssetPct <= 35 ? "#4ade80" : "#f87171",
+                          },
+                        ]}
+                      >
+                        {debtToAssetPct}% debt
+                      </Text>
+                    </View>
+                  </View>
                 </View>
+
                 <View style={styles.barLegend}>
                   <View style={styles.legendItem}>
                     <View
-                      style={[styles.dot, { backgroundColor: "#4ade80" }]}
+                      style={[styles.dot, { backgroundColor: "#2e9e6b" }]}
                     />
                     <Text
                       style={[styles.legendLabel, { color: colors.secondary }]}
@@ -944,21 +1041,22 @@ const styles = StyleSheet.create({
   toggleText: { fontSize: 13 },
 
   heroCard: { borderRadius: 24, padding: 20, gap: 16 },
-  heroTop: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
+  gaugeContainer: { alignItems: "center", gap: 14 },
+  gaugeCenter: {
+    position: "absolute",
+    left: 26,
+    right: 26,
+    bottom: 2,
+    alignItems: "center",
+    gap: 4,
   },
-  heroLabel: { fontFamily: fonts.medium, fontSize: 13 },
-  heroNet: { fontFamily: fonts.bold, fontSize: 34, marginTop: 4 },
-  ratioBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  ratioBadgeText: { fontFamily: fonts.semiBold, fontSize: 12 },
+  heroLabel: { fontFamily: fonts.medium, fontSize: 12 },
+  heroNet: { fontFamily: fonts.bold, fontSize: 30, textAlign: "center" },
+  ratioBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginTop: 2 },
+  ratioBadgeText: { fontFamily: fonts.semiBold, fontSize: 11 },
 
-  barWrap: { gap: 8 },
-  barTrack: { height: 10, borderRadius: 999, overflow: "hidden" },
-  barFill: { height: "100%", borderRadius: 999 },
   barLegend: {
+    width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
     flexWrap: "wrap",
