@@ -9,5 +9,10 @@ crons.daily(
   internal.currencies.syncRates,
 );
 
-export default crons;
+crons.hourly(
+  "send reminder notifications",
+  { minuteUTC: 0 },
+  internal.reminder.checkAndSendReminders,
+);
 
+export default crons;

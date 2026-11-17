@@ -23,11 +23,13 @@ import { useCloudSync } from '@/components/CloudSyncProvider';
 import { useCurrency } from '@/components/CurrencyProvider';
 import { FavoriteCurrenciesSheet } from '@/components/FavoriteCurrenciesSheet';
 import { FocusFadeIn } from '@/components/FocusFadeIn';
+import { usePushNotification } from '@/components/PushNotificationProvider';
 import { useTransactions } from '@/components/TransactionsProvider';
 import { useWealth } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 import { api } from '@/convex/_generated/api';
+import { getDeviceTimeZone } from '@/utils/reg_push_notifications';
 
 export default function ProfileScreen() {
   const colors = Colors[useColorScheme()];
@@ -40,7 +42,9 @@ export default function ProfileScreen() {
 
   const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : 'skip');
   const updatePreferences = useMutation(api.users.updatePreferences);
+  const setNotificationsEnabled = useMutation(api.users.setNotificationsEnabled);
   const deleteAccountMutation = useMutation(api.users.deleteAccount);
+  const { registerNow } = usePushNotification();
 
   const favoritesSheetRef = useRef<BottomSheetModal>(null);
 
@@ -297,6 +301,40 @@ export default function ProfileScreen() {
                     onValueChange={(val) => {
                       Haptics.selectionAsync().catch(() => {});
                       setIncludeCashBalance(val);
+                    }}
+                    trackColor={{ false: colors.cardBorder, true: colors.accent }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+
+                <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
+
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
+                    <Ionicons name="notifications-outline" size={18} color={colors.tint} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: colors.text }]}>
+                      Reminder Notifications
+                    </Text>
+                    <Text style={[styles.rowSub, { color: colors.textMuted }]}>
+                      Daily spending nudge & weekly wealth check-in
+                    </Text>
+                  </View>
+                  <Switch
+                    value={viewer?.notificationsEnabled !== false}
+                    onValueChange={(val) => {
+                      Haptics.selectionAsync().catch(() => {});
+                      void (async () => {
+                        const token = val ? await registerNow() : undefined;
+                        await setNotificationsEnabled({
+                          enabled: val,
+                          token: token ?? undefined,
+                          timezone: getDeviceTimeZone(),
+                        });
+                      })().catch((err) =>
+                        console.error('Failed to toggle reminders:', err),
+                      );
                     }}
                     trackColor={{ false: colors.cardBorder, true: colors.accent }}
                     thumbColor="#ffffff"

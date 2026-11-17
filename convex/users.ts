@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { currencyValidator } from "./schema";
 
 export const viewer = query({
@@ -77,6 +77,149 @@ export const updatePreferences = mutation({
     }
 
     await ctx.db.patch(userId, patch);
+  },
+});
+
+export const storePushToken = mutation({
+  args: {
+    token: v.string(),
+    timezone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return;
+
+    const user = await ctx.db.get(userId);
+    if (!user) return;
+
+    const existingTokens = user.pushTokens ?? [];
+    const nextTokens = existingTokens.includes(args.token)
+      ? existingTokens
+      : [...existingTokens, args.token];
+
+    await ctx.db.patch(userId, {
+      pushTokens: nextTokens,
+      ...(args.timezone ? { timezone: args.timezone } : {}),
+      ...(user.notificationsEnabled === undefined
+        ? { notificationsEnabled: true }
+        : {}),
+    });
+  },
+});
+
+export const setNotificationsEnabled = mutation({
+  args: {
+    enabled: v.boolean(),
+    token: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("Unauthenticated");
+    }
+
+    const user = await ctx.db.get(userId);
+    if (!user) return;
+
+    const patch: {
+      notificationsEnabled: boolean;
+      pushTokens?: string[];
+      timezone?: string;
+    } = {
+      notificationsEnabled: args.enabled,
+    };
+
+    if (args.timezone) {
+      patch.timezone = args.timezone;
+    }
+
+    if (args.enabled && args.token) {
+      const current = user.pushTokens ?? [];
+      if (!current.includes(args.token)) {
+        patch.pushTokens = [...current, args.token];
+      }
+    }
+
+    await ctx.db.patch(userId, patch);
+  },
+});
+
+function getLocalDateKey(date: Date, timeZone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
+
+export const getReminderCandidates = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const eligible = users.filter(
+      (u) =>
+        u.notificationsEnabled !== false &&
+        u.pushTokens &&
+        u.pushTokens.length > 0,
+    );
+
+    const now = new Date();
+    const results = [];
+
+    for (const user of eligible) {
+      const tz = user.timezone || "UTC";
+      const todayKey = getLocalDateKey(now, tz);
+
+      const userTxs = await ctx.db
+        .query("transactions")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+
+      const hasTransactionToday = userTxs.some((tx) => {
+        const txDate = new Date(tx.date);
+        return getLocalDateKey(txDate, tz) === todayKey;
+      });
+
+      results.push({
+        userId: user._id,
+        pushTokens: user.pushTokens ?? [],
+        timezone: tz,
+        lastDailyReminderDate: user.lastDailyReminderDate,
+        lastWeeklyReminderWeek: user.lastWeeklyReminderWeek,
+        hasTransactionToday,
+      });
+    }
+
+    return results;
+  },
+});
+
+export const markReminderSent = internalMutation({
+  args: {
+    userId: v.id("users"),
+    lastDailyReminderDate: v.optional(v.string()),
+    lastWeeklyReminderWeek: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const patch: {
+      lastDailyReminderDate?: string;
+      lastWeeklyReminderWeek?: string;
+    } = {};
+    if (args.lastDailyReminderDate !== undefined) {
+      patch.lastDailyReminderDate = args.lastDailyReminderDate;
+    }
+    if (args.lastWeeklyReminderWeek !== undefined) {
+      patch.lastWeeklyReminderWeek = args.lastWeeklyReminderWeek;
+    }
+    if (Object.keys(patch).length > 0) {
+      await ctx.db.patch(args.userId, patch);
+    }
   },
 });
 

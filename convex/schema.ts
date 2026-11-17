@@ -17,6 +17,11 @@ export default defineSchema({
     currency: v.optional(currencyValidator),
     favoriteCurrencies: v.optional(v.array(v.string())),
     includeCashBalance: v.optional(v.boolean()),
+    pushTokens: v.optional(v.array(v.string())),
+    notificationsEnabled: v.optional(v.boolean()),
+    timezone: v.optional(v.string()),
+    lastDailyReminderDate: v.optional(v.string()),
+    lastWeeklyReminderWeek: v.optional(v.string()),
   }).index("email", ["email"]),
 
   currencies: defineTable({

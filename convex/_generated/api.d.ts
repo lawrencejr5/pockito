@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as currencies from "../currencies.js";
 import type * as http from "../http.js";
+import type * as reminder from "../reminder.js";
 import type * as sync from "../sync.js";
 import type * as transactions from "../transactions.js";
 import type * as users from "../users.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   currencies: typeof currencies;
   http: typeof http;
+  reminder: typeof reminder;
   sync: typeof sync;
   transactions: typeof transactions;
   users: typeof users;

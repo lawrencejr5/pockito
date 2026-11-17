@@ -14,6 +14,7 @@ import {
 } from "@/components/CloudSyncProvider";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { CurrencyProvider, useCurrency } from "@/components/CurrencyProvider";
+import { PushNotificationProvider } from "@/components/PushNotificationProvider";
 import {
   TransactionsProvider,
   useTransactions,
@@ -60,13 +61,15 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ConvexClientProvider>
         <CloudSyncProvider>
-          <CurrencyProvider>
-            <TransactionsProvider>
-              <WealthProvider>
-                <RootLayoutNav />
-              </WealthProvider>
-            </TransactionsProvider>
-          </CurrencyProvider>
+          <PushNotificationProvider>
+            <CurrencyProvider>
+              <TransactionsProvider>
+                <WealthProvider>
+                  <RootLayoutNav />
+                </WealthProvider>
+              </TransactionsProvider>
+            </CurrencyProvider>
+          </PushNotificationProvider>
         </CloudSyncProvider>
       </ConvexClientProvider>
     </GestureHandlerRootView>
