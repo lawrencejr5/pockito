@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   FadeIn,
-  LinearTransition,
+  FadeInDown,
+  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -15,8 +17,8 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 import type { CategoryStat } from '@/lib/reportStats';
 
-const RING_SIZE = 108;
-const STROKE = 14;
+const RING_SIZE = 164;
+const STROKE = 20;
 const RADIUS = (RING_SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
@@ -46,11 +48,11 @@ type Props = {
 export function CategoryBreakdown({ categories, totalExpenseUsd }: Props) {
   const colors = Colors[useColorScheme()];
   const { format } = useCurrency();
+  const [expanded, setExpanded] = useState(false);
 
   if (categories.length === 0) {
     return (
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.title, { color: colors.text }]}>Spending by Category</Text>
         <Text style={[styles.empty, { color: colors.textMuted }]}>
           No expenses recorded in this period.
         </Text>
@@ -61,17 +63,8 @@ export function CategoryBreakdown({ categories, totalExpenseUsd }: Props) {
   let offset = 0;
 
   return (
-    <Animated.View
-      layout={LinearTransition.springify().damping(18)}
-      style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-      <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: colors.text }]}>Spending by Category</Text>
-        <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-          {categories.length} {categories.length === 1 ? 'category' : 'categories'}
-        </Text>
-      </View>
-
-      <View style={styles.ringRow}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+      <View style={styles.ringSection}>
         <View style={styles.ringWrap}>
           <Svg width={RING_SIZE} height={RING_SIZE}>
             <Circle
@@ -105,18 +98,21 @@ export function CategoryBreakdown({ categories, totalExpenseUsd }: Props) {
             })}
           </Svg>
           <View style={styles.ringCenter}>
-            <Text style={[styles.ringLabel, { color: colors.textMuted }]}>Total</Text>
+            <Text style={[styles.ringLabel, { color: colors.textMuted }]}>Total Spent</Text>
             <Text
               style={[styles.ringValue, { color: colors.text }]}
               numberOfLines={1}
               adjustsFontSizeToFit>
               {format(totalExpenseUsd)}
             </Text>
+            <Text style={[styles.ringSub, { color: colors.textMuted }]}>
+              {categories.length} {categories.length === 1 ? 'category' : 'categories'}
+            </Text>
           </View>
         </View>
 
-        <View style={styles.legend}>
-          {categories.slice(0, 3).map((item) => (
+        <View style={styles.legendWrap}>
+          {categories.slice(0, 6).map((item) => (
             <View key={item.category.id} style={styles.legendRow}>
               <View style={[styles.dot, { backgroundColor: item.category.color }]} />
               <Text style={[styles.legendName, { color: colors.text }]} numberOfLines={1}>
@@ -127,42 +123,75 @@ export function CategoryBreakdown({ categories, totalExpenseUsd }: Props) {
               </Text>
             </View>
           ))}
+          {categories.length > 6 && (
+            <Text style={[styles.legendMore, { color: colors.textMuted }]}>
+              +{categories.length - 6} more
+            </Text>
+          )}
         </View>
       </View>
 
-      <View style={styles.list}>
-        {categories.map((item) => (
-          <Animated.View key={item.category.id} entering={FadeIn.duration(250)} style={styles.row}>
-            <View style={styles.rowTop}>
-              <View style={styles.rowLeft}>
-                <View style={[styles.badge, { backgroundColor: item.category.color + '26' }]}>
-                  <Ionicons name={item.category.icon} size={16} color={item.category.color} />
+      <Pressable
+        onPress={() => {
+          Haptics.selectionAsync().catch(() => {});
+          setExpanded((prev) => !prev);
+        }}
+        style={({ pressed }) => [
+          styles.toggleBtn,
+          {
+            backgroundColor: colors.sheet,
+            borderColor: colors.cardBorder,
+            opacity: pressed ? 0.75 : 1,
+          },
+        ]}>
+        <Text style={[styles.toggleText, { color: colors.text }]}>
+          {expanded ? 'Hide breakdown' : 'See breakdown'}
+        </Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={colors.textMuted}
+        />
+      </Pressable>
+
+      {expanded && (
+        <Animated.View
+          entering={FadeInDown.duration(220)}
+          exiting={FadeOut.duration(150)}
+          style={styles.list}>
+          {categories.map((item) => (
+            <Animated.View key={item.category.id} entering={FadeIn.duration(250)} style={styles.row}>
+              <View style={styles.rowTop}>
+                <View style={styles.rowLeft}>
+                  <View style={[styles.badge, { backgroundColor: item.category.color + '26' }]}>
+                    <Ionicons name={item.category.icon} size={16} color={item.category.color} />
+                  </View>
+                  <View>
+                    <Text style={[styles.catName, { color: colors.text }]}>{item.category.label}</Text>
+                    <Text style={[styles.catCount, { color: colors.textMuted }]}>
+                      {item.count} {item.count === 1 ? 'transaction' : 'transactions'}
+                    </Text>
+                  </View>
                 </View>
-                <View>
-                  <Text style={[styles.catName, { color: colors.text }]}>{item.category.label}</Text>
-                  <Text style={[styles.catCount, { color: colors.textMuted }]}>
-                    {item.count} {item.count === 1 ? 'transaction' : 'transactions'}
+                <View style={styles.rowRight}>
+                  <Text style={[styles.catAmount, { color: colors.text }]}>
+                    {format(item.amountUsd)}
+                  </Text>
+                  <Text style={[styles.catPct, { color: colors.textMuted }]}>
+                    {item.percent.toFixed(0)}%
                   </Text>
                 </View>
               </View>
-              <View style={styles.rowRight}>
-                <Text style={[styles.catAmount, { color: colors.text }]}>
-                  {format(item.amountUsd)}
-                </Text>
-                <Text style={[styles.catPct, { color: colors.textMuted }]}>
-                  {item.percent.toFixed(0)}%
-                </Text>
-              </View>
-            </View>
-            <AnimatedBar
-              percent={item.percent}
-              color={item.category.color}
-              trackColor={colors.cardBorder}
-            />
-          </Animated.View>
-        ))}
-      </View>
-    </Animated.View>
+              <AnimatedBar
+                percent={item.percent}
+                color={item.category.color}
+                trackColor={colors.cardBorder}
+              />
+            </Animated.View>
+          ))}
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -173,19 +202,12 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 16,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: { fontFamily: fonts.bold, fontSize: 16 },
-  subtitle: { fontFamily: fonts.medium, fontSize: 12 },
-  empty: { fontFamily: fonts.regular, fontSize: 13, paddingVertical: 8 },
+  empty: { fontFamily: fonts.regular, fontSize: 13, paddingVertical: 8, textAlign: 'center' },
 
-  ringRow: {
+  ringSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 18,
+    gap: 16,
   },
   ringWrap: {
     width: RING_SIZE,
@@ -196,16 +218,37 @@ const styles = StyleSheet.create({
   ringCenter: {
     position: 'absolute',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 22,
+    gap: 1,
   },
   ringLabel: { fontFamily: fonts.medium, fontSize: 10 },
-  ringValue: { fontFamily: fonts.bold, fontSize: 13 },
+  ringValue: { fontFamily: fonts.bold, fontSize: 18 },
+  ringSub: { fontFamily: fonts.regular, fontSize: 10 },
 
-  legend: { flex: 1, gap: 8 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legendWrap: {
+    flex: 1,
+    gap: 7,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  legendName: { flex: 1, fontFamily: fonts.medium, fontSize: 13 },
-  legendPct: { fontFamily: fonts.semiBold, fontSize: 12 },
+  legendName: { flex: 1, fontFamily: fonts.medium, fontSize: 12 },
+  legendPct: { fontFamily: fonts.semiBold, fontSize: 11 },
+  legendMore: { fontFamily: fonts.regular, fontSize: 11, marginTop: 1 },
+
+  toggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  toggleText: { fontFamily: fonts.semiBold, fontSize: 13 },
 
   list: { gap: 14 },
   row: { gap: 6 },
