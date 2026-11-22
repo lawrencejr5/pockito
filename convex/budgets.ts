@@ -10,6 +10,19 @@ const budgetPeriodValidator = v.union(
   v.literal("custom"),
 );
 
+function normalizeCategoryIds(categoryIds?: string[]): string[] | undefined {
+  if (!categoryIds || categoryIds.length === 0) return undefined;
+  const unique = Array.from(new Set(categoryIds.filter(Boolean))).sort();
+  return unique.length > 0 ? unique : undefined;
+}
+
+function sameCategorySet(a?: string[], b?: string[]): boolean {
+  const normA = normalizeCategoryIds(a) ?? [];
+  const normB = normalizeCategoryIds(b) ?? [];
+  if (normA.length !== normB.length) return false;
+  return normA.every((val, idx) => val === normB[idx]);
+}
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -27,6 +40,7 @@ export const list = query({
       .map((item) => ({
         id: item._id as string,
         name: item.name,
+        categoryIds: item.categoryIds,
         period: item.period,
         recurring: item.recurring,
         amountUsd: item.amountUsd,
@@ -44,6 +58,7 @@ export const list = query({
 export const add = mutation({
   args: {
     name: v.optional(v.string()),
+    categoryIds: v.optional(v.array(v.string())),
     period: budgetPeriodValidator,
     recurring: v.boolean(),
     amountUsd: v.number(),
@@ -60,19 +75,24 @@ export const add = mutation({
 
     const nowIso = new Date().toISOString();
     const isRecurring = args.period === "custom" ? false : args.recurring;
+    const categoryIds = normalizeCategoryIds(args.categoryIds);
 
-    // Enforce at most one recurring budget per cadence (daily / weekly / monthly).
+    // Enforce at most one recurring budget per (cadence, categorySet).
     if (isRecurring) {
       const existingRows = await ctx.db
         .query("budgets")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
       const existingRecurring = existingRows.find(
-        (b) => b.recurring && b.period === args.period,
+        (b) =>
+          b.recurring &&
+          b.period === args.period &&
+          sameCategorySet(b.categoryIds, categoryIds),
       );
       if (existingRecurring) {
         await ctx.db.patch(existingRecurring._id, {
           name: args.name,
+          categoryIds,
           amountUsd: args.amountUsd,
           currency: args.currency,
           originalAmount: args.originalAmount,
@@ -87,6 +107,7 @@ export const add = mutation({
     return await ctx.db.insert("budgets", {
       userId,
       name: args.name,
+      categoryIds,
       period: args.period,
       recurring: isRecurring,
       amountUsd: args.amountUsd,
@@ -104,6 +125,7 @@ export const update = mutation({
   args: {
     id: v.id("budgets"),
     name: v.optional(v.string()),
+    categoryIds: v.optional(v.array(v.string())),
     period: budgetPeriodValidator,
     recurring: v.boolean(),
     amountUsd: v.number(),
@@ -124,15 +146,21 @@ export const update = mutation({
     }
 
     const isRecurring = args.period === "custom" ? false : args.recurring;
+    const categoryIds = normalizeCategoryIds(args.categoryIds);
 
-    // If changing to a recurring cadence that already exists on another doc, replace that duplicate.
+    // If changing to a (cadence, categorySet) that already exists on another doc, replace that duplicate.
     if (isRecurring) {
       const existingRows = await ctx.db
         .query("budgets")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
       for (const row of existingRows) {
-        if (row._id !== args.id && row.recurring && row.period === args.period) {
+        if (
+          row._id !== args.id &&
+          row.recurring &&
+          row.period === args.period &&
+          sameCategorySet(row.categoryIds, categoryIds)
+        ) {
           await ctx.db.delete(row._id);
         }
       }
@@ -140,6 +168,7 @@ export const update = mutation({
 
     await ctx.db.patch(args.id, {
       name: args.name,
+      categoryIds,
       period: args.period,
       recurring: isRecurring,
       amountUsd: args.amountUsd,

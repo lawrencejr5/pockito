@@ -66,6 +66,7 @@ export default defineSchema({
   budgets: defineTable({
     userId: v.id("users"),
     name: v.optional(v.string()),
+    categoryIds: v.optional(v.array(v.string())),
     period: v.union(
       v.literal("daily"),
       v.literal("weekly"),

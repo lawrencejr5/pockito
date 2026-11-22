@@ -13,14 +13,17 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  FlatList,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -37,6 +40,7 @@ import { useBudgets } from "@/components/BudgetsProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
+import { EXPENSE_CATEGORIES } from "@/constants/categories";
 import {
   formatShortDate,
   parseDateKey,
@@ -111,6 +115,8 @@ function BudgetCard({
   const colors = Colors[scheme];
   const { format } = useCurrency();
 
+  const singleCategory =
+    item.categories.length === 1 ? item.categories[0] : null;
   const statusColor = getBudgetStatusColor(
     item.status,
     scheme,
@@ -121,7 +127,12 @@ function BudgetCard({
     ? item.status === "exceeded"
       ? colors.expense
       : colors.income
-    : getBudgetStatusColor(item.status, scheme, colors.accent, colors.expense);
+    : getBudgetStatusColor(
+        item.status,
+        scheme,
+        singleCategory ? singleCategory.color : colors.accent,
+        colors.expense,
+      );
 
   const isOver = item.remainingUsd < 0;
   const daysHint =
@@ -154,6 +165,20 @@ function BudgetCard({
       <View style={styles.cardTop}>
         <View style={styles.cardTitleBlock}>
           <View style={styles.cardTitleRow}>
+            {singleCategory && (
+              <View
+                style={[
+                  styles.catMiniBadge,
+                  { backgroundColor: singleCategory.color + "26" },
+                ]}
+              >
+                <Ionicons
+                  name={singleCategory.icon}
+                  size={13}
+                  color={singleCategory.color}
+                />
+              </View>
+            )}
             <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
               {item.title}
             </Text>
@@ -195,8 +220,32 @@ function BudgetCard({
           </View>
           <Text style={[styles.cardSub, { color: colors.textMuted }]}>
             {item.subtitle}
+            {` · ${item.isGeneral ? "All expenses" : item.scopeLabel}`}
             {daysHint ? ` · ${daysHint}` : ""}
           </Text>
+          {item.categories.length > 1 && (
+            <View style={styles.cardCatChips}>
+              {item.categories.slice(0, 4).map((cat) => (
+                <View
+                  key={cat.id}
+                  style={[
+                    styles.cardCatPill,
+                    { backgroundColor: cat.color + "1F", borderColor: cat.color + "44" },
+                  ]}
+                >
+                  <Ionicons name={cat.icon} size={11} color={cat.color} />
+                  <Text style={[styles.cardCatPillText, { color: colors.text }]}>
+                    {cat.label}
+                  </Text>
+                </View>
+              ))}
+              {item.categories.length > 4 && (
+                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+                  +{item.categories.length - 4}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
 
         <Pressable
@@ -286,10 +335,33 @@ export default function BudgetScreen() {
   const [customEnd, setCustomEnd] = useState(() => new Date());
   const [editingBound, setEditingBound] = useState<"start" | "end">("start");
   const [amountText, setAmountText] = useState("");
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [catQuery, setCatQuery] = useState("");
   const [initialName, setInitialName] = useState("");
   const [nameInputKey, setNameInputKey] = useState(0);
   const nameInputRef = useRef<any>(null);
   const nameValueRef = useRef("");
+
+  const filteredCategories = useMemo(
+    () =>
+      EXPENSE_CATEGORIES.filter((c) =>
+        c.label.toLowerCase().includes(catQuery.trim().toLowerCase()),
+      ),
+    [catQuery],
+  );
+
+  const toggleCategoryId = (id: string) => {
+    Haptics.selectionAsync().catch(() => {});
+    setSelectedCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  const selectGeneralScope = () => {
+    Haptics.selectionAsync().catch(() => {});
+    setSelectedCategoryIds([]);
+  };
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -314,6 +386,7 @@ export default function BudgetScreen() {
     setCustomEnd(today);
     setEditingBound("start");
     setAmountText("");
+    setSelectedCategoryIds([]);
     nameValueRef.current = "";
     setInitialName("");
     setNameInputKey((k) => k + 1);
@@ -344,6 +417,7 @@ export default function BudgetScreen() {
         ? budget.originalAmount
         : Number((budget.amountUsd * currency.rate).toFixed(currency.decimals));
     setAmountText(formatAmountInput(String(displayAmount)));
+    setSelectedCategoryIds(budget.categoryIds ?? []);
     const nextName = budget.name ?? "";
     nameValueRef.current = nextName;
     setInitialName(nextName);
@@ -406,7 +480,7 @@ export default function BudgetScreen() {
   const existingRecurringConflict =
     period !== "custom" && isEffectiveRecurring
       ? (() => {
-          const existing = getRecurringBudget(period);
+          const existing = getRecurringBudget(period, selectedCategoryIds);
           if (!existing) return null;
           if (editingBudget && existing.id === editingBudget.id) return null;
           return existing;
@@ -439,6 +513,8 @@ export default function BudgetScreen() {
 
     const payload = {
       name: nameValueRef.current.trim() || undefined,
+      categoryIds:
+        selectedCategoryIds.length > 0 ? selectedCategoryIds : undefined,
       period,
       recurring: isEffectiveRecurring,
       amountUsd,
@@ -931,6 +1007,107 @@ export default function BudgetScreen() {
                 </View>
               )}
 
+              {/* Category / Scope selector */}
+              <View style={styles.fieldGroup}>
+                <View style={styles.scopeHeader}>
+                  <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>
+                    Applies to (
+                    {selectedCategoryIds.length === 0
+                      ? "General"
+                      : `${selectedCategoryIds.length} selected`}
+                    )
+                  </Text>
+                  <Pressable onPress={() => setCatModalOpen(true)} hitSlop={8}>
+                    <Text style={[styles.seeAllText, { color: colors.tint }]}>
+                      See all
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.catChipsRow}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <Pressable
+                    onPress={selectGeneralScope}
+                    style={[
+                      styles.catChip,
+                      {
+                        backgroundColor:
+                          selectedCategoryIds.length === 0
+                            ? colors.accentSoft
+                            : colors.card,
+                        borderColor:
+                          selectedCategoryIds.length === 0
+                            ? colors.tint
+                            : colors.cardBorder,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="layers-outline"
+                      size={16}
+                      color={
+                        selectedCategoryIds.length === 0
+                          ? colors.tint
+                          : colors.textMuted
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.catChipText,
+                        {
+                          color:
+                            selectedCategoryIds.length === 0
+                              ? colors.tint
+                              : colors.text,
+                          fontFamily:
+                            selectedCategoryIds.length === 0
+                              ? fonts.semiBold
+                              : fonts.medium,
+                        },
+                      ]}
+                    >
+                      General (All)
+                    </Text>
+                  </Pressable>
+
+                  {EXPENSE_CATEGORIES.map((c) => {
+                    const active = selectedCategoryIds.includes(c.id);
+                    return (
+                      <Pressable
+                        key={c.id}
+                        onPress={() => toggleCategoryId(c.id)}
+                        style={[
+                          styles.catChip,
+                          {
+                            backgroundColor: active
+                              ? c.color + "26"
+                              : colors.card,
+                            borderColor: active ? c.color : colors.cardBorder,
+                          },
+                        ]}
+                      >
+                        <Ionicons name={c.icon} size={16} color={c.color} />
+                        <Text
+                          style={[
+                            styles.catChipText,
+                            {
+                              color: active ? c.color : colors.text,
+                              fontFamily: active ? fonts.semiBold : fonts.medium,
+                            },
+                          ]}
+                        >
+                          {c.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
               {/* Amount input */}
               <View style={styles.fieldGroup}>
                 <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>
@@ -1026,6 +1203,169 @@ export default function BudgetScreen() {
               )}
             </BottomSheetScrollView>
           </BottomSheetModal>
+
+          {/* Multi-select Category Modal */}
+          <Modal
+            visible={catModalOpen}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => {
+              setCatModalOpen(false);
+              setCatQuery("");
+            }}
+          >
+            <View
+              style={[
+                styles.catModal,
+                {
+                  backgroundColor: colors.sheet,
+                  paddingBottom: Math.max(insets.bottom, 16),
+                },
+              ]}
+            >
+              <View style={styles.catModalHeader}>
+                <Text style={[styles.catModalTitle, { color: colors.text }]}>
+                  Budget categories
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    setCatModalOpen(false);
+                    setCatQuery("");
+                  }}
+                  hitSlop={10}
+                >
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </Pressable>
+              </View>
+
+              <View
+                style={[
+                  styles.catSearch,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.cardBorder,
+                  },
+                ]}
+              >
+                <Ionicons name="search" size={18} color={colors.textMuted} />
+                <TextInput
+                  value={catQuery}
+                  onChangeText={setCatQuery}
+                  placeholder="Search categories"
+                  placeholderTextColor={colors.textMuted}
+                  style={[styles.catSearchInput, { color: colors.text }]}
+                />
+              </View>
+
+              <FlatList
+                data={filteredCategories}
+                keyExtractor={(c) => c.id}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ gap: 10, paddingBottom: 16 }}
+                ListHeaderComponent={
+                  <Pressable
+                    onPress={selectGeneralScope}
+                    style={[
+                      styles.catListRow,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor:
+                          selectedCategoryIds.length === 0
+                            ? colors.tint
+                            : colors.cardBorder,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.catListBadge,
+                        { backgroundColor: colors.accentSoft },
+                      ]}
+                    >
+                      <Ionicons
+                        name="layers-outline"
+                        size={20}
+                        color={colors.tint}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.catListText, { color: colors.text }]}>
+                        General (All expenses)
+                      </Text>
+                      <Text style={[styles.catListSub, { color: colors.textMuted }]}>
+                        Track total spending across every category
+                      </Text>
+                    </View>
+                    {selectedCategoryIds.length === 0 && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={22}
+                        color={colors.tint}
+                      />
+                    )}
+                  </Pressable>
+                }
+                renderItem={({ item }) => {
+                  const active = selectedCategoryIds.includes(item.id);
+                  return (
+                    <Pressable
+                      onPress={() => toggleCategoryId(item.id)}
+                      style={[
+                        styles.catListRow,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: active ? item.color : colors.cardBorder,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.catListBadge,
+                          { backgroundColor: item.color + "26" },
+                        ]}
+                      >
+                        <Ionicons name={item.icon} size={20} color={item.color} />
+                      </View>
+                      <Text
+                        style={[
+                          styles.catListText,
+                          { color: colors.text, flex: 1 },
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                      <Ionicons
+                        name={active ? "checkbox" : "square-outline"}
+                        size={22}
+                        color={active ? item.color : colors.textMuted}
+                      />
+                    </Pressable>
+                  );
+                }}
+              />
+
+              <Pressable
+                onPress={() => {
+                  setCatModalOpen(false);
+                  setCatQuery("");
+                }}
+                style={({ pressed }) => [
+                  styles.saveBtn,
+                  {
+                    backgroundColor: colors.accent,
+                    opacity: pressed ? 0.82 : 1,
+                    marginTop: 8,
+                  },
+                ]}
+              >
+                <Text style={styles.saveBtnText}>
+                  {selectedCategoryIds.length === 0
+                    ? "Done (General)"
+                    : `Done (${selectedCategoryIds.length} selected)`}
+                </Text>
+              </Pressable>
+            </View>
+          </Modal>
         </View>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
@@ -1105,6 +1445,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     flexWrap: "wrap",
+  },
+  catMiniBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardCatChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  cardCatPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  cardCatPillText: {
+    fontFamily: fonts.medium,
+    fontSize: 10.5,
   },
   cardTitle: {
     fontFamily: fonts.semiBold,
@@ -1302,6 +1669,83 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontFamily: fonts.medium,
     fontSize: 12,
+  },
+  scopeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  seeAllText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+  },
+  catChipsRow: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  catChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    height: 38,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  catChipText: {
+    fontSize: 12.5,
+  },
+  catModal: {
+    flex: 1,
+    padding: 20,
+    gap: 14,
+  },
+  catModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  catModalTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 18,
+  },
+  catSearch: {
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+  },
+  catSearchInput: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+  },
+  catListRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  catListBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  catListText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14.5,
+  },
+  catListSub: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    marginTop: 1,
   },
   amountBox: {
     flexDirection: "row",

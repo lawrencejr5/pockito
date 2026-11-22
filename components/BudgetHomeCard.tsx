@@ -4,15 +4,24 @@ import { router } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
+  Easing,
+  useAnimatedProps,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import Svg, { Circle } from "react-native-svg";
 
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
 import type { BudgetStatus, HomeBudgetSelection } from "@/lib/budgets";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const RING_SIZE = 40;
+const RING_STROKE = 3.5;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 export function getBudgetStatusColor(
   status: BudgetStatus,
@@ -34,17 +43,23 @@ export function BudgetHomeCard({ selection }: Props) {
   const colors = Colors[scheme];
   const { format } = useCurrency();
 
-  const barPct = useSharedValue(selection ? selection.primary.clampedPercent : 0);
+  const targetPct = selection
+    ? selection.primary.spentUsd > 0
+      ? Math.max(selection.primary.clampedPercent, 3)
+      : 0
+    : 0;
+  const progress = useSharedValue(targetPct);
 
   useEffect(() => {
-    barPct.value = withTiming(
-      selection ? Math.max(selection.primary.clampedPercent, selection.primary.spentUsd > 0 ? 3 : 0) : 0,
-      { duration: 420 },
-    );
-  }, [selection, barPct]);
+    progress.value = withTiming(targetPct, {
+      duration: 450,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [targetPct, progress]);
 
-  const fillStyle = useAnimatedStyle(() => ({
-    width: `${barPct.value}%`,
+  const animatedCircleProps = useAnimatedProps(() => ({
+    strokeDashoffset:
+      RING_CIRCUMFERENCE * (1 - Math.min(Math.max(progress.value, 0), 100) / 100),
   }));
 
   const handleOpen = () => {
@@ -58,7 +73,6 @@ export function BudgetHomeCard({ selection }: Props) {
         onPress={handleOpen}
         style={({ pressed }) => [
           styles.card,
-          styles.emptyCard,
           {
             backgroundColor: colors.card,
             borderColor: colors.cardBorder,
@@ -66,35 +80,66 @@ export function BudgetHomeCard({ selection }: Props) {
           },
         ]}
       >
-        <View style={[styles.iconBadge, { backgroundColor: colors.accentSoft }]}>
-          <Ionicons name="pie-chart-outline" size={18} color={colors.tint} />
+        <View style={styles.emptyRingWrap}>
+          <Svg width={30} height={30}>
+            <Circle
+              cx={15}
+              cy={15}
+              r={12}
+              stroke={colors.accentSoft}
+              strokeWidth={3}
+              fill="none"
+            />
+            <Circle
+              cx={15}
+              cy={15}
+              r={12}
+              stroke={colors.tint}
+              strokeWidth={3}
+              strokeDasharray={`${12 * Math.PI * 0.7} ${12 * Math.PI * 2}`}
+              strokeLinecap="round"
+              rotation={-90}
+              origin="15, 15"
+              fill="none"
+            />
+          </Svg>
         </View>
-        <View style={styles.emptyBody}>
-          <Text style={[styles.title, { color: colors.text }]}>Set a budget</Text>
-          <Text style={[styles.sub, { color: colors.textMuted }]}>
-            Track daily, weekly, or monthly limits
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        <Text style={[styles.title, { color: colors.text, flex: 1 }]} numberOfLines={1}>
+          Set a budget
+        </Text>
+        <Text style={[styles.emptyHint, { color: colors.textMuted }]}>
+          Tap to add
+        </Text>
+        <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
       </Pressable>
     );
   }
 
   const { primary, extraCount } = selection;
+  const singleCategory =
+    primary.categories.length === 1 ? primary.categories[0] : null;
   const statusColor = getBudgetStatusColor(
     primary.status,
     scheme,
     colors.tint,
     colors.expense,
   );
-  const barColor = getBudgetStatusColor(
+  const ringColor = getBudgetStatusColor(
     primary.status,
     scheme,
-    colors.accent,
+    singleCategory ? singleCategory.color : colors.accent,
     colors.expense,
   );
-  const pctLabel = `${Math.round(primary.percent)}%`;
+
+  const pctRounded = Math.round(primary.percent);
+  const pctLabel = pctRounded > 999 ? "999%" : `${pctRounded}%`;
   const isOver = primary.remainingUsd < 0;
+
+  const metaTag = primary.isGeneral
+    ? "All expenses"
+    : primary.title === primary.scopeLabel
+      ? primary.periodShortLabel
+      : primary.scopeLabel;
 
   return (
     <Pressable
@@ -113,170 +158,189 @@ export function BudgetHomeCard({ selection }: Props) {
         },
       ]}
     >
-      <View style={styles.topRow}>
-        <View style={styles.titleWrap}>
-          <View style={[styles.dot, { backgroundColor: barColor }]} />
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-            {primary.title}
-          </Text>
-          {extraCount > 0 && (
-            <View
-              style={[
-                styles.morePill,
-                { backgroundColor: colors.accentSoft },
-              ]}
-            >
-              <Text style={[styles.moreText, { color: colors.tint }]}>
-                +{extraCount}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.rightTop}>
-          <View
+      {/* Left circular progress ring */}
+      <View style={styles.ringWrap}>
+        <Svg width={RING_SIZE} height={RING_SIZE}>
+          <Circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RING_RADIUS}
+            stroke={colors.cardBorder}
+            strokeWidth={RING_STROKE}
+            fill="none"
+          />
+          <AnimatedCircle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RING_RADIUS}
+            stroke={ringColor}
+            strokeWidth={RING_STROKE}
+            strokeDasharray={RING_CIRCUMFERENCE}
+            strokeLinecap="round"
+            rotation={-90}
+            origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+            fill="none"
+            animatedProps={animatedCircleProps}
+          />
+        </Svg>
+        <View style={styles.ringCenter} pointerEvents="none">
+          <Text
             style={[
-              styles.pctPill,
+              styles.ringPct,
               {
-                backgroundColor:
-                  primary.status === "ok"
-                    ? colors.accentSoft
-                    : statusColor + "22",
+                color: primary.status === "ok" ? colors.text : statusColor,
               },
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
           >
-            <Text style={[styles.pctText, { color: statusColor }]}>
-              {pctLabel}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
+            {pctLabel}
+          </Text>
         </View>
       </View>
 
-      <View style={[styles.track, { backgroundColor: colors.cardBorder }]}>
-        <Animated.View
-          style={[styles.fill, { backgroundColor: barColor }, fillStyle]}
-        />
+      {/* Right compact 2-line info */}
+      <View style={styles.body}>
+        <View style={styles.line}>
+          <View style={styles.titleRow}>
+            {singleCategory ? (
+              <Ionicons
+                name={singleCategory.icon}
+                size={13}
+                color={singleCategory.color}
+              />
+            ) : !primary.isGeneral ? (
+              <View style={styles.multiDots}>
+                {primary.categories.slice(0, 3).map((c) => (
+                  <View
+                    key={c.id}
+                    style={[styles.miniDot, { backgroundColor: c.color }]}
+                  />
+                ))}
+              </View>
+            ) : null}
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+              {primary.title}
+            </Text>
+            {extraCount > 0 && (
+              <View
+                style={[styles.morePill, { backgroundColor: colors.accentSoft }]}
+              >
+                <Text style={[styles.moreText, { color: colors.tint }]}>
+                  +{extraCount}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Text
+            style={[
+              styles.remainText,
+              { color: primary.status === "ok" ? colors.text : statusColor },
+            ]}
+            numberOfLines={1}
+          >
+            {isOver
+              ? `${format(Math.abs(primary.remainingUsd))} over`
+              : `${format(primary.remainingUsd)} left`}
+          </Text>
+        </View>
+
+        <View style={styles.line}>
+          <Text style={[styles.subText, { color: colors.textMuted }]} numberOfLines={1}>
+            {format(primary.spentUsd)} / {format(primary.limitUsd)} · {metaTag}
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.bottomRow}>
-        <Text style={[styles.spentText, { color: colors.textMuted }]} numberOfLines={1}>
-          {format(primary.spentUsd)} of {format(primary.limitUsd)}
-        </Text>
-        <Text
-          style={[
-            styles.remainText,
-            {
-              color:
-                primary.status === "ok" ? colors.text : statusColor,
-            },
-          ]}
-          numberOfLines={1}
-        >
-          {isOver
-            ? `${format(Math.abs(primary.remainingUsd))} over`
-            : `${format(primary.remainingUsd)} left`}
-        </Text>
-      </View>
+      <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 10,
-  },
-  emptyCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 11,
   },
-  iconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  emptyRingWrap: {
+    width: 30,
+    height: 30,
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyBody: {
-    flex: 1,
-    gap: 1,
+  emptyHint: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
   },
-  topRow: {
+  ringWrap: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringCenter: {
+    position: "absolute",
+    inset: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringPct: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+  },
+  body: {
+    flex: 1,
+    gap: 2,
+  },
+  line: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
   },
-  titleWrap: {
+  titleRow: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: 5,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  multiDots: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  miniDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   title: {
     fontFamily: fonts.semiBold,
-    fontSize: 14,
+    fontSize: 13.5,
     flexShrink: 1,
   },
-  sub: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-  },
   morePill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
     borderRadius: 999,
   },
   moreText: {
     fontFamily: fonts.semiBold,
-    fontSize: 11,
-  },
-  rightTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  pctPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  pctText: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-  },
-  track: {
-    height: 7,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  fill: {
-    height: "100%",
-    borderRadius: 999,
-  },
-  bottomRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  spentText: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    flexShrink: 1,
+    fontSize: 10,
   },
   remainText: {
     fontFamily: fonts.semiBold,
-    fontSize: 12,
+    fontSize: 12.5,
+  },
+  subText: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+    flex: 1,
   },
 });

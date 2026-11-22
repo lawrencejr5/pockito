@@ -21,6 +21,8 @@ import {
   BUDGET_EXCEEDED_PERCENT,
   BUDGET_WARNING_PERCENT,
   computeBudgetProgress,
+  normalizeCategoryIds,
+  sameCategorySet,
   type Budget,
   type BudgetInput,
   type BudgetPeriod,
@@ -40,7 +42,10 @@ type BudgetsContextValue = {
   addBudget: (input: BudgetInput) => void;
   updateBudget: (id: string, patch: BudgetInput) => void;
   deleteBudget: (id: string) => void;
-  getRecurringBudget: (period: Exclude<BudgetPeriod, "custom">) => Budget | undefined;
+  getRecurringBudget: (
+    period: Exclude<BudgetPeriod, "custom">,
+    categoryIds?: string[],
+  ) => Budget | undefined;
 };
 
 const BudgetsContext = createContext<BudgetsContextValue | null>(null);
@@ -194,6 +199,7 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
       if (!isAuthenticated) return;
       addMutation({
         name: input.name?.trim() ? input.name.trim() : undefined,
+        categoryIds: normalizeCategoryIds(input.categoryIds),
         period: input.period,
         recurring: input.recurring,
         amountUsd: input.amountUsd,
@@ -212,6 +218,7 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
       updateMutation({
         id: id as Id<"budgets">,
         name: patch.name?.trim() ? patch.name.trim() : undefined,
+        categoryIds: normalizeCategoryIds(patch.categoryIds),
         period: patch.period,
         recurring: patch.recurring,
         amountUsd: patch.amountUsd,
@@ -235,8 +242,13 @@ export function BudgetsProvider({ children }: { children: ReactNode }) {
   );
 
   const getRecurringBudget = useCallback(
-    (period: Exclude<BudgetPeriod, "custom">) =>
-      normalizedBudgets.find((b) => b.recurring && b.period === period),
+    (period: Exclude<BudgetPeriod, "custom">, categoryIds?: string[]) =>
+      normalizedBudgets.find(
+        (b) =>
+          b.recurring &&
+          b.period === period &&
+          sameCategorySet(b.categoryIds, categoryIds),
+      ),
     [normalizedBudgets],
   );
 

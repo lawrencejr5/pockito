@@ -1,4 +1,5 @@
 import type { Transaction } from "@/components/TransactionsProvider";
+import { getCategory, type Category } from "@/constants/categories";
 import type { CurrencyCode } from "@/constants/currencies";
 
 export type BudgetPeriod = "daily" | "weekly" | "monthly" | "custom";
@@ -8,6 +9,8 @@ export type BudgetLifecycle = "active" | "upcoming" | "past";
 export type Budget = {
   id: string;
   name?: string;
+  /** Expense category IDs; undefined/empty means General (all expenses). */
+  categoryIds?: string[];
   period: BudgetPeriod;
   recurring: boolean;
   /** Limit normalized to USD (base currency). */
@@ -25,6 +28,7 @@ export type Budget = {
 
 export type BudgetInput = {
   name?: string;
+  categoryIds?: string[];
   period: BudgetPeriod;
   recurring: boolean;
   amountUsd: number;
@@ -36,8 +40,12 @@ export type BudgetInput = {
 
 export type BudgetProgress = {
   budget: Budget;
+  categories: Category[];
+  isGeneral: boolean;
   title: string;
   subtitle: string;
+  scopeLabel: string;
+  periodShortLabel: string;
   badgeLabel: string;
   periodKey: string;
   windowStart: Date;
@@ -66,6 +74,19 @@ export type HomeBudgetSelection = {
 export const BUDGET_WARNING_PERCENT = 80;
 export const BUDGET_EXCEEDED_PERCENT = 100;
 
+export function normalizeCategoryIds(categoryIds?: string[]): string[] | undefined {
+  if (!categoryIds || categoryIds.length === 0) return undefined;
+  const unique = Array.from(new Set(categoryIds.filter(Boolean))).sort();
+  return unique.length > 0 ? unique : undefined;
+}
+
+export function sameCategorySet(a?: string[], b?: string[]): boolean {
+  const normA = normalizeCategoryIds(a) ?? [];
+  const normB = normalizeCategoryIds(b) ?? [];
+  if (normA.length !== normB.length) return false;
+  return normA.every((val, idx) => val === normB[idx]);
+}
+
 export function toDateKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -91,18 +112,32 @@ export function formatShortDate(d: Date): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-function getWindowForBudget(budget: Budget, now: Date): {
+function formatScopeLabel(categories: Category[]): string {
+  if (categories.length === 0) return "General";
+  if (categories.length === 1) return categories[0].label;
+  return `${categories[0].label} +${categories.length - 1}`;
+}
+
+function getWindowForBudget(
+  budget: Budget,
+  categories: Category[],
+  now: Date,
+): {
   windowStart: Date;
   windowEnd: Date;
   periodKey: string;
   title: string;
   subtitle: string;
+  scopeLabel: string;
+  periodShortLabel: string;
   badgeLabel: string;
   lifecycle: BudgetLifecycle;
 } {
   const todayStart = startOfDay(now);
   const todayKey = toDateKey(now);
   const customTitle = budget.name?.trim();
+  const isGeneral = categories.length === 0;
+  const scopeLabel = formatScopeLabel(categories);
 
   if (budget.period === "daily" && budget.recurring) {
     const windowStart = todayStart;
@@ -111,8 +146,10 @@ function getWindowForBudget(budget: Budget, now: Date): {
       windowStart,
       windowEnd,
       periodKey: `daily:${todayKey}`,
-      title: customTitle || "Daily Budget",
+      title: customTitle || (isGeneral ? "Daily Budget" : scopeLabel),
       subtitle: "Resets every day",
+      scopeLabel,
+      periodShortLabel: "Daily",
       badgeLabel: "Daily · Recurring",
       lifecycle: "active",
     };
@@ -125,15 +162,22 @@ function getWindowForBudget(budget: Budget, now: Date): {
     const isToday = baseKey === todayKey;
     const lifecycle: BudgetLifecycle =
       now > windowEnd ? "past" : now < windowStart ? "upcoming" : "active";
+    const dateLabel = isToday ? "Today" : formatShortDate(windowStart);
     return {
       windowStart,
       windowEnd,
       periodKey: `today:${baseKey}`,
       title:
         customTitle ||
-        (isToday ? "Today's Budget" : `${formatShortDate(windowStart)} Budget`),
+        (isGeneral
+          ? isToday
+            ? "Today's Budget"
+            : `${formatShortDate(windowStart)} Budget`
+          : scopeLabel),
       subtitle: isToday ? "Today only" : formatShortDate(windowStart),
-      badgeLabel: isToday ? "Today" : formatShortDate(windowStart),
+      scopeLabel,
+      periodShortLabel: dateLabel,
+      badgeLabel: dateLabel,
       lifecycle,
     };
   }
@@ -150,8 +194,10 @@ function getWindowForBudget(budget: Budget, now: Date): {
       windowStart,
       windowEnd,
       periodKey: `weekly:${weekKey}`,
-      title: customTitle || "Weekly Budget",
+      title: customTitle || (isGeneral ? "Weekly Budget" : scopeLabel),
       subtitle: `${formatShortDate(windowStart)} – ${formatShortDate(windowEnd)}`,
+      scopeLabel,
+      periodShortLabel: "Weekly",
       badgeLabel: "Weekly · Recurring",
       lifecycle: "active",
     };
@@ -173,8 +219,10 @@ function getWindowForBudget(budget: Budget, now: Date): {
       windowStart,
       windowEnd,
       periodKey: `monthly:${monthKey}`,
-      title: customTitle || "Monthly Budget",
+      title: customTitle || (isGeneral ? "Monthly Budget" : scopeLabel),
       subtitle: now.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      scopeLabel,
+      periodShortLabel: "Monthly",
       badgeLabel: "Monthly · Recurring",
       lifecycle: "active",
     };
@@ -198,8 +246,10 @@ function getWindowForBudget(budget: Budget, now: Date): {
     windowStart,
     windowEnd,
     periodKey: `custom:${toDateKey(windowStart)}..${toDateKey(windowEnd)}`,
-    title: customTitle || rangeLabel,
+    title: customTitle || (isGeneral ? rangeLabel : scopeLabel),
     subtitle: rangeLabel,
+    scopeLabel,
+    periodShortLabel: rangeLabel,
     badgeLabel: isSingle ? "Custom day" : "Custom range",
     lifecycle,
   };
@@ -210,19 +260,27 @@ export function computeBudgetProgress(
   transactions: Transaction[],
   now: Date = new Date(),
 ): BudgetProgress {
+  const normalizedIds = normalizeCategoryIds(budget.categoryIds) ?? [];
+  const categories = normalizedIds.map((id) => getCategory(id));
+  const isGeneral = normalizedIds.length === 0;
+  const categorySet = isGeneral ? null : new Set(normalizedIds);
+
   const {
     windowStart,
     windowEnd,
     periodKey,
     title,
     subtitle,
+    scopeLabel,
+    periodShortLabel,
     badgeLabel,
     lifecycle,
-  } = getWindowForBudget(budget, now);
+  } = getWindowForBudget(budget, categories, now);
 
   let spentUsd = 0;
   for (const t of transactions) {
     if (t.type !== "expense") continue;
+    if (categorySet && !categorySet.has(t.categoryId)) continue;
     const d = new Date(t.date);
     if (d >= windowStart && d <= windowEnd) {
       spentUsd += t.amountUsd;
@@ -248,8 +306,12 @@ export function computeBudgetProgress(
 
   return {
     budget,
+    categories,
+    isGeneral,
     title,
     subtitle,
+    scopeLabel,
+    periodShortLabel,
     badgeLabel,
     periodKey,
     windowStart,
@@ -274,6 +336,7 @@ const PERIOD_PRIORITY: Record<BudgetPeriod, number> = {
 
 function compareByUrgency(a: BudgetProgress, b: BudgetProgress): number {
   if (b.percent !== a.percent) return b.percent - a.percent;
+  if (a.isGeneral !== b.isGeneral) return a.isGeneral ? -1 : 1;
   return PERIOD_PRIORITY[a.budget.period] - PERIOD_PRIORITY[b.budget.period];
 }
 
