@@ -14,6 +14,7 @@ import Animated, {
 
 import SignInScreen from "@/app/sign-in";
 import { AppLoader } from "@/components/AppLoader";
+import { BudgetsProvider, useBudgets } from "@/components/BudgetsProvider";
 import {
   CloudSyncProvider,
   useCloudSync,
@@ -69,9 +70,11 @@ export default function RootLayout() {
           <PushNotificationProvider>
             <CurrencyProvider>
               <TransactionsProvider>
-                <WealthProvider>
-                  <RootLayoutNav />
-                </WealthProvider>
+                <BudgetsProvider>
+                  <WealthProvider>
+                    <RootLayoutNav />
+                  </WealthProvider>
+                </BudgetsProvider>
               </TransactionsProvider>
             </CurrencyProvider>
           </PushNotificationProvider>
@@ -85,6 +88,7 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { isAuthenticated, isAuthLoading, isSyncing } = useCloudSync();
   const { isLoading: txLoading } = useTransactions();
+  const { isLoading: budgetsLoading } = useBudgets();
   const { isLoading: wealthLoading } = useWealth();
   const { isLoading: currencyLoading } = useCurrency();
   const [showBrandSplash, setShowBrandSplash] = useState(true);
@@ -136,7 +140,8 @@ function RootLayoutNav() {
     );
   }
 
-  const isDataLoading = txLoading || wealthLoading || currencyLoading;
+  const isDataLoading =
+    txLoading || budgetsLoading || wealthLoading || currencyLoading;
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -157,6 +162,10 @@ function RootLayoutNav() {
           />
           <Stack.Screen
             name="report"
+            options={{ presentation: "modal", headerShown: false }}
+          />
+          <Stack.Screen
+            name="budget"
             options={{ presentation: "modal", headerShown: false }}
           />
           <Stack.Screen

@@ -62,4 +62,23 @@ export default defineSchema({
     note: v.optional(v.string()),
     updatedAt: v.string(), // ISO string
   }).index("by_user", ["userId"]),
+
+  budgets: defineTable({
+    userId: v.id("users"),
+    name: v.optional(v.string()),
+    period: v.union(
+      v.literal("daily"),
+      v.literal("weekly"),
+      v.literal("monthly"),
+      v.literal("custom"),
+    ),
+    recurring: v.boolean(),
+    amountUsd: v.number(),
+    currency: currencyValidator,
+    originalAmount: v.number(),
+    startDate: v.optional(v.string()), // YYYY-MM-DD local date
+    endDate: v.optional(v.string()), // YYYY-MM-DD local date
+    createdAt: v.string(), // ISO string
+    updatedAt: v.string(), // ISO string
+  }).index("by_user", ["userId"]),
 });

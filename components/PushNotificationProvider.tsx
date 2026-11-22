@@ -37,6 +37,8 @@ function handleNotificationNavigation(response: Notifications.NotificationRespon
     router.push('/add-transaction');
   } else if (data?.type === 'weekly-wealth') {
     router.navigate('/(tabs)/wealth');
+  } else if (data?.type === 'budget-alert') {
+    router.push('/budget');
   }
 }
 

@@ -31,6 +31,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BudgetHomeCard } from "@/components/BudgetHomeCard";
+import { useBudgets } from "@/components/BudgetsProvider";
 import { CashflowChart } from "@/components/CashflowChart";
 import { CurrencyPicker } from "@/components/CurrencyPicker";
 import { useCurrency } from "@/components/CurrencyProvider";
@@ -39,6 +41,7 @@ import { useTransactions } from "@/components/TransactionsProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
 import { getCategory } from "@/constants/categories";
+import { pickHomeBudget } from "@/lib/budgets";
 
 const TOP_GAP = 8; // space between the status bar inset and the header row
 
@@ -108,6 +111,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { currency, format, parts } = useCurrency();
   const { transactions } = useTransactions();
+  const { activeProgresses } = useBudgets();
   const [moneyPeriod, setMoneyPeriod] = useState<MoneyPeriod>("month");
   const [customMode, setCustomMode] = useState<CustomMode>("single");
   const [customStart, setCustomStart] = useState(() => new Date());
@@ -212,6 +216,18 @@ export default function HomeScreen() {
       customStart,
       customEnd,
     ]);
+
+  const homeBudgetSelection = useMemo(
+    () =>
+      pickHomeBudget(
+        activeProgresses,
+        moneyPeriod,
+        customMode,
+        customStart,
+        customEnd,
+      ),
+    [activeProgresses, moneyPeriod, customMode, customStart, customEnd],
+  );
 
   const stickyTop = insets.top + TOP_GAP;
   const scrollY = useSharedValue(0);
@@ -476,7 +492,7 @@ export default function HomeScreen() {
                     </Pressable>
                   </View>
 
-                  <View style={[styles.row, { marginTop: 12 }]}>
+                  <View style={[styles.row, { marginTop: 10 }]}>
                     {[
                       {
                         label: "Income",
@@ -510,7 +526,7 @@ export default function HomeScreen() {
                           >
                             <Ionicons
                               name={c.icon as "arrow-up"}
-                              size={14}
+                              size={12}
                               color={c.color}
                             />
                           </View>
@@ -536,6 +552,10 @@ export default function HomeScreen() {
                 </FocusFadeIn>
                 </View>
               </Animated.View>
+
+              <FocusFadeIn delay={90} style={styles.budgetSection}>
+                <BudgetHomeCard selection={homeBudgetSelection} />
+              </FocusFadeIn>
 
               <FocusFadeIn delay={120} style={styles.txSection}>
                 <View style={styles.rowBetween}>
@@ -1050,8 +1070,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 10,
+    gap: 12,
+  },
+  budgetSection: {
+    paddingHorizontal: 20,
     paddingBottom: 14,
-    gap: 14,
   },
   txSection: {
     paddingHorizontal: 20,
@@ -1085,17 +1109,24 @@ const styles = StyleSheet.create({
   },
   smallPillText: { fontFamily: fonts.medium, fontSize: 12 },
 
-  statCard: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 1, gap: 10 },
-  statTop: { flexDirection: "row", alignItems: "center", gap: 8 },
+  statCard: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 15,
+    borderWidth: 1,
+    gap: 6,
+  },
+  statTop: { flexDirection: "row", alignItems: "center", gap: 6 },
   statBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 7,
     alignItems: "center",
     justifyContent: "center",
   },
-  statLabel: { fontFamily: fonts.medium, fontSize: 13 },
-  stat: { fontFamily: fonts.bold, fontSize: 20 },
+  statLabel: { fontFamily: fonts.medium, fontSize: 12 },
+  stat: { fontFamily: fonts.bold, fontSize: 16 },
 
   insights: {
     flexDirection: "row",
