@@ -40,7 +40,7 @@ function handleNotificationNavigation(response: Notifications.NotificationRespon
   } else if (data?.type === 'budget-alert') {
     router.push('/budget');
   } else if (data?.type === 'trial-reminder') {
-    router.navigate('/(tabs)/profile');
+    router.push('/subscription');
   }
 }
 

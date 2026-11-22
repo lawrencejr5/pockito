@@ -183,6 +183,10 @@ function RootLayoutNav() {
             options={{ presentation: "modal", headerShown: false }}
           />
           <Stack.Screen
+            name="subscription"
+            options={{ presentation: "modal", headerShown: false }}
+          />
+          <Stack.Screen
             name="transaction/[id]"
             options={{ presentation: "modal", headerShown: false }}
           />

@@ -3,6 +3,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useMutation, useQuery } from 'convex/react';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -51,9 +52,6 @@ export default function ProfileScreen() {
     isTrial,
     willRenew,
     expirationDate,
-    isRestoring,
-    manageSubscriptions,
-    restorePurchases,
   } = useSubscription();
 
   const favoritesSheetRef = useRef<BottomSheetModal>(null);
@@ -273,7 +271,12 @@ export default function ProfileScreen() {
                   styles.groupCard,
                   { backgroundColor: colors.card, borderColor: colors.cardBorder },
                 ]}>
-                <View style={styles.row}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    router.push('/subscription');
+                  }}
+                  style={styles.row}>
                   <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
                     <Ionicons
                       name={activePlan === 'lifetime' ? 'infinite-outline' : 'sparkles-outline'}
@@ -289,12 +292,12 @@ export default function ProfileScreen() {
                           ? 'Pockito Pro · 7-Day Free Trial'
                           : 'Pockito Pro · Monthly ($1.99/mo)'}
                     </Text>
-                    <Text style={[styles.rowSub, { color: colors.textMuted }]} numberOfLines={2}>
+                    <Text style={[styles.rowSub, { color: colors.textMuted }]} numberOfLines={1}>
                       {activePlan === 'lifetime'
-                        ? 'Active forever · One-time purchase ($34.99)'
+                        ? 'Active forever · $34.99 one-time'
                         : expirationDate
-                          ? `${isTrial ? 'Trial ends' : willRenew ? 'Renews' : 'Expires'} ${new Date(expirationDate).toLocaleDateString()}${isTrial ? ' · 2-day reminder enabled' : ''}`
-                          : '$1.99 / month'}
+                          ? `${isTrial ? 'Trial ends' : willRenew ? 'Renews' : 'Expires'} ${new Date(expirationDate).toLocaleDateString()} · Tap for details & plans`
+                          : '$1.99/mo · Tap for details & plans'}
                     </Text>
                   </View>
                   <View style={[styles.badge, { backgroundColor: 'rgba(46,158,107,0.16)' }]}>
@@ -302,69 +305,7 @@ export default function ProfileScreen() {
                       {isTrial ? 'Trial' : 'Active'}
                     </Text>
                   </View>
-                </View>
-
-                {activePlan !== 'lifetime' && (
-                  <>
-                    <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
-                    <Pressable
-                      onPress={() => {
-                        Haptics.selectionAsync().catch(() => {});
-                        void manageSubscriptions();
-                      }}
-                      style={styles.row}>
-                      <View style={[styles.rowIcon, { backgroundColor: colors.secondarySoft }]}>
-                        <Ionicons name="card-outline" size={18} color={colors.text} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.rowTitle, { color: colors.text }]}>
-                          Manage Subscription
-                        </Text>
-                        <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                          Change plan or cancel in App Store settings
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                    </Pressable>
-                  </>
-                )}
-
-                <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
-                <Pressable
-                  disabled={isRestoring}
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    void restorePurchases()
-                      .then(({ restored }) => {
-                        Alert.alert(
-                          restored ? 'Purchases Restored' : 'No Changes',
-                          restored
-                            ? 'Your Pockito Pro subscription is active.'
-                            : 'No additional active purchases were found.',
-                        );
-                      })
-                      .catch((err) => {
-                        Alert.alert(
-                          'Restore Failed',
-                          err instanceof Error ? err.message : 'Please try again.',
-                        );
-                      });
-                  }}
-                  style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
-                    <Ionicons name="refresh-outline" size={18} color={colors.tint} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowTitle, { color: colors.text }]}>Restore Purchases</Text>
-                    <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                      Sync existing App Store purchases
-                    </Text>
-                  </View>
-                  {isRestoring ? (
-                    <ActivityIndicator size="small" color={colors.tint} />
-                  ) : (
-                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                  )}
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                 </Pressable>
               </View>
             </FocusFadeIn>
