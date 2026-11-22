@@ -95,6 +95,38 @@ export const updatePreferences = mutation({
   },
 });
 
+export const updateAppLoadMetadata = mutation({
+  args: {
+    os: v.union(v.literal("ios"), v.literal("android"), v.literal("web")),
+    country: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    lastSeen: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return;
+
+    const patch: {
+      os: "ios" | "android" | "web";
+      country?: string;
+      timezone?: string;
+      lastSeen: number;
+    } = {
+      os: args.os,
+      lastSeen: args.lastSeen,
+    };
+
+    if (args.country !== undefined) {
+      patch.country = args.country;
+    }
+    if (args.timezone !== undefined) {
+      patch.timezone = args.timezone;
+    }
+
+    await ctx.db.patch(userId, patch);
+  },
+});
+
 export const storePushToken = mutation({
   args: {
     token: v.string(),
@@ -259,13 +291,22 @@ export const deleteAccount = mutation({
       await ctx.db.delete(tx._id);
     }
 
-    // 2. Delete wealth items
-    const wealthItems = await ctx.db
-      .query("wealthItems")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
+    // 2. Delete wealth items & budgets
+    const [wealthItems, budgets] = await Promise.all([
+      ctx.db
+        .query("wealthItems")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("budgets")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+    ]);
 
-    await Promise.all(wealthItems.map((item) => ctx.db.delete(item._id)));
+    await Promise.all([
+      ...wealthItems.map((item) => ctx.db.delete(item._id)),
+      ...budgets.map((budget) => ctx.db.delete(budget._id)),
+    ]);
 
     // 3. Delete auth accounts & sessions
     const [authAccounts, authSessions] = await Promise.all([

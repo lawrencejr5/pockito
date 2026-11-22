@@ -10,12 +10,15 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 
 import { CURRENCIES, type CurrencyCode } from '@/constants/currencies';
 import type { TransactionType } from '@/constants/categories';
 import type { WealthKind } from '@/constants/wealth';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
+import { resolveUserCountry } from '@/utils/country';
+import { getDeviceTimeZone } from '@/utils/reg_push_notifications';
 
 const LEGACY_KEYS = [
   'pockito.hasSignedInBefore',
@@ -75,10 +78,13 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
   const generateUploadUrl = useMutation(api.transactions.generateUploadUrl);
   const migrateLocalData = useMutation(api.sync.migrateLocalData);
   const updatePreferences = useMutation(api.users.updatePreferences);
+  const updateAppLoadMetadata = useMutation(api.users.updateAppLoadMetadata);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const migratingRef = useRef(false);
   const pendingOnboardingRef = useRef<PendingOnboardingData | null>(null);
+  const cachedCountryRef = useRef<string | null>(null);
+  const lastLocationFetchRef = useRef<number>(0);
 
   const setPendingOnboarding = useCallback(
     (data: PendingOnboardingData | null) => {
@@ -238,6 +244,64 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [isAuthenticated, migrateLocalData, updatePreferences, uploadReceiptIfNeeded]);
+
+  // Sync device OS, country location, timezone, and lastSeen on launch and foreground.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+
+    const syncMetadata = async (forceRefreshLocation = false) => {
+      try {
+        const now = Date.now();
+        if (
+          !cachedCountryRef.current ||
+          forceRefreshLocation ||
+          now - lastLocationFetchRef.current > 60 * 60 * 1000
+        ) {
+          const country = await resolveUserCountry();
+          if (country && !cancelled) {
+            cachedCountryRef.current = country;
+            lastLocationFetchRef.current = now;
+          }
+        }
+
+        if (cancelled) return;
+
+        const os: 'ios' | 'android' | 'web' =
+          Platform.OS === 'ios'
+            ? 'ios'
+            : Platform.OS === 'android'
+              ? 'android'
+              : 'web';
+
+        await updateAppLoadMetadata({
+          os,
+          country: cachedCountryRef.current ?? undefined,
+          timezone: getDeviceTimeZone(),
+          lastSeen: Date.now(),
+        });
+      } catch (err) {
+        console.error('Error updating user app load metadata:', err);
+      }
+    };
+
+    void syncMetadata();
+
+    const subscription = AppState.addEventListener(
+      'change',
+      (nextState: AppStateStatus) => {
+        if (nextState === 'active') {
+          void syncMetadata();
+        }
+      },
+    );
+
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, [isAuthenticated, updateAppLoadMetadata]);
 
   const value = useMemo<CloudSyncContextValue>(
     () => ({

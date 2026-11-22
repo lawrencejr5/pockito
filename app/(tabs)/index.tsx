@@ -432,12 +432,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              <Animated.View
-                style={[
-                  styles.stickyWrap,
-                  stickyHeaderStyle,
-                ]}
-              >
+              <Animated.View style={[styles.stickyWrap, stickyHeaderStyle]}>
                 <Animated.View
                   pointerEvents="none"
                   style={[
@@ -463,93 +458,93 @@ export default function HomeScreen() {
                     ]}
                   />
 
-                <FocusFadeIn delay={60}>
-                  <View style={styles.rowBetween}>
-                    <Text style={[styles.h2, { color: colors.text }]}>
-                      Your Money
-                    </Text>
-                    <Pressable
-                      onPress={() => periodSheetRef.current?.present()}
-                      hitSlop={8}
-                      style={[
-                        styles.smallPill,
-                        {
-                          borderColor: colors.cardBorder,
-                          backgroundColor: colors.card,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.smallPillText, { color: colors.text }]}
-                      >
-                        {selectedPeriodLabel}
+                  <FocusFadeIn delay={60}>
+                    <View style={styles.rowBetween}>
+                      <Text style={[styles.h2, { color: colors.text }]}>
+                        Your Money
                       </Text>
-                      <Ionicons
-                        name="chevron-down"
-                        size={12}
-                        color={colors.textMuted}
-                      />
-                    </Pressable>
-                  </View>
-
-                  <View style={[styles.row, { marginTop: 10 }]}>
-                    {[
-                      {
-                        label: "Income",
-                        value: incomeUsd,
-                        icon: "arrow-down",
-                        color: colors.income,
-                      },
-                      {
-                        label: "Expense",
-                        value: expenseUsd,
-                        icon: "arrow-up",
-                        color: colors.expense,
-                      },
-                    ].map((c) => (
-                      <View
-                        key={c.label}
+                      <Pressable
+                        onPress={() => periodSheetRef.current?.present()}
+                        hitSlop={8}
                         style={[
-                          styles.statCard,
+                          styles.smallPill,
                           {
-                            backgroundColor: colors.card,
                             borderColor: colors.cardBorder,
+                            backgroundColor: colors.card,
                           },
                         ]}
                       >
-                        <View style={styles.statTop}>
-                          <View
-                            style={[
-                              styles.statBadge,
-                              { backgroundColor: colors.accentSoft },
-                            ]}
-                          >
-                            <Ionicons
-                              name={c.icon as "arrow-up"}
-                              size={12}
-                              color={c.color}
-                            />
+                        <Text
+                          style={[styles.smallPillText, { color: colors.text }]}
+                        >
+                          {selectedPeriodLabel}
+                        </Text>
+                        <Ionicons
+                          name="chevron-down"
+                          size={12}
+                          color={colors.textMuted}
+                        />
+                      </Pressable>
+                    </View>
+
+                    <View style={[styles.row, { marginTop: 10 }]}>
+                      {[
+                        {
+                          label: "Income",
+                          value: incomeUsd,
+                          icon: "arrow-down",
+                          color: colors.income,
+                        },
+                        {
+                          label: "Expense",
+                          value: expenseUsd,
+                          icon: "arrow-up",
+                          color: colors.expense,
+                        },
+                      ].map((c) => (
+                        <View
+                          key={c.label}
+                          style={[
+                            styles.statCard,
+                            {
+                              backgroundColor: colors.card,
+                              borderColor: colors.cardBorder,
+                            },
+                          ]}
+                        >
+                          <View style={styles.statTop}>
+                            <View
+                              style={[
+                                styles.statBadge,
+                                { backgroundColor: colors.accentSoft },
+                              ]}
+                            >
+                              <Ionicons
+                                name={c.icon as "arrow-up"}
+                                size={12}
+                                color={c.color}
+                              />
+                            </View>
+                            <Text
+                              style={[
+                                styles.statLabel,
+                                { color: colors.textMuted },
+                              ]}
+                            >
+                              {c.label}
+                            </Text>
                           </View>
                           <Text
-                            style={[
-                              styles.statLabel,
-                              { color: colors.textMuted },
-                            ]}
+                            style={[styles.stat, { color: colors.text }]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
                           >
-                            {c.label}
+                            {format(c.value)}
                           </Text>
                         </View>
-                        <Text
-                          style={[styles.stat, { color: colors.text }]}
-                          numberOfLines={1}
-                          adjustsFontSizeToFit
-                        >
-                          {format(c.value)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </FocusFadeIn>
+                      ))}
+                    </View>
+                  </FocusFadeIn>
                 </View>
               </Animated.View>
 

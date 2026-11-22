@@ -25,6 +25,11 @@ export default defineSchema({
     timezone: v.optional(v.string()),
     lastDailyReminderDate: v.optional(v.string()),
     lastWeeklyReminderWeek: v.optional(v.string()),
+    os: v.optional(
+      v.union(v.literal("ios"), v.literal("android"), v.literal("web")),
+    ),
+    country: v.optional(v.string()),
+    lastSeen: v.optional(v.number()),
   }).index("email", ["email"]),
 
   currencies: defineTable({
