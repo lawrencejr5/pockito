@@ -1,7 +1,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,11 +10,16 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
 import Purchases from "react-native-purchases";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  FadeOutUp,
+  LinearTransition,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LegalModal, type LegalDocType } from "@/components/LegalModal";
@@ -26,23 +31,11 @@ import {
   type SubscriptionPlanId,
 } from "@/constants/subscriptions";
 
-const FEATURES = [
-  {
-    icon: "swap-vertical-outline" as const,
-    text: "Unlimited income, expenses & receipt photos",
-  },
-  {
-    icon: "pie-chart-outline" as const,
-    text: "Smart daily, weekly, monthly & custom budgets",
-  },
-  {
-    icon: "trending-up-outline" as const,
-    text: "Live net worth & personal balance sheet",
-  },
-  {
-    icon: "cloud-done-outline" as const,
-    text: "Encrypted cloud sync & multi-currency support",
-  },
+const FEATURE_PILLS = [
+  { icon: "swap-vertical-outline" as const, label: "Cashflow & Receipts" },
+  { icon: "pie-chart-outline" as const, label: "Smart Budgets" },
+  { icon: "trending-up-outline" as const, label: "Net Worth & Reports" },
+  { icon: "cloud-done-outline" as const, label: "Cloud Sync" },
 ];
 
 export function PaywallScreen() {
@@ -61,21 +54,36 @@ export function PaywallScreen() {
 
   const [selectedPlan, setSelectedPlan] =
     useState<SubscriptionPlanId>("monthly");
+  const [freeTrialEnabled, setFreeTrialEnabled] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDocType>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const impressionTrackedRef = useRef(false);
 
   useEffect(() => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web" || impressionTrackedRef.current) return;
+    impressionTrackedRef.current = true;
     Purchases.trackCustomPaywallImpression({
       offering: offering ?? undefined,
     }).catch(() => {});
   }, [offering]);
 
   const busy = isPurchasing || isRestoring || signingOut;
+  const isMonthly = selectedPlan === "monthly";
 
   const handleSelectPlan = (plan: SubscriptionPlanId) => {
     Haptics.selectionAsync().catch(() => {});
     setSelectedPlan(plan);
+    if (plan === "lifetime" && freeTrialEnabled) {
+      setFreeTrialEnabled(false);
+    }
+  };
+
+  const handleToggleFreeTrial = (nextValue: boolean) => {
+    Haptics.selectionAsync().catch(() => {});
+    setFreeTrialEnabled(nextValue);
+    if (nextValue && selectedPlan !== "monthly") {
+      setSelectedPlan("monthly");
+    }
   };
 
   const handleSubscribe = async () => {
@@ -156,7 +164,19 @@ export function PaywallScreen() {
     );
   };
 
-  const isMonthly = selectedPlan === "monthly";
+  const ctaLabel =
+    isMonthly && freeTrialEnabled
+      ? "Start 7-Day Free Trial"
+      : isMonthly
+        ? "Continue with Monthly — $1.99/mo"
+        : "Unlock Lifetime — $34.99";
+
+  const ctaSubNote =
+    isMonthly && freeTrialEnabled
+      ? "7 days free, then $1.99/month · We'll remind you 2 days before it ends"
+      : isMonthly
+        ? "Billed monthly at $1.99 USD · Cancel anytime in Settings"
+        : "One-time payment of $34.99 USD · Lifetime access with no renewals";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.sheet }]}>
@@ -164,7 +184,7 @@ export function PaywallScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Top Row: Brand + Switch Account */}
+        {/* Top Bar */}
         <View style={styles.topRow}>
           <View
             style={[styles.brandBadge, { backgroundColor: colors.accentSoft }]}
@@ -185,318 +205,371 @@ export function PaywallScreen() {
             hitSlop={8}
             style={styles.switchAccountBtn}
           >
-            <Text style={[styles.switchAccountText, { color: colors.textMuted }]}>
+            <Text
+              style={[styles.switchAccountText, { color: colors.textMuted }]}
+            >
               Sign Out
             </Text>
           </Pressable>
         </View>
 
-        {/* Headline */}
+        {/* Clean Headline & Compact Feature Pills */}
         <Animated.View
-          entering={FadeInDown.duration(300)}
+          entering={FadeInDown.duration(260)}
           style={styles.headerBlock}
         >
           <Text style={[styles.headline, { color: colors.text }]}>
-            {isMonthly
-              ? "Try Pockito free\nfor 7 days."
-              : "Own Pockito\nforever."}
+            Choose your plan
           </Text>
           <Text style={[styles.subheadline, { color: colors.textMuted }]}>
-            {isMonthly
-              ? "Unlock full access today. We'll send you a reminder 2 days before your trial ends."
-              : "One single payment of $34.99. Every feature unlocked with zero monthly bills."}
+            Full access to everything in Pockito — simple, transparent pricing.
           </Text>
-        </Animated.View>
 
-        {/* Value Highlights */}
-        <Animated.View
-          entering={FadeInDown.delay(70).duration(300)}
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.cardBorder,
-            },
-          ]}
-        >
-          {FEATURES.map((feat, index) => (
-            <View
-              key={feat.text}
-              style={[
-                styles.featureRow,
-                index < FEATURES.length - 1 && {
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: colors.cardBorder,
-                },
-              ]}
-            >
+          <View style={styles.pillsWrap}>
+            {FEATURE_PILLS.map((pill) => (
               <View
+                key={pill.label}
                 style={[
-                  styles.featureIconWrap,
-                  { backgroundColor: colors.accentSoft },
+                  styles.featurePill,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.cardBorder,
+                  },
                 ]}
               >
-                <Ionicons name={feat.icon} size={16} color={colors.tint} />
+                <Ionicons name={pill.icon} size={13} color={colors.tint} />
+                <Text style={[styles.featurePillText, { color: colors.text }]}>
+                  {pill.label}
+                </Text>
               </View>
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {feat.text}
-              </Text>
-              <Ionicons name="checkmark" size={16} color={colors.income} />
-            </View>
-          ))}
+            ))}
+          </View>
         </Animated.View>
 
-        {/* 7-Day Trial Timeline (or Lifetime Assurance) */}
+        {/* Two Large Plan Cards Front & Center */}
         <Animated.View
-          entering={FadeInDown.delay(130).duration(300)}
-          style={[styles.timelineCard, { backgroundColor: colors.darkCard }]}
+          entering={FadeInDown.delay(60).duration(280)}
+          style={styles.plansGrid}
         >
-          {isMonthly ? (
-            <>
-              <View style={styles.timelineHeader}>
-                <Ionicons
-                  name="notifications-outline"
-                  size={15}
-                  color={colors.accent}
-                />
-                <Text
-                  style={[styles.timelineTitle, { color: colors.darkCardText }]}
-                >
-                  How your 7-day free trial works
-                </Text>
-              </View>
-
-              <View style={styles.timelineSteps}>
-                <View style={styles.timelineRow}>
-                  <View
-                    style={[
-                      styles.timelineDot,
-                      { backgroundColor: colors.accent },
-                    ]}
-                  >
-                    <Ionicons name="lock-open" size={12} color="#1c1a17" />
-                  </View>
-                  <View style={styles.timelineBody}>
-                    <Text
-                      style={[
-                        styles.timelineStepTitle,
-                        { color: colors.darkCardText },
-                      ]}
-                    >
-                      Today · Full Access Unlocked
-                    </Text>
-                    <Text
-                      style={[
-                        styles.timelineStepSub,
-                        { color: colors.secondary },
-                      ]}
-                    >
-                      $0.00 due now — explore every feature free
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.timelineRow}>
-                  <View
-                    style={[
-                      styles.timelineDot,
-                      { backgroundColor: "rgba(232,210,181,0.22)" },
-                    ]}
-                  >
-                    <Ionicons
-                      name="notifications"
-                      size={12}
-                      color={colors.accent}
-                    />
-                  </View>
-                  <View style={styles.timelineBody}>
-                    <Text
-                      style={[
-                        styles.timelineStepTitle,
-                        { color: colors.darkCardText },
-                      ]}
-                    >
-                      Day 5 · 2-Day Reminder
-                    </Text>
-                    <Text
-                      style={[
-                        styles.timelineStepSub,
-                        { color: colors.secondary },
-                      ]}
-                    >
-                      We&apos;ll notify you 2 days before your trial ends
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.timelineRow}>
-                  <View
-                    style={[
-                      styles.timelineDot,
-                      { backgroundColor: "rgba(232,210,181,0.22)" },
-                    ]}
-                  >
-                    <Ionicons name="card" size={12} color={colors.accent} />
-                  </View>
-                  <View style={styles.timelineBody}>
-                    <Text
-                      style={[
-                        styles.timelineStepTitle,
-                        { color: colors.darkCardText },
-                      ]}
-                    >
-                      Day 7 · Trial Ends
-                    </Text>
-                    <Text
-                      style={[
-                        styles.timelineStepSub,
-                        { color: colors.secondary },
-                      ]}
-                    >
-                      $1.99/month begins unless cancelled beforehand
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </>
-          ) : (
-            <View style={styles.lifetimeBanner}>
-              <View
-                style={[
-                  styles.timelineDot,
-                  { backgroundColor: colors.accent },
-                ]}
-              >
-                <Ionicons name="infinite" size={14} color="#1c1a17" />
-              </View>
-              <View style={styles.timelineBody}>
-                <Text
-                  style={[
-                    styles.timelineStepTitle,
-                    { color: colors.darkCardText },
-                  ]}
-                >
-                  Pay $34.99 Once · Yours Forever
-                </Text>
-                <Text
-                  style={[styles.timelineStepSub, { color: colors.secondary }]}
-                >
-                  Includes all future updates & cloud sync with zero recurring
-                  charges.
-                </Text>
-              </View>
-            </View>
-          )}
-        </Animated.View>
-
-        {/* Plan Selector (Strictly Hardcoded USD Prices) */}
-        <Animated.View
-          entering={FadeInDown.delay(180).duration(300)}
-          style={styles.plansWrap}
-        >
-          {/* Monthly Plan */}
+          {/* Monthly Plan Card ($1.99) */}
           <Pressable
             disabled={busy}
             onPress={() => handleSelectPlan("monthly")}
             style={[
               styles.planCard,
               {
-                backgroundColor: colors.card,
-                borderColor: isMonthly ? colors.tint : colors.cardBorder,
+                backgroundColor: isMonthly ? colors.darkCard : colors.card,
+                borderColor: isMonthly ? colors.accent : colors.cardBorder,
                 borderWidth: isMonthly ? 2 : 1,
               },
             ]}
           >
-            <View style={styles.planTopRow}>
-              <View style={styles.planLeft}>
-                <View style={styles.planTitleRow}>
-                  <Ionicons
-                    name={isMonthly ? "radio-button-on" : "radio-button-off"}
-                    size={20}
-                    color={isMonthly ? colors.tint : colors.textMuted}
-                  />
-                  <Text style={[styles.planName, { color: colors.text }]}>
-                    {HARDCODED_PLANS.monthly.name}
-                  </Text>
+            <View style={styles.planCardHeader}>
+              <View>
+                <Text
+                  style={[
+                    styles.planLabel,
+                    {
+                      color: isMonthly
+                        ? colors.secondary
+                        : colors.textMuted,
+                    },
+                  ]}
+                >
+                  MONTHLY
+                </Text>
+                <Text
+                  style={[
+                    styles.planTitle,
+                    { color: isMonthly ? colors.darkCardText : colors.text },
+                  ]}
+                >
+                  {HARDCODED_PLANS.monthly.name}
+                </Text>
+              </View>
+
+              <View style={styles.planHeaderRight}>
+                {freeTrialEnabled && (
                   <View
                     style={[
                       styles.planBadge,
                       { backgroundColor: colors.accent },
                     ]}
                   >
-                    <Text style={styles.planBadgeText}>
-                      {HARDCODED_PLANS.monthly.badge}
-                    </Text>
+                    <Text style={styles.planBadgeText}>7 DAYS FREE</Text>
                   </View>
-                </View>
-                <Text style={[styles.planSub, { color: colors.textMuted }]}>
-                  {HARDCODED_PLANS.monthly.subtitle}
-                </Text>
-              </View>
-
-              <View style={styles.priceBox}>
-                <Text style={[styles.priceValue, { color: colors.text }]}>
-                  {HARDCODED_PLANS.monthly.priceDisplay}
-                </Text>
-                <Text style={[styles.priceUnit, { color: colors.textMuted }]}>
-                  {HARDCODED_PLANS.monthly.periodLabel}
-                </Text>
+                )}
+                <Ionicons
+                  name={isMonthly ? "checkmark-circle" : "ellipse-outline"}
+                  size={24}
+                  color={isMonthly ? colors.accent : colors.cardBorder}
+                />
               </View>
             </View>
+
+            <View style={styles.priceHeroRow}>
+              <Text
+                style={[
+                  styles.priceBig,
+                  { color: isMonthly ? colors.darkCardText : colors.text },
+                ]}
+              >
+                {HARDCODED_PLANS.monthly.priceDisplay}
+              </Text>
+              <Text
+                style={[
+                  styles.pricePeriod,
+                  {
+                    color: isMonthly ? colors.secondary : colors.textMuted,
+                  },
+                ]}
+              >
+                / month
+              </Text>
+            </View>
+
+            <Text
+              style={[
+                styles.planFootnote,
+                { color: isMonthly ? colors.secondary : colors.textMuted },
+              ]}
+            >
+              {freeTrialEnabled
+                ? "$0.00 due today · $1.99/mo after 7-day free trial"
+                : "Flexible monthly billing · Cancel anytime"}
+            </Text>
           </Pressable>
 
-          {/* Lifetime Plan */}
+          {/* Lifetime Plan Card ($34.99) */}
           <Pressable
             disabled={busy}
             onPress={() => handleSelectPlan("lifetime")}
             style={[
               styles.planCard,
               {
-                backgroundColor: colors.card,
-                borderColor: !isMonthly ? colors.tint : colors.cardBorder,
+                backgroundColor: !isMonthly ? colors.darkCard : colors.card,
+                borderColor: !isMonthly ? colors.accent : colors.cardBorder,
                 borderWidth: !isMonthly ? 2 : 1,
               },
             ]}
           >
-            <View style={styles.planTopRow}>
-              <View style={styles.planLeft}>
-                <View style={styles.planTitleRow}>
-                  <Ionicons
-                    name={!isMonthly ? "radio-button-on" : "radio-button-off"}
-                    size={20}
-                    color={!isMonthly ? colors.tint : colors.textMuted}
-                  />
-                  <Text style={[styles.planName, { color: colors.text }]}>
-                    {HARDCODED_PLANS.lifetime.name}
-                  </Text>
-                  <View
-                    style={[
-                      styles.planBadgeSoft,
-                      { backgroundColor: colors.accentSoft },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.planBadgeSoftText, { color: colors.tint }]}
-                    >
-                      {HARDCODED_PLANS.lifetime.badge}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={[styles.planSub, { color: colors.textMuted }]}>
-                  {HARDCODED_PLANS.lifetime.subtitle}
+            <View style={styles.planCardHeader}>
+              <View>
+                <Text
+                  style={[
+                    styles.planLabel,
+                    {
+                      color: !isMonthly
+                        ? colors.secondary
+                        : colors.textMuted,
+                    },
+                  ]}
+                >
+                  LIFETIME
+                </Text>
+                <Text
+                  style={[
+                    styles.planTitle,
+                    { color: !isMonthly ? colors.darkCardText : colors.text },
+                  ]}
+                >
+                  {HARDCODED_PLANS.lifetime.name}
                 </Text>
               </View>
 
-              <View style={styles.priceBox}>
-                <Text style={[styles.priceValue, { color: colors.text }]}>
-                  {HARDCODED_PLANS.lifetime.priceDisplay}
-                </Text>
-                <Text style={[styles.priceUnit, { color: colors.textMuted }]}>
-                  {HARDCODED_PLANS.lifetime.periodLabel}
-                </Text>
+              <View style={styles.planHeaderRight}>
+                <View
+                  style={[
+                    styles.planBadge,
+                    {
+                      backgroundColor: !isMonthly
+                        ? colors.accent
+                        : colors.accentSoft,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.planBadgeText,
+                      { color: !isMonthly ? "#1c1a17" : colors.tint },
+                    ]}
+                  >
+                    PAY ONCE
+                  </Text>
+                </View>
+                <Ionicons
+                  name={!isMonthly ? "checkmark-circle" : "ellipse-outline"}
+                  size={24}
+                  color={!isMonthly ? colors.accent : colors.cardBorder}
+                />
               </View>
             </View>
+
+            <View style={styles.priceHeroRow}>
+              <Text
+                style={[
+                  styles.priceBig,
+                  { color: !isMonthly ? colors.darkCardText : colors.text },
+                ]}
+              >
+                {HARDCODED_PLANS.lifetime.priceDisplay}
+              </Text>
+              <Text
+                style={[
+                  styles.pricePeriod,
+                  {
+                    color: !isMonthly ? colors.secondary : colors.textMuted,
+                  },
+                ]}
+              >
+                one-time
+              </Text>
+            </View>
+
+            <Text
+              style={[
+                styles.planFootnote,
+                { color: !isMonthly ? colors.secondary : colors.textMuted },
+              ]}
+            >
+              Pay once, own Pockito Pro forever · Zero monthly fees
+            </Text>
           </Pressable>
+        </Animated.View>
+
+        {/* 7-Day Free Trial Toggle Bar */}
+        <Animated.View
+          entering={FadeInDown.delay(110).duration(280)}
+          layout={LinearTransition.springify().damping(18)}
+          style={[
+            styles.trialToggleCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: freeTrialEnabled ? colors.tint : colors.cardBorder,
+            },
+          ]}
+        >
+          <Pressable
+            disabled={busy}
+            onPress={() => handleToggleFreeTrial(!freeTrialEnabled)}
+            style={styles.trialToggleRow}
+          >
+            <View
+              style={[
+                styles.trialToggleIcon,
+                {
+                  backgroundColor: freeTrialEnabled
+                    ? colors.accent
+                    : colors.accentSoft,
+                },
+              ]}
+            >
+              <Ionicons
+                name="gift-outline"
+                size={18}
+                color={freeTrialEnabled ? "#1c1a17" : colors.tint}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.trialToggleTitle, { color: colors.text }]}>
+                Enable 7-Day Free Trial
+              </Text>
+              <Text
+                style={[styles.trialToggleSub, { color: colors.textMuted }]}
+              >
+                Try Monthly Pro free · Reminder 2 days before end
+              </Text>
+            </View>
+            <Switch
+              disabled={busy}
+              value={freeTrialEnabled}
+              onValueChange={handleToggleFreeTrial}
+              trackColor={{ false: colors.cardBorder, true: colors.accent }}
+              thumbColor="#ffffff"
+            />
+          </Pressable>
+
+          {/* Compact 3-Step Timeline (Only shown when Trial Toggle is ON) */}
+          {freeTrialEnabled && isMonthly && (
+            <Animated.View
+              entering={FadeInDown.duration(220)}
+              exiting={FadeOutUp.duration(160)}
+              style={[
+                styles.timelineBox,
+                {
+                  backgroundColor: colors.sheet,
+                  borderTopColor: colors.cardBorder,
+                },
+              ]}
+            >
+              <View style={styles.timelineStep}>
+                <View
+                  style={[
+                    styles.timelineIcon,
+                    { backgroundColor: colors.accent },
+                  ]}
+                >
+                  <Ionicons name="lock-open" size={12} color="#1c1a17" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.timelineStepTitle, { color: colors.text }]}>
+                    Today · $0.00 due now
+                  </Text>
+                  <Text
+                    style={[styles.timelineStepSub, { color: colors.textMuted }]}
+                  >
+                    Instant full access to all Pockito Pro features
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.timelineStep}>
+                <View
+                  style={[
+                    styles.timelineIcon,
+                    { backgroundColor: colors.accentSoft },
+                  ]}
+                >
+                  <Ionicons
+                    name="notifications"
+                    size={12}
+                    color={colors.tint}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.timelineStepTitle, { color: colors.text }]}>
+                    Day 5 · 2-Day Reminder
+                  </Text>
+                  <Text
+                    style={[styles.timelineStepSub, { color: colors.textMuted }]}
+                  >
+                    We&apos;ll remind you 2 days before your trial ends
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.timelineStep}>
+                <View
+                  style={[
+                    styles.timelineIcon,
+                    { backgroundColor: colors.accentSoft },
+                  ]}
+                >
+                  <Ionicons name="card" size={12} color={colors.tint} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.timelineStepTitle, { color: colors.text }]}>
+                    Day 7 · $1.99/month begins
+                  </Text>
+                  <Text
+                    style={[styles.timelineStepSub, { color: colors.textMuted }]}
+                  >
+                    Cancel anytime before Day 7 to pay nothing
+                  </Text>
+                </View>
+              </View>
+            </Animated.View>
+          )}
         </Animated.View>
 
         {offeringsError && (
@@ -524,7 +597,7 @@ export function PaywallScreen() {
         )}
       </ScrollView>
 
-      {/* Fixed Bottom CTA & Compliance Footer */}
+      {/* Bottom CTA & Compliance Links */}
       <View
         style={[
           styles.footer,
@@ -549,20 +622,14 @@ export function PaywallScreen() {
             <ActivityIndicator size="small" color="#1c1a17" />
           ) : (
             <>
-              <Text style={styles.ctaBtnText}>
-                {isMonthly
-                  ? "Start 7-Day Free Trial"
-                  : "Unlock Lifetime — $34.99"}
-              </Text>
+              <Text style={styles.ctaBtnText}>{ctaLabel}</Text>
               <Ionicons name="arrow-forward" size={18} color="#1c1a17" />
             </>
           )}
         </Pressable>
 
         <Text style={[styles.ctaSubNote, { color: colors.textMuted }]}>
-          {isMonthly
-            ? "7 days free, then $1.99/month · Reminder sent 2 days before trial ends"
-            : "One-time purchase of $34.99 · No subscription renewal"}
+          {ctaSubNote}
         </Text>
 
         <View style={styles.legalRow}>
@@ -599,9 +666,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-    gap: 16,
+    paddingTop: 8,
+    paddingBottom: 18,
+    gap: 14,
   },
   topRow: {
     flexDirection: "row",
@@ -628,120 +695,146 @@ const styles = StyleSheet.create({
   headerBlock: { gap: 6 },
   headline: {
     fontFamily: fonts.bold,
-    fontSize: 31,
-    lineHeight: 36,
+    fontSize: 28,
+    lineHeight: 33,
   },
   subheadline: {
     fontFamily: fonts.regular,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  card: {
-    borderRadius: 18,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  featureRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-  },
-  featureIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  featureText: {
-    flex: 1,
-    fontFamily: fonts.medium,
     fontSize: 13.5,
+    lineHeight: 19,
   },
-
-  timelineCard: {
-    borderRadius: 18,
-    padding: 14,
-    gap: 12,
-  },
-  timelineHeader: {
+  pillsWrap: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
-  timelineTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 13.5,
-  },
-  timelineSteps: { gap: 10 },
-  timelineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  timelineDot: {
-    width: 26,
-    height: 26,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timelineBody: { flex: 1, gap: 1 },
-  timelineStepTitle: { fontFamily: fonts.semiBold, fontSize: 13 },
-  timelineStepSub: { fontFamily: fonts.regular, fontSize: 12 },
-  lifetimeBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 11,
-  },
-
-  plansWrap: { gap: 10 },
-  planCard: {
-    borderRadius: 18,
-    padding: 14,
-  },
-  planTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  planLeft: { flex: 1, gap: 4 },
-  planTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
     flexWrap: "wrap",
     gap: 7,
+    marginTop: 4,
   },
-  planName: { fontFamily: fonts.bold, fontSize: 15.5 },
+  featurePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  featurePillText: {
+    fontFamily: fonts.medium,
+    fontSize: 11.5,
+  },
+
+  plansGrid: { gap: 11 },
+  planCard: {
+    borderRadius: 22,
+    padding: 16,
+    gap: 8,
+  },
+  planCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  planLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 10.5,
+    letterSpacing: 1,
+  },
+  planTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 17,
+    marginTop: 2,
+  },
+  planHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   planBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
   },
   planBadgeText: {
     fontFamily: fonts.bold,
     fontSize: 10,
     color: "#1c1a17",
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
-  planBadgeSoft: {
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    borderRadius: 6,
+  priceHeroRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+    marginTop: 2,
   },
-  planBadgeSoftText: {
+  priceBig: {
     fontFamily: fonts.bold,
-    fontSize: 10,
-    letterSpacing: 0.4,
+    fontSize: 34,
+    lineHeight: 38,
   },
-  planSub: { fontFamily: fonts.regular, fontSize: 12, paddingLeft: 27 },
-  priceBox: { alignItems: "flex-end" },
-  priceValue: { fontFamily: fonts.bold, fontSize: 19 },
-  priceUnit: { fontFamily: fonts.medium, fontSize: 11 },
+  pricePeriod: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+  },
+  planFootnote: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+  },
+
+  trialToggleCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  trialToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  trialToggleIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trialToggleTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 14.5,
+  },
+  trialToggleSub: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    marginTop: 1,
+  },
+
+  timelineBox: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  timelineStep: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  timelineIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timelineStepTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12.5,
+  },
+  timelineStepSub: {
+    fontFamily: fonts.regular,
+    fontSize: 11.5,
+  },
 
   errorBanner: {
     flexDirection: "row",

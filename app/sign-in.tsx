@@ -201,11 +201,8 @@ export default function SignInScreen() {
   const { currency, currencies, favorites, setCurrency, toggleFavorite } =
     useCurrency();
 
-  const [step, setStep] = useState(0); // 0..7
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([
-    "Track daily income & expenses",
-    "Know my true Net Worth",
-  ]);
+  const [step, setStep] = useState(0); // 0..8
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [referralSource, setReferralSource] = useState<string>("");
   const [completedOnboardingFlow, setCompletedOnboardingFlow] = useState(false);
 
@@ -1477,7 +1474,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingBottom: 16,
     paddingTop: 10,
-    gap: 14,
+    gap: 24,
   },
   bottomActionRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   signInBackBtn: {

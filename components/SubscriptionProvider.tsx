@@ -163,6 +163,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const lastLoggedInUserIdRef = useRef<string | null>(null);
   const lastSyncedSignatureRef = useRef<string | null>(null);
+  const hasPriorSubscriptionRef = useRef<boolean>(false);
+
+  const viewerId = viewer?._id ?? null;
+  const viewerResolved = viewer !== undefined;
+  if (viewer?.subscriptionStatus && viewer.subscriptionStatus !== "none") {
+    hasPriorSubscriptionRef.current = true;
+  }
 
   const loadOfferings = useCallback(async () => {
     if (!ensurePurchasesConfigured()) {
@@ -214,7 +221,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Link RevenueCat user ID to Convex viewer._id when authenticated.
+  // Link RevenueCat user ID to Convex viewer._id once per authenticated session.
   useEffect(() => {
     let cancelled = false;
 
@@ -228,6 +235,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         if (lastLoggedInUserIdRef.current !== null) {
           lastLoggedInUserIdRef.current = null;
           lastSyncedSignatureRef.current = null;
+          hasPriorSubscriptionRef.current = false;
           await Purchases.logOut().catch(() => {});
         }
         await cancelLocalTrialReminder();
@@ -239,26 +247,27 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
 
       // Wait until Convex viewer query resolves so we always log in with viewer._id.
-      if (viewer === undefined) {
+      if (!viewerResolved) {
         if (!cancelled) setIsLoading(true);
         return;
       }
 
-      if (viewer === null) {
+      if (!viewerId) {
+        if (!cancelled) setIsLoading(false);
+        return;
+      }
+
+      // Already synced for this user — never re-enter loading state on viewer field updates.
+      if (lastLoggedInUserIdRef.current === viewerId) {
         if (!cancelled) setIsLoading(false);
         return;
       }
 
       if (!cancelled) setIsLoading(true);
       try {
-        if (lastLoggedInUserIdRef.current !== viewer._id) {
-          const { customerInfo: info } = await Purchases.logIn(viewer._id);
-          lastLoggedInUserIdRef.current = viewer._id;
-          if (!cancelled) setCustomerInfo(info);
-        } else {
-          const info = await Purchases.getCustomerInfo();
-          if (!cancelled) setCustomerInfo(info);
-        }
+        const { customerInfo: info } = await Purchases.logIn(viewerId);
+        lastLoggedInUserIdRef.current = viewerId;
+        if (!cancelled) setCustomerInfo(info);
         await loadOfferings();
       } catch (err) {
         console.warn("RevenueCat identity sync failed:", err);
@@ -272,28 +281,31 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, viewer, loadOfferings]);
+  }, [isAuthenticated, viewerId, viewerResolved, loadOfferings]);
 
   const derived = useMemo(
     () => deriveSubscriptionState(customerInfo),
     [customerInfo],
   );
 
+  if (derived.isSubscribed) {
+    hasPriorSubscriptionRef.current = true;
+  }
+
   // Sync local 2-day trial reminder & Convex subscription mirror whenever state changes.
   useEffect(() => {
-    if (!isAuthenticated || !viewer?._id || isLoading) return;
+    if (!isAuthenticated || !viewerId || isLoading) return;
 
     void syncLocalTrialReminder({
       isTrial: derived.isTrial,
       expirationDate: derived.expirationDate,
     });
 
-    const hasPriorRecord = Boolean(viewer.subscriptionStatus);
     const status = derived.isSubscribed
       ? derived.isTrial
         ? "trial"
         : "active"
-      : hasPriorRecord
+      : hasPriorSubscriptionRef.current
         ? "expired"
         : "none";
 
@@ -304,7 +316,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       typeof expMs === "number" && Number.isFinite(expMs) ? expMs : undefined;
 
     const signature = JSON.stringify({
-      userId: viewer._id,
+      userId: viewerId,
       status,
       plan: derived.activePlan ?? null,
       exp: validExpMs ?? null,
@@ -324,8 +336,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     });
   }, [
     isAuthenticated,
-    viewer?._id,
-    viewer?.subscriptionStatus,
+    viewerId,
     isLoading,
     derived,
     syncSubscriptionState,
@@ -414,15 +425,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const refreshSubscription = useCallback(async () => {
     if (!ensurePurchasesConfigured()) return;
-    setIsLoading(true);
     try {
       const info = await Purchases.getCustomerInfo();
       setCustomerInfo(info);
       await loadOfferings();
     } catch (err) {
       console.warn("Failed to refresh subscription info:", err);
-    } finally {
-      setIsLoading(false);
     }
   }, [loadOfferings]);
 

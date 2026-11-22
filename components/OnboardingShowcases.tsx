@@ -18,6 +18,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 function useAnimatedCounter(target: number, duration = 850) {
   const [val, setVal] = useState(0);
@@ -392,13 +393,65 @@ function AnimatedBar({ pct, color, delay }: { pct: number; color: string; delay:
   );
 }
 
+function AnimatedPieSlice({
+  ringSize,
+  radius,
+  strokeWidth,
+  circumference,
+  arcLen,
+  startOffset,
+  color,
+  progress,
+}: {
+  ringSize: number;
+  radius: number;
+  strokeWidth: number;
+  circumference: number;
+  arcLen: number;
+  startOffset: number;
+  color: string;
+  progress: { value: number };
+}) {
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDasharray: `${Math.max(0.01, progress.value * arcLen)} ${circumference}`,
+    strokeDashoffset: -startOffset * progress.value,
+  }));
+
+  return (
+    <AnimatedCircle
+      cx={ringSize / 2}
+      cy={ringSize / 2}
+      r={radius}
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="butt"
+      rotation={-90}
+      origin={`${ringSize / 2}, ${ringSize / 2}`}
+      fill="none"
+      animatedProps={animatedProps}
+    />
+  );
+}
+
 /**
- * Step 3 Showcase: Mirrors Report (app/report.tsx) Net Cashflow + Category Breakdown + Daily Avg.
+ * Step 4 Showcase: Mirrors Report (app/report.tsx + components/CategoryBreakdown.tsx)
+ * Period Bar + Donut Pie Chart & Legend + Key Metrics Grid.
  */
 export function ReportsInsightsShowcase() {
   const colors = Colors[useColorScheme()];
   const { format } = useCurrency();
+  const animatedTotalSpent = useAnimatedCounter(2260, 850);
 
+  const pieProgress = useSharedValue(0);
+  useEffect(() => {
+    pieProgress.value = 0;
+    pieProgress.value = withDelay(
+      140,
+      withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [pieProgress]);
+
+  const periods = ['7D', '30D', '90D', '1Y', 'ALL'] as const;
   const categories = [
     { label: 'Housing', pct: 42, amount: 950, color: '#f97316', icon: 'home-outline' as const },
     { label: 'Food & Dining', pct: 28, amount: 630, color: '#ef4444', icon: 'restaurant-outline' as const },
@@ -406,67 +459,145 @@ export function ReportsInsightsShowcase() {
     { label: 'Transport', pct: 12, amount: 270, color: '#3b82f6', icon: 'car-outline' as const },
   ];
 
+  const ringSize = 148;
+  const strokeWidth = 18;
+  const radius = (ringSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  let runningOffset = 0;
+
   return (
     <View style={styles.wrap}>
+      {/* Period Switcher Pill Bar */}
       <Animated.View
-        entering={FadeInDown.duration(300)}
-        style={[styles.heroCard, { backgroundColor: colors.darkCard }]}>
-        <View style={styles.heroTopRow}>
-          <View>
-            <Text style={[styles.balanceLabel, { color: colors.secondary }]}>
-              Net Cashflow (30D)
-            </Text>
-            <Text style={[styles.reportNetText, { color: colors.darkCardText }]}>
-              {format(2850, { sign: true })}
-            </Text>
+        entering={FadeInDown.duration(260)}
+        style={[
+          styles.reportPeriodBar,
+          { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        ]}>
+        {periods.map((p) => {
+          const active = p === '30D';
+          return (
+            <View
+              key={p}
+              style={[
+                styles.reportPeriodPill,
+                active && { backgroundColor: colors.accent },
+              ]}>
+              <Text
+                style={[
+                  styles.reportPeriodText,
+                  {
+                    color: active ? '#1c1a17' : colors.textMuted,
+                    fontFamily: active ? fonts.semiBold : fonts.medium,
+                  },
+                ]}>
+                {p}
+              </Text>
+            </View>
+          );
+        })}
+      </Animated.View>
+
+      {/* Donut Pie Chart + Category Legend (Mirrors CategoryBreakdown.tsx) */}
+      <Animated.View
+        entering={FadeInDown.delay(90).duration(320)}
+        style={[
+          styles.reportPieCard,
+          { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        ]}>
+        <View style={styles.reportRingSection}>
+          <View style={{ width: ringSize, height: ringSize, alignItems: 'center', justifyContent: 'center' }}>
+            <Svg width={ringSize} height={ringSize}>
+              <Circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={radius}
+                stroke={colors.cardBorder}
+                strokeWidth={strokeWidth}
+                fill="none"
+              />
+              {categories.map((cat) => {
+                const arcLen = (cat.pct / 100) * circumference;
+                const startOffset = runningOffset;
+                runningOffset += arcLen;
+                return (
+                  <AnimatedPieSlice
+                    key={cat.label}
+                    ringSize={ringSize}
+                    radius={radius}
+                    strokeWidth={strokeWidth}
+                    circumference={circumference}
+                    arcLen={arcLen}
+                    startOffset={startOffset}
+                    color={cat.color}
+                    progress={pieProgress}
+                  />
+                );
+              })}
+            </Svg>
+            <View style={styles.reportRingCenter}>
+              <Text style={[styles.reportRingLabel, { color: colors.textMuted }]}>
+                Total Spent
+              </Text>
+              <Text
+                style={[styles.reportRingVal, { color: colors.text }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit>
+                {format(animatedTotalSpent)}
+              </Text>
+              <Text style={[styles.reportRingSub, { color: colors.textMuted }]}>
+                {categories.length} categories
+              </Text>
+            </View>
           </View>
-          <View style={styles.debtPill}>
-            <Text style={styles.debtPillText}>38% saved</Text>
+
+          <View style={styles.reportLegendCol}>
+            {categories.map((cat) => (
+              <View key={cat.label} style={styles.reportLegendRow}>
+                <View style={[styles.legendDot, { backgroundColor: cat.color }]} />
+                <Text
+                  style={[styles.reportLegendName, { color: colors.text }]}
+                  numberOfLines={1}>
+                  {cat.label}
+                </Text>
+                <Text style={[styles.reportLegendPct, { color: colors.textMuted }]}>
+                  {cat.pct}%
+                </Text>
+              </View>
+            ))}
           </View>
         </View>
       </Animated.View>
 
+      {/* 2x2 Key Metrics Grid (Mirrors app/report.tsx) */}
       <Animated.View
-        entering={FadeInDown.delay(120).duration(320)}
-        style={[
-          styles.catCard,
-          { backgroundColor: colors.card, borderColor: colors.cardBorder },
-        ]}>
-        <Text style={[styles.catHeader, { color: colors.text }]}>Spending Breakdown</Text>
-        {categories.map((cat, idx) => (
-          <View key={cat.label} style={styles.catItem}>
-            <View style={styles.catRowTop}>
-              <View style={styles.catLeft}>
-                <Ionicons name={cat.icon} size={14} color={cat.color} />
-                <Text style={[styles.catName, { color: colors.text }]}>{cat.label}</Text>
-              </View>
-              <Text style={[styles.catMeta, { color: colors.textMuted }]}>
-                {format(cat.amount)} · {cat.pct}%
-              </Text>
-            </View>
-            <AnimatedBar pct={cat.pct} color={cat.color} delay={180 + idx * 80} />
-          </View>
-        ))}
-      </Animated.View>
-
-      <Animated.View
-        entering={FadeInDown.delay(220).duration(320)}
+        entering={FadeInDown.delay(180).duration(320)}
         style={styles.splitRow}>
         <View
           style={[
             styles.statCard,
             { backgroundColor: colors.card, borderColor: colors.cardBorder },
           ]}>
-          <Text style={[styles.statLabel, { color: colors.textMuted }]}>Daily Avg Spend</Text>
-          <Text style={[styles.statVal, { color: colors.text }]}>{format(45)}</Text>
+          <View style={styles.statTop}>
+            <View style={[styles.statIcon, { backgroundColor: colors.accentSoft }]}>
+              <Ionicons name="today-outline" size={14} color={colors.tint} />
+            </View>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Daily Avg</Text>
+          </View>
+          <Text style={[styles.statVal, { color: colors.text }]}>{format(75)}</Text>
         </View>
         <View
           style={[
             styles.statCard,
             { backgroundColor: colors.card, borderColor: colors.cardBorder },
           ]}>
-          <Text style={[styles.statLabel, { color: colors.textMuted }]}>Monthly Avg Spend</Text>
-          <Text style={[styles.statVal, { color: colors.text }]}>{format(1350)}</Text>
+          <View style={styles.statTop}>
+            <View style={[styles.statIcon, { backgroundColor: '#f9731626' }]}>
+              <Ionicons name="home-outline" size={14} color="#f97316" />
+            </View>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Top Spend</Text>
+          </View>
+          <Text style={[styles.statVal, { color: colors.expense }]}>{format(950)}</Text>
         </View>
       </Animated.View>
     </View>
@@ -692,5 +823,44 @@ const styles = StyleSheet.create({
   budgetHeroBarWrap: { gap: 6 },
   budgetHeroMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   budgetSubMeta: { fontFamily: fonts.regular, fontSize: 11 },
+
+  reportPeriodBar: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+  },
+  reportPeriodPill: {
+    flex: 1,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportPeriodText: { fontSize: 12 },
+  reportPieCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 16,
+  },
+  reportRingSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  reportRingCenter: {
+    position: 'absolute',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    gap: 1,
+  },
+  reportRingLabel: { fontFamily: fonts.medium, fontSize: 10 },
+  reportRingVal: { fontFamily: fonts.bold, fontSize: 16 },
+  reportRingSub: { fontFamily: fonts.regular, fontSize: 10 },
+  reportLegendCol: { flex: 1, gap: 8 },
+  reportLegendRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  reportLegendName: { flex: 1, fontFamily: fonts.medium, fontSize: 12 },
+  reportLegendPct: { fontFamily: fonts.semiBold, fontSize: 11 },
 });
 
