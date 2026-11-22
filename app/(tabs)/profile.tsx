@@ -24,6 +24,7 @@ import { useCurrency } from '@/components/CurrencyProvider';
 import { FavoriteCurrenciesSheet } from '@/components/FavoriteCurrenciesSheet';
 import { FocusFadeIn } from '@/components/FocusFadeIn';
 import { usePushNotification } from '@/components/PushNotificationProvider';
+import { useSubscription } from '@/components/SubscriptionProvider';
 import { useTransactions } from '@/components/TransactionsProvider';
 import { useWealth } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -45,6 +46,15 @@ export default function ProfileScreen() {
   const setNotificationsEnabled = useMutation(api.users.setNotificationsEnabled);
   const deleteAccountMutation = useMutation(api.users.deleteAccount);
   const { registerNow } = usePushNotification();
+  const {
+    activePlan,
+    isTrial,
+    willRenew,
+    expirationDate,
+    isRestoring,
+    manageSubscriptions,
+    restorePurchases,
+  } = useSubscription();
 
   const favoritesSheetRef = useRef<BottomSheetModal>(null);
 
@@ -133,7 +143,7 @@ export default function ProfileScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete account?',
-      'This permanently removes your account, transactions, receipts, and wealth items from Pockito Cloud. This cannot be undone.',
+      'This permanently removes your account, transactions, receipts, and wealth items from Pockito Cloud. This cannot be undone.\n\nNote: Deleting your account does not automatically cancel an active App Store subscription. Manage subscriptions in your Apple ID settings.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -252,6 +262,110 @@ export default function ProfileScreen() {
                   </Text>
                   <Text style={[styles.statLabel, { color: colors.secondary }]}>Currency</Text>
                 </View>
+              </View>
+            </FocusFadeIn>
+
+            {/* Subscription */}
+            <FocusFadeIn delay={90} style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>SUBSCRIPTION</Text>
+              <View
+                style={[
+                  styles.groupCard,
+                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                ]}>
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
+                    <Ionicons
+                      name={activePlan === 'lifetime' ? 'infinite-outline' : 'sparkles-outline'}
+                      size={18}
+                      color={colors.tint}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: colors.text }]}>
+                      {activePlan === 'lifetime'
+                        ? 'Pockito Pro · Lifetime'
+                        : isTrial
+                          ? 'Pockito Pro · 7-Day Free Trial'
+                          : 'Pockito Pro · Monthly ($1.99/mo)'}
+                    </Text>
+                    <Text style={[styles.rowSub, { color: colors.textMuted }]} numberOfLines={2}>
+                      {activePlan === 'lifetime'
+                        ? 'Active forever · One-time purchase ($34.99)'
+                        : expirationDate
+                          ? `${isTrial ? 'Trial ends' : willRenew ? 'Renews' : 'Expires'} ${new Date(expirationDate).toLocaleDateString()}${isTrial ? ' · 2-day reminder enabled' : ''}`
+                          : '$1.99 / month'}
+                    </Text>
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: 'rgba(46,158,107,0.16)' }]}>
+                    <Text style={[styles.badgeText, { color: colors.income }]}>
+                      {isTrial ? 'Trial' : 'Active'}
+                    </Text>
+                  </View>
+                </View>
+
+                {activePlan !== 'lifetime' && (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
+                    <Pressable
+                      onPress={() => {
+                        Haptics.selectionAsync().catch(() => {});
+                        void manageSubscriptions();
+                      }}
+                      style={styles.row}>
+                      <View style={[styles.rowIcon, { backgroundColor: colors.secondarySoft }]}>
+                        <Ionicons name="card-outline" size={18} color={colors.text} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.rowTitle, { color: colors.text }]}>
+                          Manage Subscription
+                        </Text>
+                        <Text style={[styles.rowSub, { color: colors.textMuted }]}>
+                          Change plan or cancel in App Store settings
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                    </Pressable>
+                  </>
+                )}
+
+                <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
+                <Pressable
+                  disabled={isRestoring}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    void restorePurchases()
+                      .then(({ restored }) => {
+                        Alert.alert(
+                          restored ? 'Purchases Restored' : 'No Changes',
+                          restored
+                            ? 'Your Pockito Pro subscription is active.'
+                            : 'No additional active purchases were found.',
+                        );
+                      })
+                      .catch((err) => {
+                        Alert.alert(
+                          'Restore Failed',
+                          err instanceof Error ? err.message : 'Please try again.',
+                        );
+                      });
+                  }}
+                  style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.accentSoft }]}>
+                    <Ionicons name="refresh-outline" size={18} color={colors.tint} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: colors.text }]}>Restore Purchases</Text>
+                    <Text style={[styles.rowSub, { color: colors.textMuted }]}>
+                      Sync existing App Store purchases
+                    </Text>
+                  </View>
+                  {isRestoring ? (
+                    <ActivityIndicator size="small" color={colors.tint} />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  )}
+                </Pressable>
               </View>
             </FocusFadeIn>
 

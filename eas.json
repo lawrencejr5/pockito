@@ -9,7 +9,10 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://exciting-warthog-322.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://exciting-warthog-322.convex.cloud",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_AimIoJlXPNfBgnYBBwPNYBzvKHW",
+        "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID": "pro",
+        "EXPO_PUBLIC_REVENUECAT_OFFERING_ID": "default_offering"
       }
     },
     "preview": {
@@ -19,7 +22,10 @@
       },
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://exciting-warthog-322.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://exciting-warthog-322.convex.cloud",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_AimIoJlXPNfBgnYBBwPNYBzvKHW",
+        "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID": "pro",
+        "EXPO_PUBLIC_REVENUECAT_OFFERING_ID": "default_offering"
       }
     },
     "production": {
@@ -29,7 +35,10 @@
       },
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://veracious-dinosaur-647.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://veracious-dinosaur-647.convex.cloud",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_AimIoJlXPNfBgnYBBwPNYBzvKHW",
+        "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID": "pro",
+        "EXPO_PUBLIC_REVENUECAT_OFFERING_ID": "default_offering"
       }
     }
   },

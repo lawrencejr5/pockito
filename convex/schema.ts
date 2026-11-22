@@ -30,6 +30,20 @@ export default defineSchema({
     ),
     country: v.optional(v.string()),
     lastSeen: v.optional(v.number()),
+    subscriptionStatus: v.optional(
+      v.union(
+        v.literal("trial"),
+        v.literal("active"),
+        v.literal("expired"),
+        v.literal("none"),
+      ),
+    ),
+    subscriptionPlan: v.optional(
+      v.union(v.literal("monthly"), v.literal("lifetime")),
+    ),
+    trialEndsAt: v.optional(v.number()),
+    subscriptionExpiresAt: v.optional(v.number()),
+    trialReminderSentForEndAt: v.optional(v.number()),
   }).index("email", ["email"]),
 
   currencies: defineTable({

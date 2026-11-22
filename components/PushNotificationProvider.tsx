@@ -39,6 +39,8 @@ function handleNotificationNavigation(response: Notifications.NotificationRespon
     router.navigate('/(tabs)/wealth');
   } else if (data?.type === 'budget-alert') {
     router.push('/budget');
+  } else if (data?.type === 'trial-reminder') {
+    router.navigate('/(tabs)/profile');
   }
 }
 

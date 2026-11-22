@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "pockito",
+    "name": "Pockito",
     "slug": "pockito",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -22,6 +22,7 @@
       }
     },
     "android": {
+      "package": "com.lawrencejr.pockito",
       "adaptiveIcon": {
         "backgroundColor": "#161714",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

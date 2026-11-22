@@ -240,6 +240,9 @@ export const getReminderCandidates = internalQuery({
         lastDailyReminderDate: user.lastDailyReminderDate,
         lastWeeklyReminderWeek: user.lastWeeklyReminderWeek,
         hasTransactionToday,
+        subscriptionStatus: user.subscriptionStatus,
+        trialEndsAt: user.trialEndsAt,
+        trialReminderSentForEndAt: user.trialReminderSentForEndAt,
       });
     }
 
@@ -252,11 +255,13 @@ export const markReminderSent = internalMutation({
     userId: v.id("users"),
     lastDailyReminderDate: v.optional(v.string()),
     lastWeeklyReminderWeek: v.optional(v.string()),
+    trialReminderSentForEndAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const patch: {
       lastDailyReminderDate?: string;
       lastWeeklyReminderWeek?: string;
+      trialReminderSentForEndAt?: number;
     } = {};
     if (args.lastDailyReminderDate !== undefined) {
       patch.lastDailyReminderDate = args.lastDailyReminderDate;
@@ -264,8 +269,82 @@ export const markReminderSent = internalMutation({
     if (args.lastWeeklyReminderWeek !== undefined) {
       patch.lastWeeklyReminderWeek = args.lastWeeklyReminderWeek;
     }
+    if (args.trialReminderSentForEndAt !== undefined) {
+      patch.trialReminderSentForEndAt = args.trialReminderSentForEndAt;
+    }
     if (Object.keys(patch).length > 0) {
       await ctx.db.patch(args.userId, patch);
+    }
+  },
+});
+
+export const syncSubscriptionState = mutation({
+  args: {
+    status: v.union(
+      v.literal("trial"),
+      v.literal("active"),
+      v.literal("expired"),
+      v.literal("none"),
+    ),
+    plan: v.optional(v.union(v.literal("monthly"), v.literal("lifetime"))),
+    trialEndsAt: v.optional(v.number()),
+    subscriptionExpiresAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return;
+
+    await ctx.db.patch(userId, {
+      subscriptionStatus: args.status,
+      ...(args.plan !== undefined ? { subscriptionPlan: args.plan } : {}),
+      trialEndsAt: args.trialEndsAt,
+      subscriptionExpiresAt: args.subscriptionExpiresAt,
+    });
+  },
+});
+
+export const applyRevenueCatWebhook = internalMutation({
+  args: {
+    appUserId: v.string(),
+    eventType: v.string(),
+    productId: v.optional(v.string()),
+    periodType: v.optional(v.string()),
+    expirationAtMs: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = ctx.db.normalizeId("users", args.appUserId);
+    if (!userId) return;
+
+    const user = await ctx.db.get(userId);
+    if (!user) return;
+
+    const isLifetime = args.productId?.includes("lifetime") ?? false;
+    const plan: "monthly" | "lifetime" = isLifetime ? "lifetime" : "monthly";
+
+    if (
+      args.eventType === "INITIAL_PURCHASE" ||
+      args.eventType === "RENEWAL" ||
+      args.eventType === "NON_RENEWING_PURCHASE" ||
+      args.eventType === "PRODUCT_CHANGE" ||
+      args.eventType === "UNCANCELLATION"
+    ) {
+      const isTrial = !isLifetime && args.periodType === "TRIAL";
+      await ctx.db.patch(userId, {
+        subscriptionStatus: isTrial ? "trial" : "active",
+        subscriptionPlan: plan,
+        trialEndsAt: isTrial ? args.expirationAtMs : undefined,
+        subscriptionExpiresAt: isLifetime ? undefined : args.expirationAtMs,
+      });
+      return;
+    }
+
+    if (args.eventType === "EXPIRATION") {
+      await ctx.db.patch(userId, {
+        subscriptionStatus: "expired",
+        subscriptionPlan: plan,
+        trialEndsAt: undefined,
+        subscriptionExpiresAt: args.expirationAtMs,
+      });
     }
   },
 });

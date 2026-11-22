@@ -473,6 +473,104 @@ export function ReportsInsightsShowcase() {
   );
 }
 
+/**
+ * Step 3 Showcase: Mirrors Budgets (components/BudgetHomeCard.tsx + app/budget.tsx).
+ */
+export function BudgetingShowcase() {
+  const colors = Colors[useColorScheme()];
+  const { format } = useCurrency();
+
+  const budgets = [
+    {
+      label: 'Food & Dining',
+      spent: 310,
+      limit: 500,
+      pct: 62,
+      color: '#ef4444',
+      icon: 'restaurant-outline' as const,
+      meta: 'Monthly · 12d left',
+    },
+    {
+      label: 'Shopping',
+      spent: 180,
+      limit: 300,
+      pct: 60,
+      color: '#ec4899',
+      icon: 'bag-handle-outline' as const,
+      meta: 'Monthly · On track',
+    },
+    {
+      label: 'Transport',
+      spent: 95,
+      limit: 120,
+      pct: 79,
+      color: '#fbbf24',
+      icon: 'car-outline' as const,
+      meta: 'Weekly · Careful',
+    },
+  ];
+
+  return (
+    <View style={styles.wrap}>
+      <Animated.View
+        entering={FadeInDown.duration(300)}
+        style={[styles.heroCard, { backgroundColor: colors.darkCard }]}>
+        <View style={styles.heroTopRow}>
+          <View>
+            <Text style={[styles.balanceLabel, { color: colors.secondary }]}>
+              Monthly Spending Limit
+            </Text>
+            <Text style={[styles.reportNetText, { color: colors.darkCardText }]}>
+              {format(585)} <Text style={[styles.budgetOfText, { color: colors.secondary }]}>/ {format(920)}</Text>
+            </Text>
+          </View>
+          <View style={styles.debtPill}>
+            <Text style={styles.debtPillText}>{format(335)} left</Text>
+          </View>
+        </View>
+
+        <View style={styles.budgetHeroBarWrap}>
+          <AnimatedBar pct={64} color={colors.accent} delay={120} />
+          <View style={styles.budgetHeroMetaRow}>
+            <Text style={[styles.legendText, { color: colors.secondary }]}>
+              64% used this month
+            </Text>
+            <Text style={[styles.legendText, { color: '#4ade80' }]}>
+              On track
+            </Text>
+          </View>
+        </View>
+      </Animated.View>
+
+      <Animated.View
+        entering={FadeInDown.delay(130).duration(320)}
+        style={[
+          styles.catCard,
+          { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        ]}>
+        <Text style={[styles.catHeader, { color: colors.text }]}>Category Budgets</Text>
+        {budgets.map((b, idx) => (
+          <View key={b.label} style={styles.catItem}>
+            <View style={styles.catRowTop}>
+              <View style={styles.catLeft}>
+                <Ionicons name={b.icon} size={14} color={b.color} />
+                <Text style={[styles.catName, { color: colors.text }]}>{b.label}</Text>
+              </View>
+              <Text style={[styles.catMeta, { color: colors.textMuted }]}>
+                {format(b.spent)} / {format(b.limit)}
+              </Text>
+            </View>
+            <AnimatedBar pct={b.pct} color={b.color} delay={190 + idx * 80} />
+            <Text style={[styles.budgetSubMeta, { color: colors.textMuted }]}>
+              {b.meta}
+            </Text>
+          </View>
+        ))}
+      </Animated.View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: { gap: 12, width: '100%' },
   heroCard: {
@@ -590,5 +688,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   catBarFill: { height: '100%', borderRadius: 999 },
+  budgetOfText: { fontFamily: fonts.medium, fontSize: 15 },
+  budgetHeroBarWrap: { gap: 6 },
+  budgetHeroMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  budgetSubMeta: { fontFamily: fonts.regular, fontSize: 11 },
 });
 

@@ -39,6 +39,7 @@ import Svg, { Path } from "react-native-svg";
 import { useCloudSync } from "@/components/CloudSyncProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import {
+  BudgetingShowcase,
   MoneyTrackingShowcase,
   ReportsInsightsShowcase,
   WealthBalanceSheetShowcase,
@@ -48,7 +49,7 @@ import Colors, { fonts } from "@/constants/Colors";
 import type { CurrencyInfo } from "@/constants/currencies";
 import { api } from "@/convex/_generated/api";
 
-const TOTAL_ONBOARDING_STEPS = 7; // Steps 0..6, then Step 7 = Sign In
+const TOTAL_ONBOARDING_STEPS = 8; // Steps 0..7, then Step 8 = Sign In
 const CURRENCY_PAGE_SIZE = 25;
 
 const WHY_POCKITO_OPTIONS = [
@@ -57,6 +58,12 @@ const WHY_POCKITO_OPTIONS = [
     label: "Track daily income & expenses",
     sub: "Log every transaction & receipt in seconds",
     icon: "swap-vertical-outline" as const,
+  },
+  {
+    id: "Set & stick to smart budgets",
+    label: "Set & stick to smart budgets",
+    sub: "Stay under daily, weekly & monthly spending limits",
+    icon: "pie-chart-outline" as const,
   },
   {
     id: "Know my true Net Worth",
@@ -252,10 +259,10 @@ export default function SignInScreen() {
 
   const goNext = () => {
     Haptics.selectionAsync().catch(() => {});
-    if (step === 6) {
+    if (step === 7) {
       setCompletedOnboardingFlow(true);
     }
-    setStep((s) => Math.min(7, s + 1));
+    setStep((s) => Math.min(TOTAL_ONBOARDING_STEPS, s + 1));
   };
 
   const goBack = () => {
@@ -592,13 +599,13 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.sheet }]}>
-      {/* Top Skip Bar (Steps 1..6 only) */}
-      {step >= 1 && step <= 6 && (
+      {/* Top Skip Bar (Steps 1..7 only) */}
+      {step >= 1 && step <= 7 && (
         <Animated.View entering={FadeIn.duration(220)} style={styles.topNav}>
           <Pressable
             onPress={() => {
               Haptics.selectionAsync().catch(() => {});
-              setStep(7);
+              setStep(8);
             }}
             hitSlop={8}
           >
@@ -672,7 +679,7 @@ export default function SignInScreen() {
               onPress={() => {
                 Haptics.selectionAsync().catch(() => {});
                 setCompletedOnboardingFlow(false);
-                setStep(7);
+                setStep(8);
               }}
               style={styles.signInLinkBtn}
             >
@@ -747,8 +754,36 @@ export default function SignInScreen() {
         </View>
       )}
 
-      {/* STEP 3: REPORTS & INSIGHTS SHOWCASE */}
+      {/* STEP 3: BUDGETING ON POCKITO SHOWCASE */}
       {step === 3 && (
+        <View style={styles.stepWrap}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.stepScroll}
+          >
+            <Animated.View
+              entering={FadeInDown.duration(280)}
+              style={styles.stepHeader}
+            >
+              <Text style={[styles.stepTag, { color: colors.tint }]}>
+                BUDGETS & LIMITS
+              </Text>
+              <Text style={[styles.stepTitle, { color: colors.text }]}>
+                You can budget right on Pockito
+              </Text>
+              <Text style={[styles.stepSub, { color: colors.textMuted }]}>
+                Create daily, weekly, monthly, or custom budgets across any
+                category and track how much is left in real time.
+              </Text>
+            </Animated.View>
+
+            <BudgetingShowcase />
+          </ScrollView>
+        </View>
+      )}
+
+      {/* STEP 4: REPORTS & INSIGHTS SHOWCASE */}
+      {step === 4 && (
         <View style={styles.stepWrap}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -775,8 +810,8 @@ export default function SignInScreen() {
         </View>
       )}
 
-      {/* STEP 4: WHY DO YOU NEED POCKITO? */}
-      {step === 4 && (
+      {/* STEP 5: WHY DO YOU NEED POCKITO? */}
+      {step === 5 && (
         <View style={styles.stepWrap}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -860,8 +895,8 @@ export default function SignInScreen() {
         </View>
       )}
 
-      {/* STEP 5: WHERE DID YOU HEAR ABOUT US? */}
-      {step === 5 && (
+      {/* STEP 6: WHERE DID YOU HEAR ABOUT US? */}
+      {step === 6 && (
         <View style={styles.stepWrap}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -941,8 +976,8 @@ export default function SignInScreen() {
         </View>
       )}
 
-      {/* STEP 6: CURRENCY & FAVORITES SETUP */}
-      {step === 6 && (
+      {/* STEP 7: CURRENCY & FAVORITES SETUP */}
+      {step === 7 && (
         <View style={styles.stepWrap}>
           <View style={styles.currencyHeaderWrap}>
             <Text style={[styles.stepTag, { color: colors.tint }]}>
@@ -1013,11 +1048,11 @@ export default function SignInScreen() {
         </View>
       )}
 
-      {/* Shared Bottom Progress Dots + Back & Continue Bar (Steps 1..6) */}
-      {step >= 1 && step <= 6 && (
+      {/* Shared Bottom Progress Dots + Back & Continue Bar (Steps 1..7) */}
+      {step >= 1 && step <= 7 && (
         <View style={styles.bottomBar}>
           <View style={styles.progressDots}>
-            {Array.from({ length: 6 }).map((_, i) => {
+            {Array.from({ length: 7 }).map((_, i) => {
               const active = i + 1 === step;
               const done = i + 1 < step;
               return (
@@ -1055,8 +1090,8 @@ export default function SignInScreen() {
             <Pressable
               onPress={goNext}
               disabled={
-                (step === 4 && selectedGoals.length === 0) ||
-                (step === 5 && !referralSource)
+                (step === 5 && selectedGoals.length === 0) ||
+                (step === 6 && !referralSource)
               }
               style={({ pressed }) => [
                 styles.primaryBtn,
@@ -1064,8 +1099,8 @@ export default function SignInScreen() {
                   flex: 1,
                   backgroundColor: colors.accent,
                   opacity:
-                    (step === 4 && selectedGoals.length === 0) ||
-                    (step === 5 && !referralSource)
+                    (step === 5 && selectedGoals.length === 0) ||
+                    (step === 6 && !referralSource)
                       ? 0.55
                       : pressed
                         ? 0.85
@@ -1074,7 +1109,7 @@ export default function SignInScreen() {
               ]}
             >
               <Text style={styles.primaryBtnText}>
-                {step === 6 ? "Continue to Sign In" : "Continue"}
+                {step === 7 ? "Continue to Sign In" : "Continue"}
               </Text>
               <Ionicons name="arrow-forward" size={18} color="#1c1a17" />
             </Pressable>
@@ -1082,8 +1117,8 @@ export default function SignInScreen() {
         </View>
       )}
 
-      {/* STEP 7: SIGN IN WITH APPLE / GOOGLE */}
-      {step === 7 && (
+      {/* STEP 8: SIGN IN WITH APPLE / GOOGLE */}
+      {step === 8 && (
         <View style={styles.welcomeWrap}>
           <View />
           <Animated.View

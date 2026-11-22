@@ -21,7 +21,12 @@ import {
 } from "@/components/CloudSyncProvider";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { CurrencyProvider, useCurrency } from "@/components/CurrencyProvider";
+import { PaywallScreen } from "@/components/PaywallScreen";
 import { PushNotificationProvider } from "@/components/PushNotificationProvider";
+import {
+  SubscriptionProvider,
+  useSubscription,
+} from "@/components/SubscriptionProvider";
 import {
   TransactionsProvider,
   useTransactions,
@@ -67,17 +72,19 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ConvexClientProvider>
         <CloudSyncProvider>
-          <PushNotificationProvider>
-            <CurrencyProvider>
-              <TransactionsProvider>
-                <BudgetsProvider>
-                  <WealthProvider>
-                    <RootLayoutNav />
-                  </WealthProvider>
-                </BudgetsProvider>
-              </TransactionsProvider>
-            </CurrencyProvider>
-          </PushNotificationProvider>
+          <SubscriptionProvider>
+            <PushNotificationProvider>
+              <CurrencyProvider>
+                <TransactionsProvider>
+                  <BudgetsProvider>
+                    <WealthProvider>
+                      <RootLayoutNav />
+                    </WealthProvider>
+                  </BudgetsProvider>
+                </TransactionsProvider>
+              </CurrencyProvider>
+            </PushNotificationProvider>
+          </SubscriptionProvider>
         </CloudSyncProvider>
       </ConvexClientProvider>
     </GestureHandlerRootView>
@@ -87,6 +94,7 @@ export default function RootLayout() {
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { isAuthenticated, isAuthLoading, isSyncing } = useCloudSync();
+  const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
   const { isLoading: txLoading } = useTransactions();
   const { isLoading: budgetsLoading } = useBudgets();
   const { isLoading: wealthLoading } = useWealth();
@@ -141,7 +149,11 @@ function RootLayoutNav() {
   }
 
   const isDataLoading =
-    txLoading || budgetsLoading || wealthLoading || currencyLoading;
+    txLoading ||
+    budgetsLoading ||
+    wealthLoading ||
+    currencyLoading ||
+    subscriptionLoading;
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -149,6 +161,8 @@ function RootLayoutNav() {
         <SignInScreen />
       ) : isSyncing || isDataLoading ? (
         <AppLoader />
+      ) : !isSubscribed ? (
+        <PaywallScreen />
       ) : (
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

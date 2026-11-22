@@ -165,6 +165,30 @@ export const checkAndSendReminders = internalAction({
           lastWeeklyReminderWeek: clock.weekKey,
         });
       }
+
+      // 3. 2-Day Free Trial Ending Reminder
+      if (
+        user.subscriptionStatus === "trial" &&
+        typeof user.trialEndsAt === "number" &&
+        user.trialReminderSentForEndAt !== user.trialEndsAt
+      ) {
+        const msRemaining = user.trialEndsAt - now.getTime();
+        const fortyEightHoursMs = 48 * 60 * 60 * 1000;
+        if (msRemaining > 0 && msRemaining <= fortyEightHoursMs) {
+          for (const token of user.pushTokens) {
+            toSend.push({
+              to: token,
+              title: "Your Pockito trial ends in 2 days",
+              body: "Heads up: your 7-day free trial ends soon ($1.99/mo after). Keep enjoying Pockito or manage your plan anytime in Profile.",
+              data: { type: "trial-reminder" },
+            });
+          }
+          await ctx.runMutation(internal.users.markReminderSent, {
+            userId: user.userId,
+            trialReminderSentForEndAt: user.trialEndsAt,
+          });
+        }
+      }
     }
 
     await sendPushBatch(toSend);
