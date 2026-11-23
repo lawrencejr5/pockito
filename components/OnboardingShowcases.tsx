@@ -454,7 +454,7 @@ export function ReportsInsightsShowcase() {
   const periods = ['7D', '30D', '90D', '1Y', 'ALL'] as const;
   const categories = [
     { label: 'Housing', pct: 42, amount: 950, color: '#f97316', icon: 'home-outline' as const },
-    { label: 'Food & Dining', pct: 28, amount: 630, color: '#ef4444', icon: 'restaurant-outline' as const },
+    { label: 'Food', pct: 28, amount: 630, color: '#14b8a6', icon: 'restaurant-outline' as const },
     { label: 'Shopping', pct: 18, amount: 410, color: '#ec4899', icon: 'bag-handle-outline' as const },
     { label: 'Transport', pct: 12, amount: 270, color: '#3b82f6', icon: 'car-outline' as const },
   ];
@@ -613,11 +613,11 @@ export function BudgetingShowcase() {
 
   const budgets = [
     {
-      label: 'Food & Dining',
+      label: 'Food',
       spent: 310,
       limit: 500,
       pct: 62,
-      color: '#ef4444',
+      color: '#14b8a6',
       icon: 'restaurant-outline' as const,
       meta: 'Monthly · 12d left',
     },

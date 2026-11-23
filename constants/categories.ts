@@ -14,7 +14,7 @@ export type Category = {
 
 export const EXPENSE_CATEGORIES: Category[] = [
   { id: 'groceries', label: 'Groceries', icon: 'basket-outline', color: '#f59e0b', type: 'expense' },
-  { id: 'food', label: 'Food & Dining', icon: 'restaurant-outline', color: '#ef4444', type: 'expense' },
+  { id: 'food', label: 'Food', icon: 'restaurant-outline', color: '#14b8a6', type: 'expense' },
   { id: 'shopping', label: 'Shopping', icon: 'bag-handle-outline', color: '#ec4899', type: 'expense' },
   { id: 'entertainment', label: 'Entertainment', icon: 'film-outline', color: '#a855f7', type: 'expense' },
   { id: 'health', label: 'Health', icon: 'pulse-outline', color: '#22c55e', type: 'expense' },

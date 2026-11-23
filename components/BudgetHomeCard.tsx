@@ -80,29 +80,8 @@ export function BudgetHomeCard({ selection }: Props) {
           },
         ]}
       >
-        <View style={styles.emptyRingWrap}>
-          <Svg width={30} height={30}>
-            <Circle
-              cx={15}
-              cy={15}
-              r={12}
-              stroke={colors.accentSoft}
-              strokeWidth={3}
-              fill="none"
-            />
-            <Circle
-              cx={15}
-              cy={15}
-              r={12}
-              stroke={colors.tint}
-              strokeWidth={3}
-              strokeDasharray={`${12 * Math.PI * 0.7} ${12 * Math.PI * 2}`}
-              strokeLinecap="round"
-              rotation={-90}
-              origin="15, 15"
-              fill="none"
-            />
-          </Svg>
+        <View style={[styles.emptyIconWrap, { backgroundColor: colors.accentSoft }]}>
+          <Ionicons name="pie-chart-outline" size={17} color={colors.tint} />
         </View>
         <Text style={[styles.title, { color: colors.text, flex: 1 }]} numberOfLines={1}>
           Set a budget
@@ -124,12 +103,7 @@ export function BudgetHomeCard({ selection }: Props) {
     colors.tint,
     colors.expense,
   );
-  const ringColor = getBudgetStatusColor(
-    primary.status,
-    scheme,
-    singleCategory ? singleCategory.color : colors.accent,
-    colors.expense,
-  );
+  const ringColor = colors.accent;
 
   const pctRounded = Math.round(primary.percent);
   const pctLabel = pctRounded > 999 ? "999%" : `${pctRounded}%`;
@@ -207,7 +181,7 @@ export function BudgetHomeCard({ selection }: Props) {
               <Ionicons
                 name={singleCategory.icon}
                 size={13}
-                color={singleCategory.color}
+                color={colors.text}
               />
             ) : !primary.isGeneral ? (
               <View style={styles.multiDots}>
@@ -268,9 +242,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 11,
   },
-  emptyRingWrap: {
-    width: 30,
-    height: 30,
+  emptyIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
