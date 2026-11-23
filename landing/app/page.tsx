@@ -153,6 +153,11 @@ export default function Home() {
           />
           Pockito
         </a>
+        <nav className={styles.navLinks} aria-label="Primary">
+          <a href="#faq">FAQ</a>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
         <a href={APP_STORE_URL} className={styles.navCta}>
           Get the app
         </a>

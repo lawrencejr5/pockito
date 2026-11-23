@@ -23,6 +23,11 @@ export default function PrivacyPage() {
           />
           Pockito
         </Link>
+        <nav className={styles.navLinks} aria-label="Primary">
+          <Link href="/#faq">FAQ</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
         <Link href="/" className={styles.backLink}>
           Back to home
         </Link>

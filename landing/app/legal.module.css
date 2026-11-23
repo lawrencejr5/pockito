@@ -24,6 +24,29 @@
   border-radius: 9px;
 }
 
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  color: var(--sage);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.navLinks a {
+  transition: color 0.2s;
+}
+
+.navLinks a:hover {
+  color: var(--sand);
+}
+
+@media (max-width: 860px) {
+  .navLinks {
+    display: none;
+  }
+}
+
 .backLink {
   color: var(--sand);
   font-size: 14px;

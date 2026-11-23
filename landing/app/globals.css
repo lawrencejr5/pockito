@@ -16,17 +16,21 @@
   padding: 0;
 }
 
+html,
+body {
+  background: var(--ink);
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 html {
   scroll-behavior: smooth;
-  background: var(--ink);
 }
 
 body {
-  background: var(--ink);
   color: var(--sand-100);
   font-family: var(--font-google-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
 }
 
 a {
