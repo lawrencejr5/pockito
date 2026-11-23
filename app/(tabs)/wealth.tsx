@@ -1,3 +1,4 @@
+import { useQuery } from "convex/react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
@@ -23,6 +24,7 @@ import Svg, { Circle, Line, Path } from "react-native-svg";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
+import { useCloudSync } from "@/components/CloudSyncProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { FocusFadeIn } from "@/components/FocusFadeIn";
 import { WealthGroupStack } from "@/components/WealthGroupStack";
@@ -30,6 +32,7 @@ import { useTransactions } from "@/components/TransactionsProvider";
 import { useWealth, type WealthItem } from "@/components/WealthProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
+import { api } from "@/convex/_generated/api";
 import {
   ASSET_CATEGORIES,
   LIABILITY_CATEGORIES,
@@ -39,6 +42,7 @@ import {
 import {
   buildBalanceSheetHtml,
   buildBalanceSheetText,
+  buildPdfFilename,
   promptDocumentExport,
 } from "@/lib/exports";
 
@@ -60,6 +64,8 @@ export default function WealthScreen() {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
   const { format, currency } = useCurrency();
+  const { isAuthenticated } = useCloudSync();
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : "skip");
   const { transactions } = useTransactions();
   const { items, includeCashBalance, setIncludeCashBalance } = useWealth();
 
@@ -257,7 +263,10 @@ export default function WealthScreen() {
 
   const handleShareBalanceSheet = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    const accountName = viewer?.fullname || viewer?.name || "Pockito User";
     const payload = {
+      accountName,
+      accountEmail: viewer?.email,
       currencyCode: currency.code,
       format,
       totalAssetsUsd,
@@ -287,6 +296,7 @@ export default function WealthScreen() {
     };
     promptDocumentExport({
       title: "Export Balance Sheet",
+      fileName: buildPdfFilename(accountName, "balance-sheet"),
       buildHtml: () => buildBalanceSheetHtml(payload),
       buildText: () => buildBalanceSheetText(payload),
     });

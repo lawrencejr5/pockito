@@ -7,6 +7,8 @@ import type { ReportPeriod, ReportStats } from '@/lib/reportStats';
 export type FormatFn = (amountUsd: number, opts?: { sign?: boolean; decimals?: number }) => string;
 
 export type ExportBalanceSheetInput = {
+  accountName?: string;
+  accountEmail?: string;
   currencyCode: string;
   format: FormatFn;
   totalAssetsUsd: number;
@@ -43,6 +45,8 @@ export type ExportFinancialSummaryInput = {
 };
 
 export type ExportSpendingReportInput = {
+  accountName?: string;
+  accountEmail?: string;
   period: ReportPeriod;
   currencyCode: string;
   format: FormatFn;
@@ -76,11 +80,11 @@ function formatShortDate(iso: string): string {
 }
 
 const PDF_BASE_STYLES = `
-  @page { margin: 28px 28px 32px 28px; }
+  @page { margin: 0; }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    padding: 0;
+    padding: 32px 30px 36px 30px;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #1c1a17;
     background: #ffffff;
@@ -319,6 +323,9 @@ export function buildBalanceSheetText(input: ExportBalanceSheetInput): string {
   const today = formatToday();
   const lines: string[] = [
     `POCKITO · PERSONAL BALANCE SHEET`,
+    ...(input.accountName
+      ? [`Account: ${input.accountName}${input.accountEmail ? ` (${input.accountEmail})` : ''}`]
+      : []),
     `As of ${today} · Currency: ${input.currencyCode}`,
     `========================================`,
     ``,
@@ -402,12 +409,16 @@ export function buildBalanceSheetHtml(input: ExportBalanceSheetInput): string {
     return `<table><thead><tr><th>Category / Item</th><th class="num">Value</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
 
+  const ownerSub = input.accountName
+    ? `${escapeHtml(input.accountName)}${input.accountEmail ? ` · ${escapeHtml(input.accountEmail)}` : ''}`
+    : 'Statement of Financial Position';
+
   const body = `
     <div class="header">
       <div>
         <div class="brand">Pockito · Wealth Statement</div>
         <h1 class="doc-title">Personal Balance Sheet</h1>
-        <div class="doc-sub">Statement of Financial Position</div>
+        <div class="doc-sub">${ownerSub}</div>
       </div>
       <div class="meta-right">
         <div class="currency-pill">${escapeHtml(input.currencyCode)}</div>
@@ -724,6 +735,9 @@ export function buildSpendingReportText(
   const periodLabel = period === 'All' ? 'All Time' : `Last ${period}`;
   const lines: string[] = [
     `POCKITO · SPENDING & CASHFLOW REPORT (${periodLabel})`,
+    ...(input.accountName
+      ? [`Account: ${input.accountName}${input.accountEmail ? ` (${input.accountEmail})` : ''}`]
+      : []),
     `Generated: ${today} · Currency: ${input.currencyCode}`,
     `========================================`,
     ``,
@@ -809,12 +823,16 @@ export function buildSpendingReportHtml(
           </tbody>
         </table>`;
 
+  const reportOwnerPrefix = input.accountName
+    ? `${escapeHtml(input.accountName)} · `
+    : '';
+
   const body = `
     <div class="header">
       <div>
         <div class="brand">Pockito · Analytics Report</div>
         <h1 class="doc-title">Spending &amp; Cashflow Report</h1>
-        <div class="doc-sub">Period: ${escapeHtml(periodLabel)} · ${stats.txCount} total transactions</div>
+        <div class="doc-sub">${reportOwnerPrefix}Period: ${escapeHtml(periodLabel)} · ${stats.txCount} total transactions</div>
       </div>
       <div class="meta-right">
         <div class="currency-pill">${escapeHtml(input.currencyCode)}</div>
@@ -893,21 +911,56 @@ export function buildSpendingReportHtml(
   return wrapPdfHtml(body, `Pockito Report (${periodLabel})`);
 }
 
-async function exportAsPdf(html: string, title: string): Promise<void> {
+export function buildPdfFilename(accountName: string | undefined, docSlug: string): string {
+  const userSlug = (accountName ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  const cleanDoc = docSlug
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return userSlug ? `${userSlug}-pockito-${cleanDoc}.pdf` : `pockito-${cleanDoc}.pdf`;
+}
+
+async function exportAsPdf(
+  html: string,
+  title: string,
+  fileName?: string,
+): Promise<void> {
   try {
     const Print = await import('expo-print');
     const Sharing = await import('expo-sharing');
     const { uri } = await Print.printToFileAsync({ html, base64: false });
 
+    let shareUri = uri;
+    if (fileName) {
+      try {
+        const { File, Paths } = await import('expo-file-system');
+        const safeName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+        const source = new File(uri);
+        const target = new File(Paths.cache, safeName);
+        if (target.exists) {
+          target.delete();
+        }
+        await source.move(target);
+        shareUri = target.uri;
+      } catch (renameErr) {
+        console.warn('Could not rename exported PDF:', renameErr);
+      }
+    }
+
     const canShare = await Sharing.isAvailableAsync();
     if (canShare) {
-      await Sharing.shareAsync(uri, {
+      await Sharing.shareAsync(shareUri, {
         mimeType: 'application/pdf',
         dialogTitle: title,
         UTI: 'com.adobe.pdf',
       });
     } else {
-      await Share.share({ url: uri, title });
+      await Share.share({ url: shareUri, title });
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -926,11 +979,12 @@ async function exportAsText(text: string, title: string): Promise<void> {
 
 export function promptDocumentExport(options: {
   title: string;
+  fileName?: string;
   buildHtml: () => string;
   buildText: () => string;
 }): void {
   const runPdf = () => {
-    void exportAsPdf(options.buildHtml(), options.title).catch((err) => {
+    void exportAsPdf(options.buildHtml(), options.title, options.fileName).catch((err) => {
       Alert.alert(
         'PDF Export Unavailable',
         err instanceof Error ? err.message : 'Unable to generate PDF.',

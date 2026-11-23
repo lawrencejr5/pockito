@@ -35,6 +35,7 @@ import { api } from '@/convex/_generated/api';
 import {
   buildFinancialSummaryHtml,
   buildFinancialSummaryText,
+  buildPdfFilename,
   promptDocumentExport,
 } from '@/lib/exports';
 import { computeReportStats } from '@/lib/reportStats';
@@ -132,6 +133,7 @@ export default function ProfileScreen() {
     };
     promptDocumentExport({
       title: 'Export Financial Summary',
+      fileName: buildPdfFilename(displayName, 'financial-summary'),
       buildHtml: () => buildFinancialSummaryHtml(payload),
       buildText: () => buildFinancialSummaryText(payload),
     });

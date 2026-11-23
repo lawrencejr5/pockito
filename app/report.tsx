@@ -1,3 +1,4 @@
+import { useQuery } from "convex/react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
@@ -10,17 +11,20 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CategoryBreakdown } from "@/components/CategoryBreakdown";
+import { useCloudSync } from "@/components/CloudSyncProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useTransactions } from "@/components/TransactionsProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
 import { getCategory } from "@/constants/categories";
+import { api } from "@/convex/_generated/api";
 import {
   computeReportStats,
   REPORT_PERIODS,
   type ReportPeriod,
 } from "@/lib/reportStats";
 import {
+  buildPdfFilename,
   buildSpendingReportHtml,
   buildSpendingReportText,
   promptDocumentExport,
@@ -30,6 +34,8 @@ export default function ReportScreen() {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
   const { format, currency } = useCurrency();
+  const { isAuthenticated } = useCloudSync();
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : "skip");
   const { transactions } = useTransactions();
   const [period, setPeriod] = useState<ReportPeriod>("30D");
 
@@ -40,7 +46,10 @@ export default function ReportScreen() {
 
   const handleExportReport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    const accountName = viewer?.fullname || viewer?.name || "Pockito User";
     const payload = {
+      accountName,
+      accountEmail: viewer?.email,
       period,
       currencyCode: currency.code,
       format,
@@ -52,6 +61,7 @@ export default function ReportScreen() {
     };
     promptDocumentExport({
       title: `Export ${period === "All" ? "All-Time" : period} Report`,
+      fileName: buildPdfFilename(accountName, "report"),
       buildHtml: () => buildSpendingReportHtml(payload),
       buildText: () => buildSpendingReportText(payload),
     });
