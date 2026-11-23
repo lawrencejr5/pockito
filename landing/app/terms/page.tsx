@@ -17,11 +17,14 @@ export default function TermsPage() {
           <Image
             src="/brand/icon.png"
             alt=""
-            width={32}
-            height={32}
+            width={34}
+            height={34}
             className={styles.brandIcon}
           />
-          Pockito
+          <span className={styles.brandText}>
+            Pockito
+            <small className={styles.brandSub}>by lawjun labs</small>
+          </span>
         </Link>
         <nav className={styles.navLinks} aria-label="Primary">
           <Link href="/#faq">FAQ</Link>

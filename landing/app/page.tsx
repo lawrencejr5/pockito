@@ -147,11 +147,14 @@ export default function Home() {
           <Image
             src="/brand/icon.png"
             alt=""
-            width={32}
-            height={32}
+            width={34}
+            height={34}
             className={styles.brandIcon}
           />
-          Pockito
+          <span className={styles.brandText}>
+            Pockito
+            <small className={styles.brandSub}>by Lawjun Labs</small>
+          </span>
         </a>
         <nav className={styles.navLinks} aria-label="Primary">
           <a href="#faq">FAQ</a>
