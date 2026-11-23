@@ -3,11 +3,14 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  Easing,
   FadeIn,
   FadeInDown,
   FadeOut,
+  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
@@ -17,10 +20,44 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
 import type { CategoryStat } from '@/lib/reportStats';
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
 const RING_SIZE = 164;
 const STROKE = 20;
 const RADIUS = (RING_SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+function AnimatedPieSlice({
+  arcLen,
+  startOffset,
+  color,
+  progress,
+}: {
+  arcLen: number;
+  startOffset: number;
+  color: string;
+  progress: { value: number };
+}) {
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDasharray: `${Math.max(0.01, progress.value * arcLen)} ${CIRCUMFERENCE}`,
+    strokeDashoffset: -startOffset * progress.value,
+  }));
+
+  return (
+    <AnimatedCircle
+      cx={RING_SIZE / 2}
+      cy={RING_SIZE / 2}
+      r={RADIUS}
+      stroke={color}
+      strokeWidth={STROKE}
+      strokeLinecap="butt"
+      rotation={-90}
+      origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+      fill="none"
+      animatedProps={animatedProps}
+    />
+  );
+}
 
 function AnimatedBar({ percent, color, trackColor }: { percent: number; color: string; trackColor: string }) {
   const widthPct = useSharedValue(0);
@@ -50,6 +87,17 @@ export function CategoryBreakdown({ categories, totalExpenseUsd }: Props) {
   const { format } = useCurrency();
   const [expanded, setExpanded] = useState(false);
 
+  const pieProgress = useSharedValue(0);
+  const categoriesKey = categories.map((c) => `${c.category.id}:${c.amountUsd}`).join('|');
+
+  useEffect(() => {
+    pieProgress.value = 0;
+    pieProgress.value = withDelay(
+      80,
+      withTiming(1, { duration: 850, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [categoriesKey, pieProgress]);
+
   if (categories.length === 0) {
     return (
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
@@ -77,22 +125,15 @@ export function CategoryBreakdown({ categories, totalExpenseUsd }: Props) {
             />
             {categories.map((item) => {
               const arcLen = (item.percent / 100) * CIRCUMFERENCE;
-              const dashOffset = -offset;
+              const startOffset = offset;
               offset += arcLen;
               return (
-                <Circle
+                <AnimatedPieSlice
                   key={item.category.id}
-                  cx={RING_SIZE / 2}
-                  cy={RING_SIZE / 2}
-                  r={RADIUS}
-                  stroke={item.category.color}
-                  strokeWidth={STROKE}
-                  strokeDasharray={`${arcLen} ${CIRCUMFERENCE}`}
-                  strokeDashoffset={dashOffset}
-                  strokeLinecap="butt"
-                  rotation={-90}
-                  origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-                  fill="none"
+                  arcLen={arcLen}
+                  startOffset={startOffset}
+                  color={item.category.color}
+                  progress={pieProgress}
                 />
               );
             })}
