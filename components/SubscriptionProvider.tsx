@@ -158,6 +158,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     useState<PurchasesPackage | null>(null);
   const [offeringsError, setOfferingsError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(isSupported);
+  const [syncedUserId, setSyncedUserId] = useState<string | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -241,6 +242,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         await cancelLocalTrialReminder();
         if (!cancelled) {
           setCustomerInfo(null);
+          setSyncedUserId(null);
           setIsLoading(false);
         }
         return;
@@ -259,7 +261,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
       // Already synced for this user — never re-enter loading state on viewer field updates.
       if (lastLoggedInUserIdRef.current === viewerId) {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setSyncedUserId(viewerId);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -272,7 +277,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.warn("RevenueCat identity sync failed:", err);
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setSyncedUserId(viewerId);
+          setIsLoading(false);
+        }
       }
     };
 
@@ -288,13 +296,33 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     [customerInfo],
   );
 
-  if (derived.isSubscribed) {
+  const effectiveIsLoading =
+    isLoading ||
+    (isAuthenticated &&
+      (!viewerResolved ||
+        (isSupported && Boolean(viewerId) && syncedUserId !== viewerId)));
+
+  const hasConvexPlan =
+    viewer?.subscriptionStatus === "active" ||
+    viewer?.subscriptionStatus === "trial";
+
+  const effectiveIsSubscribed =
+    customerInfo !== null ? derived.isSubscribed : hasConvexPlan;
+
+  const effectiveIsTrial =
+    customerInfo !== null
+      ? derived.isTrial
+      : viewer?.subscriptionStatus === "trial";
+
+  if (effectiveIsSubscribed) {
     hasPriorSubscriptionRef.current = true;
   }
 
   // Sync local 2-day trial reminder & Convex subscription mirror whenever state changes.
   useEffect(() => {
-    if (!isAuthenticated || !viewerId || isLoading) return;
+    if (!isAuthenticated || !viewerId || effectiveIsLoading || !customerInfo) {
+      return;
+    }
 
     void syncLocalTrialReminder({
       isTrial: derived.isTrial,
@@ -337,7 +365,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [
     isAuthenticated,
     viewerId,
-    isLoading,
+    effectiveIsLoading,
+    customerInfo,
     derived,
     syncSubscriptionState,
   ]);
@@ -437,11 +466,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const value = useMemo<SubscriptionContextValue>(
     () => ({
       isSupported,
-      isLoading,
+      isLoading: effectiveIsLoading,
       isPurchasing,
       isRestoring,
-      isSubscribed: derived.isSubscribed,
-      isTrial: derived.isTrial,
+      isSubscribed: effectiveIsSubscribed,
+      isTrial: effectiveIsTrial,
       willRenew: derived.willRenew,
       activePlan: derived.activePlan,
       expirationDate: derived.expirationDate,
@@ -456,9 +485,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }),
     [
       isSupported,
-      isLoading,
+      effectiveIsLoading,
       isPurchasing,
       isRestoring,
+      effectiveIsSubscribed,
+      effectiveIsTrial,
       derived,
       offering,
       monthlyPackage,

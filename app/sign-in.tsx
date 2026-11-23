@@ -1258,8 +1258,29 @@ export default function SignInScreen() {
             )}
 
             <Text style={[styles.footerNote, { color: colors.textMuted }]}>
-              Your preferences and financial data are encrypted and synced with
-              your private cloud account.
+              By continuing, you agree with our{" "}
+              <Text
+                style={[styles.footerLink, { color: colors.tint }]}
+                onPress={() => {
+                  void WebBrowser.openBrowserAsync(
+                    "https://pockito.lawjun.ng/terms",
+                  );
+                }}
+              >
+                Terms and Conditions
+              </Text>{" "}
+              and{" "}
+              <Text
+                style={[styles.footerLink, { color: colors.tint }]}
+                onPress={() => {
+                  void WebBrowser.openBrowserAsync(
+                    "https://pockito.lawjun.ng/privacy",
+                  );
+                }}
+              >
+                Privacy Policy
+              </Text>
+              .
             </Text>
 
             <Pressable
@@ -1625,6 +1646,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 12,
     marginTop: 4,
+  },
+  footerLink: {
+    fontFamily: fonts.medium,
+    textDecorationLine: "underline",
   },
 
   modalBackdrop: {

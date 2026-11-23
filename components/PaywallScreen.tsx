@@ -18,7 +18,6 @@ import Purchases from "react-native-purchases";
 import Animated, { FadeInDown, FadeOutUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { LegalModal, type LegalDocType } from "@/components/LegalModal";
 import { useSubscription } from "@/components/SubscriptionProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors, { fonts } from "@/constants/Colors";
@@ -40,18 +39,15 @@ export function PaywallScreen() {
   const {
     isSupported,
     isPurchasing,
-    isRestoring,
     offering,
     offeringsError,
     purchasePlan,
-    restorePurchases,
     refreshSubscription,
   } = useSubscription();
 
   const [selectedPlan, setSelectedPlan] =
     useState<SubscriptionPlanId>("monthly");
   const [freeTrialEnabled, setFreeTrialEnabled] = useState(false);
-  const [legalDoc, setLegalDoc] = useState<LegalDocType>(null);
   const [signingOut, setSigningOut] = useState(false);
   const impressionTrackedRef = useRef(false);
 
@@ -63,7 +59,7 @@ export function PaywallScreen() {
     }).catch(() => {});
   }, [offering]);
 
-  const busy = isPurchasing || isRestoring || signingOut;
+  const busy = isPurchasing || signingOut;
   const isMonthly = selectedPlan === "monthly";
 
   const handleSelectPlan = (plan: SubscriptionPlanId) => {
@@ -105,36 +101,6 @@ export function PaywallScreen() {
           ? err.message
           : "Unable to complete purchase. Please try again.";
       Alert.alert("Purchase Failed", message);
-    }
-  };
-
-  const handleRestore = async () => {
-    Haptics.selectionAsync().catch(() => {});
-    if (!isSupported) {
-      Alert.alert(
-        "iOS Build Required",
-        "Restore Purchases is only available in native iOS builds.",
-      );
-      return;
-    }
-
-    try {
-      const { restored } = await restorePurchases();
-      if (restored) {
-        Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
-        ).catch(() => {});
-      } else {
-        Alert.alert(
-          "No Active Subscription Found",
-          "We could not find an active Pockito Pro subscription or lifetime purchase for this Apple ID.",
-        );
-      }
-    } catch (err) {
-      Alert.alert(
-        "Restore Failed",
-        err instanceof Error ? err.message : "Please try again.",
-      );
     }
   };
 
@@ -626,33 +592,7 @@ export function PaywallScreen() {
         <Text style={[styles.ctaSubNote, { color: colors.textMuted }]}>
           {ctaSubNote}
         </Text>
-
-        <View style={styles.legalRow}>
-          <Pressable disabled={busy} onPress={handleRestore} hitSlop={8}>
-            {isRestoring ? (
-              <ActivityIndicator size="small" color={colors.tint} />
-            ) : (
-              <Text style={[styles.legalLink, { color: colors.tint }]}>
-                Restore Purchases
-              </Text>
-            )}
-          </Pressable>
-          <Text style={[styles.legalDot, { color: colors.textMuted }]}>·</Text>
-          <Pressable onPress={() => setLegalDoc("terms")} hitSlop={8}>
-            <Text style={[styles.legalLink, { color: colors.textMuted }]}>
-              Terms of Use
-            </Text>
-          </Pressable>
-          <Text style={[styles.legalDot, { color: colors.textMuted }]}>·</Text>
-          <Pressable onPress={() => setLegalDoc("privacy")} hitSlop={8}>
-            <Text style={[styles.legalLink, { color: colors.textMuted }]}>
-              Privacy Policy
-            </Text>
-          </Pressable>
-        </View>
       </View>
-
-      <LegalModal doc={legalDoc} onClose={() => setLegalDoc(null)} />
     </SafeAreaView>
   );
 }
@@ -877,17 +817,4 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     textAlign: "center",
   },
-  legalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    flexWrap: "wrap",
-    gap: 8,
-    paddingTop: 2,
-  },
-  legalLink: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
-  },
-  legalDot: { fontSize: 12 },
 });
