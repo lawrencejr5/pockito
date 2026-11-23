@@ -15,11 +15,7 @@ import {
   View,
 } from "react-native";
 import Purchases from "react-native-purchases";
-import Animated, {
-  FadeInDown,
-  FadeOutUp,
-  LinearTransition,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeOutUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LegalModal, type LegalDocType } from "@/components/LegalModal";
@@ -440,7 +436,6 @@ export function PaywallScreen() {
         {/* 7-Day Free Trial Toggle Bar */}
         <Animated.View
           entering={FadeInDown.delay(110).duration(280)}
-          layout={LinearTransition.springify().damping(18)}
           style={[
             styles.trialToggleCard,
             {
@@ -723,11 +718,11 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
   },
 
-  plansGrid: { gap: 11 },
+  plansGrid: { gap: 9 },
   planCard: {
-    borderRadius: 22,
-    padding: 16,
-    gap: 8,
+    borderRadius: 18,
+    padding: 13,
+    gap: 5,
   },
   planCardHeader: {
     flexDirection: "row",
@@ -736,48 +731,48 @@ const styles = StyleSheet.create({
   },
   planLabel: {
     fontFamily: fonts.bold,
-    fontSize: 10.5,
-    letterSpacing: 1,
+    fontSize: 10,
+    letterSpacing: 0.9,
   },
   planTitle: {
     fontFamily: fonts.bold,
-    fontSize: 17,
-    marginTop: 2,
+    fontSize: 15.5,
+    marginTop: 1,
   },
   planHeaderRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 7,
   },
   planBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 7,
   },
   planBadgeText: {
     fontFamily: fonts.bold,
-    fontSize: 10,
+    fontSize: 9.5,
     color: "#1c1a17",
     letterSpacing: 0.5,
   },
   priceHeroRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 6,
-    marginTop: 2,
+    gap: 5,
+    marginTop: 1,
   },
   priceBig: {
     fontFamily: fonts.bold,
-    fontSize: 34,
-    lineHeight: 38,
+    fontSize: 26,
+    lineHeight: 30,
   },
   pricePeriod: {
     fontFamily: fonts.semiBold,
-    fontSize: 14,
+    fontSize: 13,
   },
   planFootnote: {
     fontFamily: fonts.regular,
-    fontSize: 12.5,
+    fontSize: 12,
   },
 
   trialToggleCard: {
