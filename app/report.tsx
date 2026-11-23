@@ -20,11 +20,16 @@ import {
   REPORT_PERIODS,
   type ReportPeriod,
 } from "@/lib/reportStats";
+import {
+  buildSpendingReportHtml,
+  buildSpendingReportText,
+  promptDocumentExport,
+} from "@/lib/exports";
 
 export default function ReportScreen() {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
-  const { format } = useCurrency();
+  const { format, currency } = useCurrency();
   const { transactions } = useTransactions();
   const [period, setPeriod] = useState<ReportPeriod>("30D");
 
@@ -32,6 +37,25 @@ export default function ReportScreen() {
     () => computeReportStats(transactions, period),
     [transactions, period],
   );
+
+  const handleExportReport = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    const payload = {
+      period,
+      currencyCode: currency.code,
+      format,
+      stats,
+      getCategoryLabel: (id: string) => {
+        const cat = getCategory(id);
+        return { label: cat.label, color: cat.color };
+      },
+    };
+    promptDocumentExport({
+      title: `Export ${period === "All" ? "All-Time" : period} Report`,
+      buildHtml: () => buildSpendingReportHtml(payload),
+      buildText: () => buildSpendingReportText(payload),
+    });
+  };
 
   const largestExpenseCat = stats.largestExpense
     ? getCategory(stats.largestExpense.categoryId)
@@ -61,22 +85,39 @@ export default function ReportScreen() {
                 Category breakdown &amp; spending insights
               </Text>
             </View>
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync().catch(() => {});
-                router.back();
-              }}
-              hitSlop={10}
-              style={[
-                styles.closeBtn,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.cardBorder,
-                },
-              ]}
-            >
-              <Ionicons name="close" size={20} color={colors.text} />
-            </Pressable>
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={handleExportReport}
+                hitSlop={8}
+                style={[
+                  styles.exportBtn,
+                  {
+                    backgroundColor: colors.accentSoft,
+                  },
+                ]}
+              >
+                <Ionicons name="share-outline" size={16} color={colors.tint} />
+                <Text style={[styles.exportBtnText, { color: colors.tint }]}>
+                  Export
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  router.back();
+                }}
+                hitSlop={10}
+                style={[
+                  styles.closeBtn,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.cardBorder,
+                  },
+                ]}
+              >
+                <Ionicons name="close" size={20} color={colors.text} />
+              </Pressable>
+            </View>
           </View>
           <View
             style={[
@@ -388,6 +429,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  exportBtn: {
+    height: 38,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  exportBtnText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
   },
   closeBtn: {
     width: 38,

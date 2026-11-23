@@ -5,7 +5,6 @@ import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Switch,
   Text,
@@ -37,6 +36,11 @@ import {
   getWealthCategory,
   type WealthCategory,
 } from "@/constants/wealth";
+import {
+  buildBalanceSheetHtml,
+  buildBalanceSheetText,
+  promptDocumentExport,
+} from "@/lib/exports";
 
 type ViewMode = "overview" | "balance-sheet";
 
@@ -251,54 +255,41 @@ export default function WealthScreen() {
     strokeDashoffset: -(arcLen - gaugeProgress.value * liabArcLen),
   }));
 
-  const handleShareBalanceSheet = async () => {
+  const handleShareBalanceSheet = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    const today = new Date().toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+    const payload = {
+      currencyCode: currency.code,
+      format,
+      totalAssetsUsd,
+      totalLiabilitiesUsd,
+      netWorthUsd,
+      liquidPct,
+      debtToAssetPct,
+      monthlyIncomeUsd,
+      assetGroups: assetGroups.map((g) => ({
+        category: { label: g.category.label, color: g.category.color },
+        subtotalUsd: g.subtotalUsd,
+        items: g.items.map((it) => ({
+          name: it.name,
+          amountUsd: it.amountUsd,
+          note: it.note,
+        })),
+      })),
+      liabilityGroups: liabilityGroups.map((g) => ({
+        category: { label: g.category.label, color: g.category.color },
+        subtotalUsd: g.subtotalUsd,
+        items: g.items.map((it) => ({
+          name: it.name,
+          amountUsd: it.amountUsd,
+          note: it.note,
+        })),
+      })),
+    };
+    promptDocumentExport({
+      title: "Export Balance Sheet",
+      buildHtml: () => buildBalanceSheetHtml(payload),
+      buildText: () => buildBalanceSheetText(payload),
     });
-
-    const lines: string[] = [
-      `POCKITO BALANCE SHEET (${currency.code})`,
-      `As of ${today}`,
-      `────────────────────────`,
-      `ASSETS`,
-    ];
-
-    if (assetGroups.length === 0) {
-      lines.push(`  No assets recorded`);
-    } else {
-      for (const g of assetGroups) {
-        lines.push(`  ${g.category.label}: ${format(g.subtotalUsd)}`);
-        for (const it of g.items) {
-          lines.push(`    • ${it.name}: ${format(it.amountUsd)}`);
-        }
-      }
-    }
-    lines.push(`TOTAL ASSETS: ${format(totalAssetsUsd)}`);
-    lines.push(``);
-    lines.push(`LIABILITIES`);
-
-    if (liabilityGroups.length === 0) {
-      lines.push(`  No liabilities recorded`);
-    } else {
-      for (const g of liabilityGroups) {
-        lines.push(`  ${g.category.label}: ${format(g.subtotalUsd)}`);
-        for (const it of g.items) {
-          lines.push(`    • ${it.name}: ${format(it.amountUsd)}`);
-        }
-      }
-    }
-    lines.push(`TOTAL LIABILITIES: ${format(totalLiabilitiesUsd)}`);
-    lines.push(`────────────────────────`);
-    lines.push(`NET WORTH (EQUITY): ${format(netWorthUsd)}`);
-
-    try {
-      await Share.share({ message: lines.join("\n") });
-    } catch {
-      // User dismissed share sheet
-    }
   };
 
   return (
@@ -814,7 +805,7 @@ export default function WealthScreen() {
                       color={colors.tint}
                     />
                     <Text style={[styles.exportText, { color: colors.tint }]}>
-                      Share
+                      Export
                     </Text>
                   </Pressable>
                 </View>

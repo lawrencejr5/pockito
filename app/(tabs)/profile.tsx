@@ -10,7 +10,6 @@ import {
   Alert,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Switch,
   Text,
@@ -20,6 +19,7 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useBudgets } from '@/components/BudgetsProvider';
 import { useCloudSync } from '@/components/CloudSyncProvider';
 import { useCurrency } from '@/components/CurrencyProvider';
 import { FavoriteCurrenciesSheet } from '@/components/FavoriteCurrenciesSheet';
@@ -30,7 +30,14 @@ import { useTransactions } from '@/components/TransactionsProvider';
 import { useWealth } from '@/components/WealthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { fonts } from '@/constants/Colors';
+import { getCategory } from '@/constants/categories';
 import { api } from '@/convex/_generated/api';
+import {
+  buildFinancialSummaryHtml,
+  buildFinancialSummaryText,
+  promptDocumentExport,
+} from '@/lib/exports';
+import { computeReportStats } from '@/lib/reportStats';
 import { getDeviceTimeZone } from '@/utils/reg_push_notifications';
 
 export default function ProfileScreen() {
@@ -38,6 +45,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { currency, favorites, format } = useCurrency();
   const { transactions } = useTransactions();
+  const { activeProgresses } = useBudgets();
   const { items: wealthItems, includeCashBalance, setIncludeCashBalance } = useWealth();
   const { isAuthenticated, isSyncing } = useCloudSync();
   const { signOut } = useAuthActions();
@@ -70,7 +78,7 @@ export default function ProfileScreen() {
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }, [displayName]);
 
-  const { cashBalanceUsd, netWorthUsd } = useMemo(() => {
+  const { cashBalanceUsd, totalAssetsUsd, totalLiabilitiesUsd, netWorthUsd } = useMemo(() => {
     let cash = 0;
     for (const t of transactions) {
       cash += t.type === 'income' ? t.amountUsd : -t.amountUsd;
@@ -84,6 +92,8 @@ export default function ProfileScreen() {
     const totalAssets = assets + (includeCashBalance ? cash : 0);
     return {
       cashBalanceUsd: cash,
+      totalAssetsUsd: totalAssets,
+      totalLiabilitiesUsd: liabilities,
       netWorthUsd: totalAssets - liabilities,
     };
   }, [transactions, wealthItems, includeCashBalance]);
@@ -97,23 +107,34 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleExportSummary = async () => {
+  const handleExportSummary = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    const message = [
-      `POCKITO FINANCIAL SUMMARY (${currency.code})`,
-      `Account: ${displayName}`,
-      `────────────────────────`,
-      `Cash Balance: ${format(cashBalanceUsd)}`,
-      `Net Worth: ${format(netWorthUsd)}`,
-      `Logged Transactions: ${transactions.length}`,
-      `Wealth Items: ${wealthItems.length}`,
-    ].join('\n');
-
-    try {
-      await Share.share({ message });
-    } catch {
-      // User dismissed share sheet
-    }
+    const report30d = computeReportStats(transactions, '30D');
+    const recentTransactions = [...transactions].sort(
+      (a, b) => +new Date(b.date) - +new Date(a.date),
+    );
+    const payload = {
+      accountName: displayName,
+      accountEmail: viewer?.email,
+      currencyCode: currency.code,
+      format,
+      cashBalanceUsd,
+      totalAssetsUsd,
+      totalLiabilitiesUsd,
+      netWorthUsd,
+      report30d,
+      activeBudgets: activeProgresses,
+      recentTransactions,
+      getCategoryLabel: (id: string) => {
+        const cat = getCategory(id);
+        return { label: cat.label, color: cat.color };
+      },
+    };
+    promptDocumentExport({
+      title: 'Export Financial Summary',
+      buildHtml: () => buildFinancialSummaryHtml(payload),
+      buildText: () => buildFinancialSummaryText(payload),
+    });
   };
 
   const handleSignOut = () => {
@@ -415,7 +436,7 @@ export default function ProfileScreen() {
                       Export Financial Summary
                     </Text>
                     <Text style={[styles.rowSub, { color: colors.textMuted }]}>
-                      Share cash balance & net worth snapshot
+                      Export styled PDF or formatted text dossier
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
