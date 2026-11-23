@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import Faq, { type FaqItem } from "./Faq";
 import LottiePlayer from "./LottiePlayer";
 import styles from "./page.module.css";
 
@@ -53,6 +55,39 @@ const perks = [
   {
     title: "Private by design",
     body: "Your finances stay yours. Sign in with Apple.",
+  },
+];
+
+const faqs: FaqItem[] = [
+  {
+    question: "Is Pockito free to try?",
+    answer:
+      "Yes. You can start with a 7-day free trial on the Monthly plan ($1.99/mo afterward) or unlock Lifetime access with a single $34.99 purchase. If notifications are enabled, we also remind you 2 days before your trial ends.",
+  },
+  {
+    question: "Which currencies does Pockito support?",
+    answer:
+      "Pockito supports Naira (NGN), US Dollars (USD), Euros (EUR), British Pounds (GBP), and dozens of other currencies. You can pin your favorite currencies for quick switching when logging transactions.",
+  },
+  {
+    question: "How does Cloud Sync work?",
+    answer:
+      "Sign in with Apple or Google and your transactions, receipt photos, budgets, and wealth records are securely backed up and synced across your devices.",
+  },
+  {
+    question: "What can I track in Wealth?",
+    answer:
+      "You can log assets and liabilities across categories, view your full balance sheet and net worth gauge, and optionally auto-sync your Pockito cash balance into your total net worth.",
+  },
+  {
+    question: "Can I export my spending reports?",
+    answer:
+      "Yes. Pockito breaks down your spending by category over 7, 30, or 90 days (or all time) with daily and monthly averages, and lets you export your reports anytime.",
+  },
+  {
+    question: "How do I cancel or delete my account?",
+    answer:
+      "You can manage or cancel your subscription anytime in your Apple ID Account Settings. To permanently remove your cloud data, go to Profile → Delete Account inside the app.",
   },
 ];
 
@@ -141,18 +176,10 @@ export default function Home() {
             <AppStoreButton />
           </div>
           <div className={styles.heroVisual}>
-            <LottiePlayer
-              src="/lottie/coin.json"
-              className={`${styles.float} ${styles.coin}`}
-            />
             <Phone
               src="/screenshots/IMG_2428.PNG"
               alt="Pockito transactions list"
               priority
-            />
-            <LottiePlayer
-              src="/lottie/money.json"
-              className={`${styles.float} ${styles.money}`}
             />
           </div>
         </section>
@@ -161,7 +188,7 @@ export default function Home() {
         {features.map((f, i) => (
           <section
             key={f.eyebrow}
-            className={`${styles.feature} ${i % 2 ? styles.reverse : ""}`}
+            className={`${styles.feature} ${i % 2 === 0 ? styles.reverse : ""}`}
           >
             <div className={styles.featureText}>
               <span className={styles.eyebrow}>{f.eyebrow}</span>
@@ -192,6 +219,13 @@ export default function Home() {
           </div>
         </section>
 
+        {/* FAQ */}
+        <section className={styles.faq} id="faq">
+          <span className={styles.eyebrow}>FAQ</span>
+          <h2>Questions, answered.</h2>
+          <Faq items={faqs} />
+        </section>
+
         {/* Final CTA */}
         <section className={styles.cta} id="download">
           <LottiePlayer src="/lottie/piggy.json" className={styles.piggy} />
@@ -203,7 +237,11 @@ export default function Home() {
 
       <footer className={styles.footer}>
         <span>© 2026 Lawjun labs</span>
-        <span>Available on iPhone</span>
+        <div className={styles.footerLinks}>
+          <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/terms">Terms &amp; Conditions</Link>
+          <span>Available on iPhone</span>
+        </div>
       </footer>
     </>
   );
